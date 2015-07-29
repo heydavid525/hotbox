@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package mldb;
+
+enum FeatureType {
+  CATEGORICAL = 0;  // int32
+  NUMERICAL = 1;    // float
+  BYTES = 2;  // arbitrary byte string.
+  // Comment(wdai): timestamp should be a numerical type (in seconds).
+  // TODO(wdai): What if user wants to store double? Ignore this for now.
+}
+
+// FeatureStoreType should be determined by the frequency of a feature in
+// a dataset. This can be inferred at first ingest (schema creation) or
+// explicitly/manually determined by user.
+//
+// Comment(wdai): See Dato's nice column type inference from data.
+enum FeatureStoreType {
+  SPARSE = 0;
+  DENSE = 1;
+}
+
+message FeatureStats {
+  optional double mean = 1;
+  optional double std = 2;
+  optional double quantile_5 = 3;
+  optional double quantile_95 = 4;
+}
+
+message EpochInfo {
+  // # data in this epoch.
+  optional uint64 num_data = 1;
+
+  // # of outlier data determined at ingest time.
+  optional uint64 num_outliers = 3;
+
+  // Ingest period in unix time seconds.
+  optional uint64 ingest_time_begin = 4;
+  optional uint64 ingest_time_end = 5;
+
+  // Comment(wdai): We might want to maintain per-epoch stats since the user
+  // can query data from a range of epochs but not the whole.  stats is
+  // maintained at ingest time.
+  repeated FeatureStats stats = 2;
+}
+
+// Feature locates the feature value in DatumRecord, which has 6 data stores
+// (3 FeatureType x 2 FeatureStoreType). FeatureType and FeatureStorage type
+// identify the store in DatumRecord, and idx searches for the value in the
+// appropriate store.
+message Feature {
+  optional FeatureType type = 1 [default = CATEGORICAL];
+  optional FeatureStoreType storage_type = 2 [default = SPARSE];
+
+  // Locate feature value in the store. It represents the index for dense
+  // store (vector) or key in sparse store (map). For map lookup, not found
+  // means 0. This index is determined at schema creation.
+  optional uint32 idx = 3;
+
+  // idx on EpochInfo.stats.
+  optional uint32 stats_idx;
+}
+
+// Each data instance is stored as DatumRecord, which has 6 data stores
+// (see Feature).
+message DatumRecord {
+  optional uint32 schema_version = 1;   // for schema evolution (future work).
+  repeated int32 dense_cat_store = 2;   // dense categorical store
+  repeated float dense_num_store = 3;   // dense numerical store
+  repeated bytes dense_bytes_store = 4;   // dense byte store
+
+  // Comment(wdai): Map lookup can be expensive at transform time. Consider
+  // using double vector in the future (which is the way protobuf stores map
+  // object) sorted on uint32 key.
+  map<uint32, int32> sparse_cat_store = 5;
+  map<uint32, float> sparse_num_store = 6;
+  map<uint32, bytes> sparse_bytes_store = 7;
+}
+
+message FeatureFamily {
+  // Index lookup on family (e.g., "mobile:0" will find the first entry in
+  // features).
+  repeated Feature features = 1;
+
+  // Map from feature name (string) to index on features, used in
+  // "mobile:num_clicks" type of lookup.
+  map<string, uint32> name_to_features_idx = 2;
+}
+
+message Schema {
+  optional uint32 version = 1 [default = 0];
+
+  // name (string) --> FeatureFamily. We support multi-weight and multi-labels
+  // through specially reserved families 'label' and 'weight'.
+  //
+  // Comment(wdai): This map lookup will only be done once during transform to
+  // get the index on DatumRecord stores, thus not performance critical.
+  map<string, FeatureFamily> families = 2;
+
+  // # of CATEGORICAL and NUMERICAL features, excluding label, weight, and
+  // bytes.
+  //
+  // Comemnt: 'dim' can belong to DB level if we assume static schema.
+  optional uint64 dim = 1;
+}
