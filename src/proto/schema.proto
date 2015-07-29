@@ -28,6 +28,8 @@ message FeatureStats {
 }
 
 message EpochInfo {
+  optional uint32 schema_version = 1;   // for schema evolution (future work).
+
   // # data in this epoch.
   optional uint64 num_data = 1;
 
@@ -64,17 +66,16 @@ message Feature {
 // Each data instance is stored as DatumRecord, which has 6 data stores
 // (see Feature).
 message DatumRecord {
-  optional uint32 schema_version = 1;   // for schema evolution (future work).
-  repeated int32 dense_cat_store = 2;   // dense categorical store
-  repeated float dense_num_store = 3;   // dense numerical store
-  repeated bytes dense_bytes_store = 4;   // dense byte store
+  repeated int32 dense_cat_store = 1;   // dense categorical store
+  repeated float dense_num_store = 2;   // dense numerical store
+  repeated bytes dense_bytes_store = 3;   // dense byte store
 
   // Comment(wdai): Map lookup can be expensive at transform time. Consider
   // using double vector in the future (which is the way protobuf stores map
   // object) sorted on uint32 key.
-  map<uint32, int32> sparse_cat_store = 5;
-  map<uint32, float> sparse_num_store = 6;
-  map<uint32, bytes> sparse_bytes_store = 7;
+  map<uint32, int32> sparse_cat_store = 4;
+  map<uint32, float> sparse_num_store = 5;
+  map<uint32, bytes> sparse_bytes_store = 6;
 }
 
 message FeatureFamily {
