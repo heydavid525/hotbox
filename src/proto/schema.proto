@@ -48,7 +48,7 @@ message EpochInfo {
   // maintained at ingest time.
   repeated FeatureStats stats = 2;
   // We assue each epoch would have one single FileMap object to locate the files.
-  // We use the file map index to located the object, avoiding inconsistency.
+  // We use the file map index to located the object, avoiding ojbect inconsistency.
   optional uint32 file_map_id= 7;
 }
 
@@ -65,6 +65,9 @@ message Feature {
   // means 0. This index is determined at schema creation.
   optional uint32 idx = 3;
 
+  // Comment(yuwr): How is this implemented since the FeatureStat object does
+  // not have a index in its schema definition. I am not sure abou this so I
+  // defined an explicit index in the schema definition.
   // idx on EpochInfo.stats.
   optional uint32 stats_idx;
 }
@@ -119,9 +122,10 @@ enum Compressor {
   RLE = 3;
 }
 
-// File is assumed to be stored in file chunks of a user defined fixed size (HDFS assumed).
+// File is assumed to be stored in file chunks of a user defined fixed size (e.g. HDFS).
 // Each file contains a number of data records.
-// The record would start with a length descriptor (4 bytes) used to segment each compressed record.
+// (The record would start with a length descriptor (4 bytes) used to segment each compressed record.
+// This is taken care of by the underlying storage interface.)
 message FileInfo {
   optional string filepath = 1;
   optional string filename = 2;
