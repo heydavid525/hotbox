@@ -54,12 +54,7 @@ message Feature {
   optional FeatureType type = 1 [default = CATEGORICAL];
   optional FeatureStoreType storage_type = 2 [default = SPARSE];
 
-  // Locate feature value in the store. It represents the index for dense
-  // store (vector) or key in sparse store (map). For map lookup, not found
-  // means 0. This index is determined at schema creation.
-  optional uint32 idx = 3;
-
-  // idx on EpochInfo.stats.
+  // idx on EpochInfo.stats vector.
   optional uint32 stats_idx;
 }
 
@@ -71,7 +66,7 @@ message DatumRecord {
   repeated bytes dense_bytes_store = 3;   // dense byte store
 
   // Comment(wdai): Map lookup can be expensive at transform time. Consider
-  // using double vector in the future (which is the way protobuf stores map
+  // using double vectors (which is the way protobuf stores map
   // object) sorted on uint32 key.
   map<uint32, int32> sparse_cat_store = 4;
   map<uint32, float> sparse_num_store = 5;
@@ -89,6 +84,8 @@ message FeatureFamily {
 }
 
 message Schema {
+  // version is defined based on user's schema evolution.
+  // TODO(wdai): Do we need another internal schema_id, as Weiren suggested?
   optional uint32 version = 1 [default = 0];
 
   // name (string) --> FeatureFamily. We support multi-weight and multi-labels
@@ -102,5 +99,9 @@ message Schema {
   // bytes.
   //
   // Comemnt: 'dim' can belong to DB level if we assume static schema.
-  optional uint64 dim = 1;
+  optional uint64 dim = 3;
 }
+
+// TODO(wdai): Define TSchema (TransformedSchema) that contains stats about
+// each transformed column (e.g., estimated # of nonzeros, storage type,
+// feature dim) so trainer and optimize based on these info.
