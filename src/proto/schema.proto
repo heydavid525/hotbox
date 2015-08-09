@@ -28,6 +28,18 @@ message FeatureStats {
 }
 
 message EpochInfo {
+
+  // Comment (yuwr:) This should be a schema index? We might have many
+  // schemas, each schema could have many versions.  Each epoch would
+  // correspond to a schema, but not vice versa, hence the index.
+  //
+  // Comment (wdai): Since schema really is just the mapping from "mobile:ctr"
+  // feature descriptor to the feature id, I feel that this only needs to
+  // change when (1) user changes schema explicitly, or (2) we change the
+  // internal descriptor to feature_id mapping. I feel (2) could be too costly
+  // to do and thus we only needs one version id.
+
+  // optional uint32 schema_id = 1;
   optional uint32 schema_version = 1;   // for schema evolution (future work).
 
   // # data in this epoch.
@@ -44,6 +56,9 @@ message EpochInfo {
   // can query data from a range of epochs but not the whole.  stats is
   // maintained at ingest time.
   repeated FeatureStats stats = 2;
+  // We assue each epoch would have one single FileMap object to locate the files.
+  // We use the file map index to located the object, avoiding ojbect inconsistency.
+  optional uint32 file_map_id= 7;
 }
 
 // Feature locates the feature value in DatumRecord, which has 6 data stores
@@ -54,6 +69,15 @@ message Feature {
   optional FeatureType type = 1 [default = CATEGORICAL];
   optional FeatureStoreType storage_type = 2 [default = SPARSE];
 
+  // Locate feature value in the store. It represents the index for dense
+  // store (vector) or key in sparse store (map). For map lookup, not found
+  // means 0. This index is determined at schema creation.
+  optional uint32 idx = 3;
+
+  // Comment(yuwr): How is this implemented since the FeatureStat object does
+  // not have a index in its schema definition. I am not sure abou this so I
+  // defined an explicit index in the schema definition.
+  //
   // idx on EpochInfo.stats vector.
   optional uint32 stats_idx;
 }
@@ -84,6 +108,9 @@ message FeatureFamily {
 }
 
 message Schema {
+  // (yuwr:) This should also be id?
+  // optional uint32 schema_id = 1 [default = 0];
+
   // version is defined based on user's schema evolution.
   // TODO(wdai): Do we need another internal schema_id, as Weiren suggested?
   optional uint32 version = 1 [default = 0];
@@ -99,7 +126,61 @@ message Schema {
   // bytes.
   //
   // Comemnt: 'dim' can belong to DB level if we assume static schema.
-  optional uint64 dim = 3;
+  optional uint64 dim = 1;
+} 
+
+enum Compressor {
+  RAW = 1;
+  ZIP = 2;
+  RLE = 3;
+}
+
+// File is assumed to be stored in file chunks of a user defined fixed size (e.g. HDFS).
+// Each file contains a number of data records.
+// (The record would start with a length descriptor (4 bytes) used to segment each compressed record.
+// This is taken care of by the underlying storage interface.)
+message FileInfo {
+  optional string filepath = 1;
+  optional string filename = 2;
+  optional uint32 filesize = 3; // in Bytes
+  
+  // timestamp in unix time of seconds.
+  optional uint64 creationtime = 4;
+  // # data records in the file 
+  optional uint64 num_data = 5;
+  // use datum# to locate its physical position on the file
+  // e.g. If you have a 64MB file, you can add a few indices 
+  // by the size of 4MB, to reduce sequential seek burden.
+  repeated map<uint64, uint64> data_idx= 6;
+  optional Compressor compression_method = 7 [default = RAW];
+}
+
+// Comment(wdai): Could you (Weiren) provide some comments explaining the use
+// of these fields? Thanks!
+message FileMap {
+  optional file_map_id = 1;
+  repeated FileInto files_info = 2;
+}
+
+enum StorageType {
+  NFS = 1;
+  HDFS = 2;
+}
+
+message DBMetaData {
+  // Basic information about DB.
+  optional string db_name = 3;
+  optional string db_description = 4;
+  optional uint32 num_epoch = 5;
+  optional uint32 num_schema = 6; // could be retrieved from schema_id.size();
+  optional StorageType storage_type = 7 [default = NFS];
+  // Database Creation Timestamp.
+  optional uint64 creation_time = 8;
+  
+  // There should be a view of epochs in the current DB.
+  repeated uint32 epoch_id = 1;
+  // There should also be a view of schemas in the current DB
+  repeated uint32 schema_id = 2;
 }
 
 // TODO(wdai): Define TSchema (TransformedSchema) that contains stats about
