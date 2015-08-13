@@ -1,4 +1,4 @@
-syntax = "proto3";
+syntax = "proto2";
 
 package mldb;
 
@@ -16,8 +16,9 @@ enum FeatureType {
 //
 // Comment(wdai): See Dato's nice column type inference from data.
 enum FeatureStoreType {
-  SPARSE = 0;
-  DENSE = 1;
+  DYNAMIC = 0;  // let the system decide.
+  SPARSE = 1;
+  DENSE = 2;
 }
 
 message FeatureStats {
@@ -43,7 +44,7 @@ message EpochInfo {
   optional uint32 schema_version = 1;   // for schema evolution (future work).
 
   // # data in this epoch.
-  optional uint64 num_data = 1;
+  optional uint64 num_data = 2;
 
   // # of outlier data determined at ingest time.
   optional uint64 num_outliers = 3;
@@ -55,7 +56,7 @@ message EpochInfo {
   // Comment(wdai): We might want to maintain per-epoch stats since the user
   // can query data from a range of epochs but not the whole.  stats is
   // maintained at ingest time.
-  repeated FeatureStats stats = 2;
+  repeated FeatureStats stats = 6;
   // We assue each epoch would have one single FileMap object to locate the files.
   // We use the file map index to located the object, avoiding ojbect inconsistency.
   optional uint32 file_map_id= 7;
@@ -79,7 +80,7 @@ message Feature {
   // defined an explicit index in the schema definition.
   //
   // idx on EpochInfo.stats vector.
-  optional uint32 stats_idx;
+  optional uint32 stats_idx = 4;
 }
 
 // Each data instance is stored as DatumRecord, which has 6 data stores
@@ -89,12 +90,14 @@ message DatumRecord {
   repeated float dense_num_store = 2;   // dense numerical store
   repeated bytes dense_bytes_store = 3;   // dense byte store
 
-  // Comment(wdai): Map lookup can be expensive at transform time. Consider
-  // using double vectors (which is the way protobuf stores map
-  // object) sorted on uint32 key.
-  map<uint32, int32> sparse_cat_store = 4;
-  map<uint32, float> sparse_num_store = 5;
-  map<uint32, bytes> sparse_bytes_store = 6;
+  // Sparse stores are maps, each represented by an index array and a value
+  // array.
+  repeated uint32 sparse_cat_store_idx = 4;
+  repeated int32 sparse_cat_store_val = 5;
+  repeated uint32 sparse_num_store_idx = 6;
+  repeated float sparse_num_store_val = 7;
+  repeated uint32 sparse_bytes_store_idx = 8;
+  repeated bytes sparse_bytes_store_val = 9;
 }
 
 message FeatureFamily {
@@ -103,8 +106,9 @@ message FeatureFamily {
   repeated Feature features = 1;
 
   // Map from feature name (string) to index on features, used in
-  // "mobile:num_clicks" type of lookup.
-  map<string, uint32> name_to_features_idx = 2;
+  // "mobile:num_clicks" type of lookup (name = "num_clicks").
+  repeated string name_lookup_idx = 2;
+  repeated uint32 name_lookup_val = 3;
 }
 
 message Schema {
@@ -120,14 +124,15 @@ message Schema {
   //
   // Comment(wdai): This map lookup will only be done once during transform to
   // get the index on DatumRecord stores, thus not performance critical.
-  map<string, FeatureFamily> families = 2;
+  repeated string families_map_idx = 2;
+  repeated FeatureFamily families_map_val = 3;
 
   // # of CATEGORICAL and NUMERICAL features, excluding label, weight, and
   // bytes.
   //
   // Comemnt: 'dim' can belong to DB level if we assume static schema.
-  optional uint64 dim = 1;
-} 
+  optional uint64 dim = 4;
+}
 
 enum Compressor {
   RAW = 1;
@@ -143,7 +148,7 @@ message FileInfo {
   optional string filepath = 1;
   optional string filename = 2;
   optional uint32 filesize = 3; // in Bytes
-  
+
   // timestamp in unix time of seconds.
   optional uint64 creationtime = 4;
   // # data records in the file 
@@ -151,15 +156,17 @@ message FileInfo {
   // use datum# to locate its physical position on the file
   // e.g. If you have a 64MB file, you can add a few indices 
   // by the size of 4MB, to reduce sequential seek burden.
-  repeated map<uint64, uint64> data_idx= 6;
+  // Comment(wdai): Let's not worry about this yet. Sequential read of 64MB
+  // files are okay.
+  //repeated map<uint64, uint64> data_idx= 6;
   optional Compressor compression_method = 7 [default = RAW];
 }
 
 // Comment(wdai): Could you (Weiren) provide some comments explaining the use
 // of these fields? Thanks!
 message FileMap {
-  optional file_map_id = 1;
-  repeated FileInto files_info = 2;
+  optional int32 file_map_id = 1;
+  repeated FileInfo files_info = 2;
 }
 
 enum StorageType {
@@ -176,7 +183,7 @@ message DBMetaData {
   optional StorageType storage_type = 7 [default = NFS];
   // Database Creation Timestamp.
   optional uint64 creation_time = 8;
-  
+
   // There should be a view of epochs in the current DB.
   repeated uint32 epoch_id = 1;
   // There should also be a view of schemas in the current DB

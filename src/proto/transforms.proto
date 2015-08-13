@@ -1,4 +1,6 @@
-syntax = "proto3";
+syntax = "proto2";
+
+import "proto/schema.proto";
 
 package mldb;
 
@@ -31,7 +33,7 @@ message OneHotTransform {
   // Convention: "mobile_onehot:" The # of fields in output_feature_family is
   // (# buckets) x (# input_features) if buckets is provided or, for
   // categorical features, sum of distinct values for each features.
-  optional string output_feature_family = 2
+  optional string output_feature_family = 2;
 
   // This field is optional for CATEGORICAL FeatureType
   // and default behavior creates one bucket for each CATEGORICAL value.
@@ -39,7 +41,7 @@ message OneHotTransform {
 
   // True to not include output_feature_family in the final result. The
   // output_feature_family will only be input to other transforms.
-  optional bool intermediate_only = 4 [default: false];
+  optional bool intermediate_only = 4 [default = false];
 }
 
 // Take cartesian products between input_feature_list[0],
@@ -57,7 +59,7 @@ message NgramTransform {
   // ["mobile:,web:count", "other:"]
   optional string output_feature_family = 2;
 
-  optional bool intermediate_only = 3 [default: false];
+  optional bool intermediate_only = 3 [default = false];
 }
 
 // f(p) = log(p/(1-p)) for p \in (0, 1) is very useful for transforming
@@ -73,7 +75,7 @@ message LogitTransform {
   optional double upper_bound = 3 [default = 12];
   optional double lower_bound = 4 [default = -12];
 
-  optional bool intermediate_only = 3 [default: false];
+  optional bool intermediate_only = 5 [default = false];
 }
 
 // Select raw features to include in the final output. Automatically drops
@@ -90,13 +92,6 @@ message SelectTransform {
   optional bool standardize_numeric = 3 [default = true];
 }
 
-// Transform output as dense or sparse storage type.
-enum OutputStorageType {
-  DYNAMIC = 0;  // let the system decide.
-  DENSE = 1;
-  SPARSE = 2;
-}
-
 // Hash high dimensional (sparse) features to fixed low-dim.
 message HashTransform {
   repeated string input_features = 1;
@@ -109,7 +104,7 @@ message HashTransform {
   //
   // TODO(wdai): decide based on the sparsity of, say, the first 1000 data
   // points.
-  optional OuputStorageType output_storage_type = 4 [default = DYNAMIC];
+  optional FeatureStoreType output_storage_type = 4 [default = DYNAMIC];
 
   // TODO(wdai): Option for various hash functions.
 }
@@ -121,7 +116,7 @@ message CustomTransform {
 
   // TODO(wdai): Use class registry to build transform class from string.
   // TODO(wdai): Given input_feature_list, transform class needs to return
-  // the output dimension and OutputStorageType.
+  // the output dimension and FeatureStoreType.
   optional string transform_name = 3;
 }
 
