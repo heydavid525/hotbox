@@ -5,14 +5,13 @@ include $(PROJECT)/config.mk
 
 BUILD = $(PROJECT)/build
 LIB = $(BUILD)/lib
-BIN = $(BUILD)/bin
 
-NEED_MKDIR = $(BUILD) \
-						 $(BIN) \
-             $(LIB)
+NEED_MKDIR = $(BUILD) $(LIB)
 
 all: path \
 		 mldb_lib
+
+all: mldb_lib test
 
 path: $(NEED_MKDIR)
 
@@ -51,7 +50,8 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
           -lglog \
           -lgflags \
           -ltcmalloc \
-					-lprotobuf
+					-lprotobuf \
+					-D_GLIBCXX_USE_NANOSLEEP
 LDFLAGS += $(HDFS_LDFLAGS)
 
 MLDB_SRC = $(shell find src -type f -name "*.cpp")
@@ -62,7 +62,10 @@ MLDB_OBJ = $(patsubst src/%.cpp, build/%.o, $(MLDB_SRC)) \
 MLDB_PROTO_HEADERS = $(MLDB_PROTO:.proto=.pb.h)
 
 $(MLDB_LIB): $(MLDB_OBJ) path
-	ar csrv $@ $(MLDB_OBJ)
+	@echo $(MLDB_OBJ)
+	@echo "changed files:"
+	@echo $?
+	ar csrv $@ $(filter %.o, $?)
 
 build/%.pb.o: build/%.pb.cc $(MLDB_PROTO_HEADERS)
 	mkdir -p $(@D)
@@ -71,13 +74,12 @@ build/%.pb.o: build/%.pb.cc $(MLDB_PROTO_HEADERS)
 
 build/%.o: src/%.cpp $(MLDB_HEADERS) $(MLDB_PROTO_HEADERS)
 	mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(HDFS_INCFLAGS) \
+	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(LDFLAGS) $(HDFS_INCFLAGS) \
 		$(HDFS_LDFLAGS) -c $< -o $@
-
-#$(MLDB_PROTO_OBJ): %.pb.o: %.pb.cc
-#	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c $< -o $@
 
 %.pb.cc %.pb.h: %.proto
 	$(THIRD_PARTY_BIN)/protoc --cpp_out=$(BUILD) --proto_path=src $<
 
 mldb_lib: $(MLDB_LIB)
+
+include $(PROJECT)/test/test.mk

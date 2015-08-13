@@ -1,57 +1,32 @@
 #pragma once
 
 #include <zmq.hpp>
-#include <assert.h>
-#include <stdint.h>
-#include <time.h>
 #include <string>
+#include <cstdint>
 
-namespace petuum {
+namespace mldb {
+namespace zmq_util {
 
-class ZMQUtil {
-public:
-  static zmq::context_t* CreateZmqContext(int num_zmq_threads = 1);
+zmq::context_t* CreateZmqContext(int num_zmq_threads = 1);
 
-  static std::string Convert2ZmqId(const std::string& id_str);
+// ZMQ ROUTER socket id has to be at least 1 byte and cannot start with binary
+// 0. Here we assume id_str is at least 1 byte long.  See
+// http://api.zeromq.org/4-0:zmq-setsockopt
+std::string Convert2ZmqId(const std::string& id_str);
 
-  static void ZMQSetSockOpt(zmq::socket_t *sock, int option,
-      const void *optval, size_t optval_size);
+void ZMQSetSockOpt(zmq::socket_t* sock, int option,
+    const void* optval, size_t optval_size);
 
-  static void ZMQBind(zmq::socket_t *sock, const std::string &connect_addr);
+void ZMQBind(zmq::socket_t* sock, const std::string &connect_addr);
 
-  static void ZMQConnect(zmq::socket_t *sock,
-      const std::string& connect_addr);
+void ZMQConnect(zmq::socket_t* sock, const std::string& connect_addr);
 
-  static void ZMQConnectSend(zmq::socket_t *sock,
-      const std::string& connect_addr, 
-      int32_t zmq_id, void *msg, size_t size);
+// Return success or not.
+bool ZMQSend(zmq::socket_t* sock, const std::string& dst_id,
+    const std::string& data);
 
-  // True for received, false for not
-  static bool ZMQRecvAsync(zmq::socket_t *sock, zmq::message_t *msg);
+// Blocking receive.
+zmq::message_t ZMQRecv(zmq::socket_t* sock, std::string* src_id = nullptr);
 
-  static bool ZMQRecvAsync(zmq::socket_t *sock, int32_t *zmq_id, zmq::message_t *msg);
-
-  static void ZMQRecv(zmq::socket_t *sock, zmq::message_t *msg);
-  
-  static void ZMQRecv(zmq::socket_t *sock, int32_t *zmq_id, zmq::message_t *msg);
-
-  /*
-   * return number of bytes sent
-   */
-  static size_t ZMQSend(zmq::socket_t *sock, const void *data, size_t len, 
-      int flag = 0);
-
-  // 0 means cannot be sent, try again; 
-  // should not happen unless flag = ZMQ_DONTWAIT
-  static size_t ZMQSend(zmq::socket_t *sock, int32_t zmq_id, const void *data, 
-    size_t len, int flag = 0);
-
-  // msg is nollified during the call
-  static size_t ZMQSend(zmq::socket_t *sock, zmq::message_t &msg, int flag = 0);
-
-  static size_t ZMQSend(zmq::socket_t *sock, int32_t zmq_id, 
-    zmq::message_t &msg, int flag = 0);
-
-
-};
-}
+}   // zmq_util
+}   // namespace mldb

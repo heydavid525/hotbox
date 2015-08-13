@@ -3,22 +3,29 @@ syntax = "proto2";
 package mldb;
 
 // Union of all messages from client to server.
-message ToServerMsg {
+message ClientMsg {
   oneof msg {
-    Handshake handshake_msg = 1;
+    ClientHandshake handshake_msg = 1;
+    ClientDummyRequest dummy_req = 2;
   }
 }
 
 // Union of all messages from server to client.
-message ToClientMsg {
+message ServerMsg {
   oneof msg {
-    Handshake handshake_msg = 1;
+    ServerHandshake handshake_msg = 1;
   }
 }
 
-// The first msg client send to server contains client's id, and the first
-// reply client gets from server has server's id. Id are globally unique
-// strings and used as zmq ROUTER sockets' identities.
-message Handshake {
-  optional string my_id_ = 1;
+// The first part of server's reply msg contains server router socket's
+// identity, so no need to include that.
+message ServerHandshake {
+  optional int32 client_id = 1;
+}
+
+message ClientHandshake {
+}
+
+message ClientDummyRequest {
+  optional string req = 1;
 }
