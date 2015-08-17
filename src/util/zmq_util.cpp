@@ -68,6 +68,8 @@ void ZMQConnect(zmq::socket_t* sock, const std::string& connect_addr) {
   } catch (zmq::error_t &e) {
     LOG(FATAL) << e.what();
   }
+
+  sleep(100);
 }
 
 namespace {

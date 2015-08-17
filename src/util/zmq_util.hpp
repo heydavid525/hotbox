@@ -3,6 +3,7 @@
 #include <zmq.hpp>
 #include <string>
 #include <cstdint>
+#include <unistd.h>
 
 namespace mldb {
 namespace zmq_util {
