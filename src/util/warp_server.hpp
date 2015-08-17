@@ -11,7 +11,9 @@
 namespace mldb {
 
 const int kServerPort = 19856;
+const int kClientPort = 19857;
 const std::string kServerId = zmq_util::Convert2ZmqId("mldb_server");
+const std::string kClientId = zmq_util::Convert2ZmqId("mldb_client");
 
 // WarpServer is globally unique and talks to WarpClients. Server binds to
 // tcp://*:kServerPort.

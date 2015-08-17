@@ -8,11 +8,13 @@ WarpServer::WarpServer() {
   sock_.reset(new zmq::socket_t(*zmq_ctx_, ZMQ_ROUTER));
 
   // Set a globally unique id.
-  zmq_util::ZMQSetSockOpt(sock_.get(), ZMQ_IDENTITY, &kServerId,
+  zmq_util::ZMQSetSockOpt(sock_.get(), ZMQ_IDENTITY, kServerId.c_str(),
       kServerId.size());
   LOG(INFO) << "kServerId: " << kServerId;
 
   // accept only routable messages on ROUTER sockets
+  // This option means the unroutable message would be sent anyway.
+  // If it doesn't work, it would through error.
   int sock_mandatory = 1;
   zmq_util::ZMQSetSockOpt(sock_.get(), ZMQ_ROUTER_MANDATORY, &(sock_mandatory),
       sizeof(sock_mandatory));
@@ -20,6 +22,9 @@ WarpServer::WarpServer() {
   std::string bind_addr = "tcp://*:" + std::to_string(kServerPort);
   LOG(INFO) << "Server binds to " << bind_addr;
   zmq_util::ZMQBind(sock_.get(), bind_addr);
+
+  //std::string conn_addr = "tcp://*:" + std::to_string(kClientPort);
+  //zmq_util::ZMQConnect(sock_.get(), conn_addr);
 }
 
 bool WarpServer::Send(int client_id, const std::string& data) {

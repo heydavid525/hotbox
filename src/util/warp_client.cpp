@@ -18,7 +18,8 @@ WarpClient::WarpClient(const WarpClientConfig& config) {
   auto dst_addr = "tcp://" + config.server_ip + ":" +
     std::to_string(kServerPort);
   LOG(INFO) << "Connect dst_addr: " << dst_addr;
-  zmq_util::ZMQConnect(sock_.get(), dst_addr);
+  zmq_util::ZMQConnect(sock_.get(), dst_addr);  
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
 bool WarpClient::Send(const std::string& data) {
