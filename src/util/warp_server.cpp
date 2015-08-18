@@ -7,6 +7,8 @@ WarpServer::WarpServer() {
   zmq_ctx_.reset(zmq_util::CreateZmqContext());
   SetUpRouterSocket();
 
+  //SendAnyway("random address", "Hello World\n");
+
   Workloop();
 }
 
@@ -22,8 +24,12 @@ void WarpServer::SetUpRouterSocket() {
   // This option means the unroutable message would be sent anyway.
   // If it doesn't work, it would through error.
   int sock_mandatory = 1;
-  zmq_util::ZMQSetSockOpt(sock_.get(), ZMQ_ROUTER_MANDATORY, &(sock_mandatory),
-      sizeof(sock_mandatory));
+  zmq_util::ZMQSetSockOpt( sock_.get(), ZMQ_ROUTER_MANDATORY, 
+    &(sock_mandatory), sizeof(sock_mandatory) );
+
+  int timeout = 300;
+  zmq_util::ZMQSetSockOpt( sock_.get(), ZMQ_SNDTIMEO, 
+    &(timeout), sizeof(timeout) );
 
   std::string bind_addr = "tcp://*:" + std::to_string(kServerPort);
   zmq_util::ZMQBind(sock_.get(), bind_addr);
@@ -38,14 +44,13 @@ void WarpServer::SetUpRouterSocket() {
 
 ClientMsg WarpServer::ReadClientMsg(std::string &client_id) {
   ClientMsg client_msg;
-  LOG(INFO) << "Reading ClientMsg" ;
   auto recv = zmq_util::ZMQRecv(sock_.get(), &client_id);
-  LOG(INFO) << "Parsing ClientMsg" << "size: " << recv.size();
   auto recv_str = std::string(reinterpret_cast<const char*>(recv.data()), recv.size());
+
   if (!client_msg.ParseFromString(recv_str))
     LOG(FATAL) << "Msg Parsing Failed."
-               << "From Client " << client_str2id_[client_id]
-               << ", ZMQ_ID: " << client_id;
+               << "From Client: " << client_str2id_[client_id]
+               << ", ZeroMQ ID: " << client_id;
   
   return client_msg;
 }
@@ -71,6 +76,11 @@ void WarpServer::RespondClientID(int client_id) {
   Send(client_id, server_msg_data);
 }
 
+
+void WarpServer::DummyRespond(std::string client_id_str, std::string data) {
+  Send(client_id_str, data);
+}
+
 void WarpServer::Workloop() { 
   zmq::pollitem_t items [] = {
     { *sock_.get(), 0 , ZMQ_POLLIN, 0}
@@ -83,12 +93,11 @@ void WarpServer::Workloop() {
 
     if (items [0].revents & ZMQ_POLLIN) {
       client_msg = ReadClientMsg(client_id_str);
-      LOG(INFO) << "ClientMsg Read" ;
 
       if (client_msg.has_handshake_msg()) {
         LOG(INFO) << "HandShake Message" ;
         RespondClientID(RegisterClient(client_id_str));
-        ServerSleep(100); // Pretend to do some work.
+        ServerSleep(1000); // Pretend to do some work.
       } else
 
       if (client_msg.has_dummy_req()) {
@@ -96,6 +105,8 @@ void WarpServer::Workloop() {
         std::string req_str = client_msg.dummy_req().req();
         LOG(INFO) << "Got dummy request from client " << GetClientId(client_id_str) 
                   << " request: " << req_str;
+        DummyRespond(client_id_str, "Hello World\n");
+        ServerSleep(1000); // Pretend to do some work.
       }
 
       /* // Why does this need two sockets rather than one?
@@ -124,6 +135,45 @@ bool WarpServer::Send(int client_id, const std::string& data) {
   }
   return zmq_util::ZMQSend(sock_.get(), it->second, data);
 }
+
+bool WarpServer::Send(std::string client_id_str, const std::string& data) {
+  //  so we do legitimacy check here.
+  auto it = client_str2id_.find(client_id_str);
+  if (it == client_str2id_.cend()) {
+    LOG(FATAL) << "client" << client_id_str << " is not registered with server yet.";
+    return false;
+  }
+  return zmq_util::ZMQSend(sock_.get(), client_id_str, data);
+}
+
+
+bool WarpServer::SendAnyway(std::string client_id_str, const std::string& data) {
+  //  so we do not do  legitimacy check here.
+  return zmq_util::ZMQSend(sock_.get(), client_id_str, data);
+}
+
+
+std::vector<int> WarpServer::GetClientIds() const {
+  std::vector<int> client_ids(client_id2str_.size());
+  int i = 0;
+  for (auto& pair : client_id2str_) {
+    client_ids[i++] = pair.first;
+  }
+  return client_ids;
+}
+
+int WarpServer::GetClientId(std::string id_str) {
+  auto it = client_str2id_.find(id_str);
+  if (it == client_str2id_.cend()) {
+    LOG(FATAL) << "ZMQ client: " << id_str << " is not registered with server "
+      "yet.";
+    return -1;
+  }
+  return it->second;
+}
+
+}  // namespace mldb
+
 
 /*
 ClientMsg WarpServer::Recv(int* client_id) {
@@ -157,24 +207,3 @@ ClientMsg WarpServer::Recv(int* client_id) {
   return client_msg;
 }
 */
-
-std::vector<int> WarpServer::GetClientIds() const {
-  std::vector<int> client_ids(client_id2str_.size());
-  int i = 0;
-  for (auto& pair : client_id2str_) {
-    client_ids[i++] = pair.first;
-  }
-  return client_ids;
-}
-
-int WarpServer::GetClientId(std::string id_str) {
-  auto it = client_str2id_.find(id_str);
-  if (it == client_str2id_.cend()) {
-    LOG(FATAL) << "ZMQ client: " << id_str << " is not registered with server "
-      "yet.";
-    return -1;
-  }
-  return it->second;
-}
-
-}  // namespace mldb

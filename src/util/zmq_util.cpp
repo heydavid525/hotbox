@@ -80,12 +80,16 @@ bool ZMQSendInternal(zmq::socket_t* sock, const void* data, size_t len,
     nbytes = sock->send(data, len, flag);
   } catch (zmq::error_t &e) {
     switch (e.num()) {
+      case EHOSTUNREACH:
+        LOG(INFO) << "The client droped?" << e.what();
+        break;
       case ENOTSUP:
       case EFSM:
       case ETERM:
       case ENOTSOCK:
       case EFAULT:
-      case EAGAIN: // EAGAIN should not be thrown
+      case EAGAIN: 
+        // EAGAIN should not be thrown
         // These errors mean there are bugs in the code, fail fast
         LOG(FATAL) << e.what();
         break;

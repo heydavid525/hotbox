@@ -6,6 +6,8 @@
 int main(int argc, char *argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
+
   mldb::WarpServer server;
+  
   return 0;
 };

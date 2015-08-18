@@ -14,6 +14,7 @@ message ClientMsg {
 message ServerMsg {
   oneof msg {
     ServerHandshake handshake_msg = 1;
+    ServerDummyRespond dummy_rply = 2;
   }
 }
 
@@ -28,4 +29,8 @@ message ClientHandshake {
 
 message ClientDummyRequest {
   optional string req = 1;
+}
+
+message ServerDummyRespond {
+  optional string rply = 1;
 }

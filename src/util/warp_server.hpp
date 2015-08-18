@@ -25,7 +25,12 @@ class WarpServer {
 public:
   WarpServer();
 
-  //  Set up the ROUTER socket.
+
+private:
+  //  The main msg distribution workloop of the Server.
+  void Workloop();
+
+  //  Initialization: Set up the ROUTER socket.
   void      SetUpRouterSocket();
   ClientMsg ReadClientMsg(std::string &client_id);
 
@@ -35,16 +40,17 @@ public:
 
   // Send to a client.
   bool Send(int client_id, const std::string& data);
+  bool Send(std::string client_id_str, const std::string& data);
+  bool SendAnyway(std::string client_id_str, const std::string& data);
+  void DummyRespond(std::string id, std::string data);
 
   // Recv internally handles handshake. The rest is handled externally.
-  ClientMsg Recv(int* client_id);
+  // ClientMsg Recv(int* client_id);
 
   // Get the list of active clients.
   std::vector<int> GetClientIds() const;
   int              GetClientId(std::string client_id_str);
 
-  //  The main msg distribution workloop of the Server.
-  void Workloop();
   void ServerSleep(int milliseconds) {
     std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
   }
