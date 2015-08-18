@@ -68,8 +68,6 @@ void ZMQConnect(zmq::socket_t* sock, const std::string& connect_addr) {
   } catch (zmq::error_t &e) {
     LOG(FATAL) << e.what();
   }
-
-  sleep(100);
 }
 
 namespace {
@@ -96,6 +94,7 @@ bool ZMQSendInternal(zmq::socket_t* sock, const void* data, size_t len,
         LOG(FATAL) << e.what();
         break;
       default:
+        LOG(FATAL) << e.what();
         return false;
     }
   }
