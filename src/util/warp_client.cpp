@@ -26,7 +26,8 @@ bool WarpClient::Send(const std::string& data) {
   if (client_id_ < 0) {
     HandshakeWithServer();
   }
-  return zmq_util::ZMQSend(sock_.get(), kServerId, data);
+  std::string ServerZmqID = zmq_util::Convert2ZmqId(kServerId);
+  return zmq_util::ZMQSend(sock_.get(), ServerZmqID, data);
 }
 
 zmq::message_t WarpClient::Recv() {
@@ -43,9 +44,10 @@ void WarpClient::HandshakeWithServer() {
   std::string data;
   client_msg.SerializeToString(&data);
   bool success = false;
-  LOG(INFO) << "server id: " << kServerId;
+  std::string ServerZmqID = zmq_util::Convert2ZmqId(kServerId);
+  LOG(INFO) << "To \"Server with ZMQ ID\": " << ServerZmqID;
   do {
-    success = zmq_util::ZMQSend(sock_.get(), kServerId, data);
+    success = zmq_util::ZMQSend(sock_.get(), ServerZmqID, data);
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   } while(!success);
 
