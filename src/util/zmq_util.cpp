@@ -75,9 +75,9 @@ namespace {
 // Low-level send.
 bool ZMQSendInternal(zmq::socket_t* sock, const void* data, size_t len,
     int flag = 0) {
-  size_t nbytes;
   try {
-    nbytes = sock->send(data, len, flag);
+    size_t nbytes = sock->send(data, len, flag);
+    return len == nbytes;
   } catch (zmq::error_t &e) {
     switch (e.num()) {
       case EHOSTUNREACH:
@@ -102,7 +102,6 @@ bool ZMQSendInternal(zmq::socket_t* sock, const void* data, size_t len,
         return false;
     }
   }
-  return nbytes == len;
 }
 
 }  // anonymous namespace
