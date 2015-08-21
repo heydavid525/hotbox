@@ -22,7 +22,7 @@ void WarpServer::SetUpRouterSocket() {
 
   // accept only routable messages on ROUTER sockets
   // This option means the unroutable message would be sent anyway.
-  // If it doesn't work, it would through error.
+  // If it doesn't work, it would NOT throw error.
   int sock_mandatory = 1;
   zmq_util::ZMQSetSockOpt( sock_.get(), ZMQ_ROUTER_MANDATORY, 
     &(sock_mandatory), sizeof(sock_mandatory) );
@@ -33,12 +33,8 @@ void WarpServer::SetUpRouterSocket() {
 
   std::string bind_addr = "tcp://*:" + std::to_string(kServerPort);
   zmq_util::ZMQBind(sock_.get(), bind_addr);
-  ServerSleep(20);
+  std::this_thread::sleep_for(std::chrono::milliseconds(20));
   LOG(INFO) << "Server binds to " << bind_addr;
-
-  //  Socket Connect.
-  //std::string conn_addr = "tcp://*:" + std::to_string(kClientPort);
-  //zmq_util::ZMQConnect(sock_.get(), conn_addr);
 }
 
 
@@ -97,7 +93,6 @@ void WarpServer::Workloop() {
       if (client_msg.has_handshake_msg()) {
         LOG(INFO) << "HandShake Message" ;
         RespondClientID(RegisterClient(client_id_str));
-        ServerSleep(1000); // Pretend to do some work.
       } else
 
       if (client_msg.has_dummy_req()) {
@@ -105,8 +100,9 @@ void WarpServer::Workloop() {
         std::string req_str = client_msg.dummy_req().req();
         LOG(INFO) << "Got dummy request from client " << GetClientId(client_id_str) 
                   << " request: " << req_str;
+
         DummyRespond(client_id_str, "Hello World\n");
-        ServerSleep(1000); // Pretend to do some work.
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000)); // Pretend to do some work.
       }
 
       /* // Why does this need two sockets rather than one?

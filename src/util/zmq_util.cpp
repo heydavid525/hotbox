@@ -89,9 +89,9 @@ bool ZMQSendInternal(zmq::socket_t* sock, const void* data, size_t len,
       case ENOTSOCK:
       case EFAULT:
       case EAGAIN: 
-        // EAGAIN should not be thrown
+        // EAGAIN would not be thrown which got eaten by c++ binding.
         // These errors mean there are bugs in the code, fail fast
-        LOG(FATAL) << e.what();
+        LOG(FATAL) << e.what() << "Possibly due to a lost client";
         break;
       case EINTR:
         // I do not yet handle interrupt, so fail fast

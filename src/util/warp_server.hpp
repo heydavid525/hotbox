@@ -15,9 +15,7 @@
 namespace mldb {
 
 const int kServerPort = 19856;
-const int kClientPort = 19857;
 const std::string kServerId = "mldb_server";
-const std::string kClientId = "mldb_client";
 
 // WarpServer is globally unique and talks to WarpClients. Server binds to
 // tcp://*:kServerPort.
@@ -50,10 +48,6 @@ private:
   // Get the list of active clients.
   std::vector<int> GetClientIds() const;
   int              GetClientId(std::string client_id_str);
-
-  void ServerSleep(int milliseconds) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
-  }
 
 private:
   //  Communication Bus
