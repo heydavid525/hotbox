@@ -3,9 +3,10 @@ syntax = "proto2";
 package mldb;
 
 enum FeatureType {
-  CATEGORICAL = 0;  // int32
-  NUMERICAL = 1;    // float
-  BYTES = 2;  // arbitrary byte string.
+  UNKNOWN = 0;  // if we can't infer the feature type.
+  CATEGORICAL = 1;  // int32
+  NUMERICAL = 2;    // float
+  BYTES = 3;  // arbitrary byte string.
   // Comment(wdai): timestamp should be a numerical type (in seconds).
   // TODO(wdai): What if user wants to store double? Ignore this for now.
 }
@@ -67,7 +68,7 @@ message EpochInfo {
 // identify the store in DatumRecord, and idx searches for the value in the
 // appropriate store.
 message Feature {
-  optional FeatureType type = 1 [default = CATEGORICAL];
+  optional FeatureType type = 1 [default = UNKNOWN];
   optional FeatureStoreType storage_type = 2 [default = SPARSE];
 
   // Locate feature value in the store. It represents the index for dense
@@ -83,9 +84,9 @@ message Feature {
   optional uint32 stats_idx = 4;
 }
 
-// Each data instance is stored as DatumRecord, which has 6 data stores
+// Each data instance is stored as RawDatum, which has 6 data stores
 // (see Feature).
-message DatumRecord {
+message RawDatum {
   repeated int32 dense_cat_store = 1;   // dense categorical store
   repeated float dense_num_store = 2;   // dense numerical store
   repeated bytes dense_bytes_store = 3;   // dense byte store
@@ -100,7 +101,7 @@ message DatumRecord {
   repeated bytes sparse_bytes_store_val = 9;
 }
 
-message FeatureFamily {
+message FeatureFamilyProto {
   // Index lookup on family (e.g., "mobile:0" will find the first entry in
   // features).
   repeated Feature features = 1;
@@ -111,7 +112,7 @@ message FeatureFamily {
   repeated uint32 name_lookup_val = 3;
 }
 
-message Schema {
+message SchemaProto {
   // (yuwr:) This should also be id?
   // optional uint32 schema_id = 1 [default = 0];
 
@@ -119,16 +120,16 @@ message Schema {
   // TODO(wdai): Do we need another internal schema_id, as Weiren suggested?
   optional uint32 version = 1 [default = 0];
 
-  // name (string) --> FeatureFamily. We support multi-weight and multi-labels
+  // name (string) --> FeatureFamilyProto. We support multi-weight and multi-labels
   // through specially reserved families 'label' and 'weight'.
   //
   // Comment(wdai): This map lookup will only be done once during transform to
   // get the index on DatumRecord stores, thus not performance critical.
   repeated string families_map_idx = 2;
-  repeated FeatureFamily families_map_val = 3;
+  repeated FeatureFamilyProto families_map_val = 3;
 
   // # of CATEGORICAL and NUMERICAL features, excluding label, weight, and
-  // bytes.
+  // bytes and unknowns.
   //
   // Comemnt: 'dim' can belong to DB level if we assume static schema.
   optional uint64 dim = 4;

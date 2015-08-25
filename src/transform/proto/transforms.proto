@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-import "proto/schema.proto";
+import "transform/proto/schema.proto";
 
 package mldb;
 

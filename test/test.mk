@@ -7,6 +7,6 @@ TEST_BIN = $(patsubst test/%.cpp, $(TEST_DIR)/%, $(TEST_SRC))
 $(TEST_DIR)/%: test/%.cpp $(MLDB_LIB)
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(LDFLAGS) $(HDFS_INCFLAGS) \
-		$(HDFS_LDFLAGS) $< $(MLDB_LIB) -o $@
+		$(HDFS_LDFLAGS)  $< -lgtest $(MLDB_LIB) -o $@
 
 test: $(TEST_BIN)

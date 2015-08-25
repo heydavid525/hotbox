@@ -8,9 +8,6 @@ LIB = $(BUILD)/lib
 
 NEED_MKDIR = $(BUILD) $(LIB)
 
-all: path \
-		 mldb_lib
-
 all: mldb_lib test
 
 path: $(NEED_MKDIR)
@@ -62,9 +59,6 @@ MLDB_OBJ = $(patsubst src/%.cpp, build/%.o, $(MLDB_SRC)) \
 MLDB_PROTO_HEADERS = $(MLDB_PROTO:.proto=.pb.h)
 
 $(MLDB_LIB): $(MLDB_OBJ) path
-	@echo $(MLDB_OBJ)
-	@echo "changed files:"
-	@echo $?
 	ar csrv $@ $(filter %.o, $?)
 
 build/%.pb.o: build/%.pb.cc $(MLDB_PROTO_HEADERS)
@@ -77,9 +71,9 @@ build/%.o: src/%.cpp $(MLDB_HEADERS) $(MLDB_PROTO_HEADERS)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(LDFLAGS) $(HDFS_INCFLAGS) \
 		$(HDFS_LDFLAGS) -c $< -o $@
 
-%.pb.cc %.pb.h: %.proto
+%.pb.cc %.pb.h: %.proto path
 	$(THIRD_PARTY_BIN)/protoc --cpp_out=$(BUILD) --proto_path=src $<
 
-mldb_lib: $(MLDB_LIB)
+mldb_lib: path $(MLDB_LIB)
 
 include $(PROJECT)/test/test.mk
