@@ -9,4 +9,8 @@ $(TEST_DIR)/%: test/%.cpp $(MLDB_LIB)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(LDFLAGS) $(HDFS_INCFLAGS) \
 		$(HDFS_LDFLAGS)  $< -lgtest $(MLDB_LIB) -o $@
 
-test: $(TEST_BIN)
+test: $(TEST_BIN) transform_test
+
+transform_test: $(TEST_BIN)
+	$(TEST_DIR)/transform/schema_util_test
+

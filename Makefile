@@ -21,7 +21,7 @@ clean:
 .PHONY: all path clean
 
 CXX = g++
-CXXFLAGS = -O3 \
+CXXFLAGS = -O2 \
            -std=c++11 \
            -Wall \
 					 -Wno-sign-compare \

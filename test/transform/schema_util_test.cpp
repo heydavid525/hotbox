@@ -7,6 +7,7 @@ namespace schema_util {
 
 TEST(SchemaUtilTest, SmokeTest) {
   auto pairs = ParseFeatureDesc("feat1, feat2,fam1:feat3, feat4,:feat5");
+  EXPECT_EQ(5, pairs.size());
   EXPECT_EQ(kDefaultFamily, pairs[0].first);
   EXPECT_EQ(kDefaultFamily, pairs[1].first);
   EXPECT_EQ("fam1", pairs[2].first);
@@ -18,6 +19,11 @@ TEST(SchemaUtilTest, SmokeTest) {
   EXPECT_EQ("feat3", pairs[2].second);
   EXPECT_EQ("feat4", pairs[3].second);
   EXPECT_EQ("feat5", pairs[4].second);
+
+  pairs = ParseFeatureDesc(" , fam2:,");
+  EXPECT_EQ(1, pairs.size());
+  EXPECT_EQ("fam2", pairs[0].first);
+  EXPECT_EQ("", pairs[0].second);
 }
 
 TEST(SchemaUtilTest, ErrorTest) {

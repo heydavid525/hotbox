@@ -1,4 +1,4 @@
-syntax = "proto2";
+syntax = "proto3";
 
 package mldb;
 
@@ -23,10 +23,13 @@ enum FeatureStoreType {
 }
 
 message FeatureStats {
-  optional double mean = 1;
-  optional double std = 2;
-  optional double quantile_5 = 3;
-  optional double quantile_95 = 4;
+  // max + 1 is assumed to be the # of unique values for CATEGORICAL features.
+  double max = 5;
+
+  double mean = 1;
+  double std = 2;
+  double quantile_5 = 3;
+  double quantile_95 = 4;
 }
 
 message EpochInfo {
@@ -41,66 +44,85 @@ message EpochInfo {
   // internal descriptor to feature_id mapping. I feel (2) could be too costly
   // to do and thus we only needs one version id.
 
-  // optional uint32 schema_id = 1;
-  optional uint32 schema_version = 1;   // for schema evolution (future work).
+  // uint32 schema_id = 1;
+  uint32 schema_version = 1;   // for schema evolution (future work).
 
   // # data in this epoch.
-  optional uint64 num_data = 2;
+  uint64 num_data = 2;
 
   // # of outlier data determined at ingest time.
-  optional uint64 num_outliers = 3;
+  uint64 num_outliers = 3;
 
   // Ingest period in unix time seconds.
-  optional uint64 ingest_time_begin = 4;
-  optional uint64 ingest_time_end = 5;
+  uint64 ingest_time_begin = 4;
+  uint64 ingest_time_end = 5;
 
-  // Comment(wdai): We might want to maintain per-epoch stats since the user
-  // can query data from a range of epochs but not the whole.  stats is
-  // maintained at ingest time.
-  repeated FeatureStats stats = 6;
   // We assue each epoch would have one single FileMap object to locate the files.
   // We use the file map index to located the object, avoiding ojbect inconsistency.
-  optional uint32 file_map_id= 7;
+  uint32 file_map_id= 7;
 }
 
 // Feature locates the feature value in DatumRecord, which has 6 data stores
 // (3 FeatureType x 2 FeatureStoreType). FeatureType and FeatureStorage type
 // identify the store in DatumRecord, and idx searches for the value in the
 // appropriate store.
+//
+// Current max proto sequence: 8.
 message Feature {
-  optional FeatureType type = 1 [default = UNKNOWN];
-  optional FeatureStoreType storage_type = 2 [default = SPARSE];
+  string name = 6;
+  FeatureType type = 1;
+  FeatureStoreType storage_type = 2;
 
   // Locate feature value in the store. It represents the index for dense
-  // store (vector) or key in sparse store (map). For map lookup, not found
-  // means 0. This index is determined at schema creation.
-  optional uint32 idx = 3;
+  // store (vector) or key in sparse store (map), relative to the family's
+  // offset. For example, for dense categorical feature "fam:feat", family
+  // 'fam' has dense categorical offset of 10, and 'family_offset' = 3, then "fam:feat"
+  // value is stored in DatumProto's dense_cat_store[13]. For map lookup, not
+  // found means 0. This index is determined at schema creation.
+  uint32 family_offset = 3;
 
-  // Comment(yuwr): How is this implemented since the FeatureStat object does
-  // not have a index in its schema definition. I am not sure abou this so I
-  // defined an explicit index in the schema definition.
-  //
-  // idx on EpochInfo.stats vector.
-  optional uint32 stats_idx = 4;
+  FeatureStats stats = 5;
+
+  // The order of features within a family. FeatureFamily's index is 0-based. 
+  int32 family_idx = 7;
+
+  // True to have this feature in the final output.
+  bool in_final = 8;
 }
 
-// Each data instance is stored as RawDatum, which has 6 data stores
+// Each data instance is stored as DatumProto, which has 6 data stores
 // (see Feature).
-message RawDatum {
+message DatumProto {
   repeated int32 dense_cat_store = 1;   // dense categorical store
   repeated float dense_num_store = 2;   // dense numerical store
   repeated bytes dense_bytes_store = 3;   // dense byte store
 
   // Sparse stores are maps, each represented by an index array and a value
   // array.
-  repeated uint32 sparse_cat_store_idx = 4;
-  repeated int32 sparse_cat_store_val = 5;
-  repeated uint32 sparse_num_store_idx = 6;
-  repeated float sparse_num_store_val = 7;
-  repeated uint32 sparse_bytes_store_idx = 8;
-  repeated bytes sparse_bytes_store_val = 9;
+  map<uint32, int32> sparse_cat_store = 4;
+  map<uint32, float> sparse_num_store = 5;
+  map<uint32, bytes> sparse_bytes_store = 6;
+  //repeated uint32 sparse_cat_store_idx = 4;
+  //repeated int32 sparse_cat_store_val = 5;
+  //repeated uint32 sparse_num_store_idx = 6;
+  //repeated float sparse_num_store_val = 7;
+  //repeated uint32 sparse_bytes_store_idx = 8;
+  //repeated bytes sparse_bytes_store_val = 9;
 }
 
+// FeatureFamily contains a set of offset to denote the start of family in
+// each store of DatumProto/DatumBase. Schema maintains these offsets for the
+// next family insertion.
+message DatumBaseOffset {
+  int32 dense_cat_store = 1;
+  int32 dense_num_store = 2;
+  int32 dense_bytes_store = 3;
+  int32 sparse_cat_store = 4;
+  int32 sparse_num_store = 5;
+  int32 sparse_bytes_store = 6;
+}
+
+// Current max proto sequence: 5.
 message FeatureFamilyProto {
   // Index lookup on family (e.g., "mobile:0" will find the first entry in
   // features).
@@ -110,15 +132,18 @@ message FeatureFamilyProto {
   // "mobile:num_clicks" type of lookup (name = "num_clicks").
   repeated string name_lookup_idx = 2;
   repeated uint32 name_lookup_val = 3;
+
+  DatumBaseOffset offset = 4;
 }
 
+// Current max proto sequence: 5.
 message SchemaProto {
   // (yuwr:) This should also be id?
-  // optional uint32 schema_id = 1 [default = 0];
+  // uint32 schema_id = 1;
 
   // version is defined based on user's schema evolution.
   // TODO(wdai): Do we need another internal schema_id, as Weiren suggested?
-  optional uint32 version = 1 [default = 0];
+  uint32 version = 1;
 
   // name (string) --> FeatureFamilyProto. We support multi-weight and multi-labels
   // through specially reserved families 'label' and 'weight'.
@@ -132,13 +157,15 @@ message SchemaProto {
   // bytes and unknowns.
   //
   // Comemnt: 'dim' can belong to DB level if we assume static schema.
-  optional uint64 dim = 4;
+  //uint64 dim = 4;
+
+  DatumBaseOffset offset = 5;
 }
 
 enum Compressor {
-  RAW = 1;
-  ZIP = 2;
-  RLE = 3;
+  RAW = 0;
+  ZIP = 1;
+  RLE = 2;
 }
 
 // File is assumed to be stored in file chunks of a user defined fixed size (e.g. HDFS).
@@ -146,44 +173,44 @@ enum Compressor {
 // (The record would start with a length descriptor (4 bytes) used to segment each compressed record.
 // This is taken care of by the underlying storage interface.)
 message FileInfo {
-  optional string filepath = 1;
-  optional string filename = 2;
-  optional uint32 filesize = 3; // in Bytes
+  string filepath = 1;
+  string filename = 2;
+  uint32 filesize = 3; // in Bytes
 
   // timestamp in unix time of seconds.
-  optional uint64 creationtime = 4;
+  uint64 creationtime = 4;
   // # data records in the file 
-  optional uint64 num_data = 5;
+  uint64 num_data = 5;
   // use datum# to locate its physical position on the file
   // e.g. If you have a 64MB file, you can add a few indices 
   // by the size of 4MB, to reduce sequential seek burden.
   // Comment(wdai): Let's not worry about this yet. Sequential read of 64MB
   // files are okay.
   //repeated map<uint64, uint64> data_idx= 6;
-  optional Compressor compression_method = 7 [default = RAW];
+  Compressor compression_method = 7;
 }
 
 // Comment(wdai): Could you (Weiren) provide some comments explaining the use
 // of these fields? Thanks!
 message FileMap {
-  optional int32 file_map_id = 1;
+  int32 file_map_id = 1;
   repeated FileInfo files_info = 2;
 }
 
 enum StorageType {
-  NFS = 1;
-  HDFS = 2;
+  NFS = 0;
+  HDFS = 1;
 }
 
 message DBMetaData {
   // Basic information about DB.
-  optional string db_name = 3;
-  optional string db_description = 4;
-  optional uint32 num_epoch = 5;
-  optional uint32 num_schema = 6; // could be retrieved from schema_id.size();
-  optional StorageType storage_type = 7 [default = NFS];
+  string db_name = 3;
+  string db_description = 4;
+  uint32 num_epoch = 5;
+  uint32 num_schema = 6; // could be retrieved from schema_id.size();
+  StorageType storage_type = 7;
   // Database Creation Timestamp.
-  optional uint64 creation_time = 8;
+  uint64 creation_time = 8;
 
   // There should be a view of epochs in the current DB.
   repeated uint32 epoch_id = 1;

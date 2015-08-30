@@ -17,17 +17,15 @@ std::vector<std::string> SplitString(const std::string& in, char delim) {
   return segments;
 }
 
-// trim from both ends
-inline std::string Trim(const std::string& s) {
+// trim new line, whitespace, tab from both ends, and other optional
+// characters.
+inline std::string Trim(const std::string& s, const std::string& targets = "") {
   auto s_trim = s;
-  // trim from start
-  s_trim.erase(s_trim.begin(), std::find_if(s_trim.begin(), s_trim.end(),
-        std::not1(std::ptr_fun<int, int>(std::isspace))));
-
   // trim from end
-  s_trim.erase(std::find_if(s_trim.rbegin(), s_trim.rend(),
-        std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s_trim.end());
+  s_trim.erase(s_trim.find_last_not_of(" \n\r\t" + targets) + 1);
+
+  // trim from start
+  s_trim.erase(0, s_trim.find_first_not_of(" \n\r\t" + targets));
   return s_trim;
 }
-
 }  // namespace mldb

@@ -1,4 +1,4 @@
-syntax = "proto2";
+syntax = "proto3";
 
 import "transform/proto/schema.proto";
 
@@ -17,7 +17,7 @@ package mldb;
 // output_feature_family: E.g., "mobile_X_web:". Has to end with ":". If
 // output features do not have one-to-one relationship with input_featues,
 // then user is required to specify a new family.
-// TODO(wdai): Consider making it optional and internally generate a family
+// TODO(wdai): Consider making it and internally generate a family
 // name if necessary. More convenience but less clear semantics.
 // 
 // TODO(wdai): Future work: automatically monitor which transform is most
@@ -28,20 +28,20 @@ package mldb;
 //
 // Output features are stored in sparse format.
 message OneHotTransform {
-  optional string input_features = 1;
+  string input_features = 1;
 
   // Convention: "mobile_onehot:" The # of fields in output_feature_family is
   // (# buckets) x (# input_features) if buckets is provided or, for
   // categorical features, sum of distinct values for each features.
-  optional string output_feature_family = 2;
+  string output_feature_family = 2;
 
-  // This field is optional for CATEGORICAL FeatureType
+  // This field is for CATEGORICAL FeatureType
   // and default behavior creates one bucket for each CATEGORICAL value.
   repeated double buckets = 3;
 
   // True to not include output_feature_family in the final result. The
   // output_feature_family will only be input to other transforms.
-  optional bool intermediate_only = 4 [default = false];
+  bool in_final = 4;
 }
 
 // Take cartesian products between input_feature_list[0],
@@ -57,9 +57,9 @@ message NgramTransform {
 
   // Convension: "mobile_web-count_X_other:" if input_feature_list are
   // ["mobile:,web:count", "other:"]
-  optional string output_feature_family = 2;
+  string output_feature_family = 2;
 
-  optional bool intermediate_only = 3 [default = false];
+  bool in_final = 3;
 }
 
 // f(p) = log(p/(1-p)) for p \in (0, 1) is very useful for transforming
@@ -68,43 +68,43 @@ message NgramTransform {
 //
 // Output features are stored in the same format as the input_features.
 message LogitTransform {
-  optional string input_features = 1;
-  optional string output_features = 2;
+  string input_features = 1;
+  string output_feature_family = 2;
 
   // Truncate log range to [lower_bound, upper_bound].
-  optional double upper_bound = 3 [default = 12];
-  optional double lower_bound = 4 [default = -12];
+  double upper_bound = 3;
+  double lower_bound = 4;
 
-  optional bool intermediate_only = 5 [default = false];
+  bool in_final = 5;
 }
 
 // Select raw features to include in the final output. Automatically drops
 // BYTES features and multi-nomial categorical features. The selected feature
-// is never intermediate_only and appears in final output.
+// is never in_final and appears in final output.
 message SelectTransform {
   repeated string input_features = 1;
 
   // By default we drop multinomail categorical features as well but only
   // include binary categorical feature.
-  optional bool include_multi_categorical = 2 [default = false];
+  bool include_multi_categorical = 2;
 
   // Standardize numeric features by default.
-  optional bool standardize_numeric = 3 [default = true];
+  bool standardize_numeric = 3;
 }
 
 // Hash high dimensional (sparse) features to fixed low-dim.
 message HashTransform {
   repeated string input_features = 1;
-  optional string output_feature_family = 2;
+  string output_feature_family = 2;
 
   // # of hashed dimension.
-  optional int32 num_buckets = 3;
+  int32 num_buckets = 3;
 
   // Dynamic just means dense for now.
   //
   // TODO(wdai): decide based on the sparsity of, say, the first 1000 data
   // points.
-  optional FeatureStoreType output_storage_type = 4 [default = DYNAMIC];
+  FeatureStoreType output_storage_type = 4;
 
   // TODO(wdai): Option for various hash functions.
 }
@@ -112,18 +112,18 @@ message HashTransform {
 // CustomTransform calls a user-defined class for transform.
 message CustomTransform {
   repeated string input_feature_list = 1;
-  optional string output_feature_family = 2;
+  string output_feature_family = 2;
 
   // TODO(wdai): Use class registry to build transform class from string.
   // TODO(wdai): Given input_feature_list, transform class needs to return
   // the output dimension and FeatureStoreType.
-  optional string transform_name = 3;
+  string transform_name = 3;
 }
 
 /*
 // TODO(wdai): define Model message and ModelTransform.
 message ModelTransform {
   // Full spec of model type and model configuration.
-  optional ModelSpec model = 1;
+  ModelSpec model = 1;
 }
 */

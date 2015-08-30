@@ -1,4 +1,4 @@
-syntax = "proto2";
+syntax = "proto3";
 
 package mldb;
 
@@ -21,16 +21,16 @@ message ServerMsg {
 // The first part of server's reply msg contains server router socket's
 // identity, so no need to include that.
 message ServerHandshake {
-  optional int32 client_id = 1;
+  int32 client_id = 1;
 }
 
 message ClientHandshake {
 }
 
 message ClientDummyRequest {
-  optional string req = 1;
+  string req = 1;
 }
 
 message ServerDummyRespond {
-  optional string rply = 1;
+  string rply = 1;
 }
