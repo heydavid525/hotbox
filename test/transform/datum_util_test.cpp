@@ -6,7 +6,6 @@
 #include "test/transform/test_util.hpp"
 
 namespace mldb {
-namespace datum_util {
 
 const int kNumCatFeatures = 5;
 const int kNumNumFeatures = 5;
@@ -27,9 +26,14 @@ TEST(DatumUtilTest, SmokeTest) {
   EXPECT_NEAR(3.2, datum1.GetWeight(schema), 1e-4);
   EXPECT_EQ(1, datum1.GetLabel(schema));
   EXPECT_EQ(0, datum1.GetFeatureVal(schema, "fam2:0"));
+
+  std::string datum2_str = "1 | fam1 0:1 2:4 7:1.5";
+  DatumBase datum2 = CreateDatumFromFamilyString(schema, datum2_str);
+  EXPECT_NEAR(1, datum2.GetWeight(schema), 1e-4);
+  EXPECT_EQ(1, datum2.GetLabel(schema));
+  EXPECT_EQ(0, datum2.GetFeatureVal(schema, "fam2:0"));
 }
 
-}  // namespace schema_util
 }  // namespace mldb
 
 int main(int argc, char **argv) {

@@ -28,15 +28,17 @@ public:
     return GetFeatureVal(family.GetFeature(kLabelFamilyIdx).loc());
   }
 
+  // Weight cannot be 0.
   float GetWeight(const Schema& schema) const {
     const auto& family = schema.GetFamily(kInternalFamily);
-    return GetFeatureVal(family.GetFeature(kWeightFamilyIdx).loc());
+    float weight = GetFeatureVal(family.GetFeature(kWeightFamilyIdx).loc());
+    return weight == 0 ? 1 : weight;
   }
 
   // feature_desc (feature descriptor) can only result in 1 feature.
   float GetFeatureVal(const Schema& schema,
       const std::string& feature_desc) const {
-    auto finders = schema_util::ParseFeatureDesc(feature_desc);
+    auto finders = ParseFeatureDesc(feature_desc);
     CHECK_EQ(1, finders.size());
     const auto& finder = finders[0];
     const auto& family = schema.GetFamily(finder.family_name);
@@ -54,7 +56,7 @@ public:
   // TODO(wdai): Return flexitype in the future.
   float GetFeatureVal(const FeatureLocator& loc) const {
     CHECK_NOTNULL(proto_.get());
-    CHECK(schema_util::IsNumeral(loc));
+    CHECK(IsNumeral(loc));
     bool is_cat = loc.type() == FeatureType::CATEGORICAL;
     bool is_dense = loc.store_type() == FeatureStoreType::DENSE;
     int32_t offset = loc.offset();
@@ -80,7 +82,7 @@ public:
   // Assumes the dense feature stores are resized already.
   void SetFeatureVal(const FeatureLocator& loc, float val) {
     CHECK_NOTNULL(proto_.get());
-    CHECK(schema_util::IsNumeral(loc));
+    CHECK(IsNumeral(loc));
     bool is_cat = loc.type() == FeatureType::CATEGORICAL;
     bool is_dense = loc.store_type() == FeatureStoreType::DENSE;
     int32_t offset = loc.offset();

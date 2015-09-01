@@ -25,8 +25,6 @@ struct FeatureFinder {
   int family_idx = -1;
 };
 
-namespace schema_util {
-
 class ParseException: public MLDBException {
 public:
   ParseException(const std::string msg) : MLDBException(msg) { }
@@ -122,8 +120,6 @@ bool IsDense(const Feature& f) {
 bool IsSparse(const Feature& f) {
   return f.loc().store_type() == FeatureStoreType::SPARSE;
 }
-
-}  // namespace schema_util
 
 DatumProtoOffset operator+(const DatumProtoOffset& o1,
     const DatumProtoOffset& o2) {

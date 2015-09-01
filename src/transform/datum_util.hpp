@@ -11,7 +11,6 @@
 #include <google/protobuf/text_format.h>
 
 namespace mldb {
-namespace datum_util {
 
 namespace {
 
@@ -123,5 +122,4 @@ DatumBase CreateDatumFromFamilyString(const Schema& schema,
   return datum;
 }
 
-}  // namespace datum_util
 }  // namespace mldb

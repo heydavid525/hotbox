@@ -14,7 +14,7 @@ public:
   OneHotTransform(const OneHotTransformConfig& config) : config_(config) { }
 
   void TransformSchema(Schema* schema) override {
-    auto finders = schema_util::ParseFeatureDesc(config_.input_features());
+    auto finders = ParseFeatureDesc(config_.input_features());
     FeatureFamily output_family;
     // When this family is added to schema, it will increment schema's offset
     // by offset_inc_.
@@ -57,7 +57,7 @@ private:
   std::vector<Feature> TransformOneFeature(
       const Feature& input_feature, const DatumProtoOffset& schema_offset,
       DatumProtoOffset* offset_inc) {
-    CHECK(schema_util::IsNumeral(input_feature));
+    CHECK(IsNumeral(input_feature));
     std::vector<Feature> new_features;
     // Compute # of buckets
     int num_buckets = 0;
@@ -69,7 +69,7 @@ private:
     int offset_start_sparse_cat = offset_start.sparse_cat_store();
     if (config_.buckets_size() == 0) {
       // Use input_feature (need to be categorical) to decide buckets.
-      CHECK(schema_util::IsCategorical(input_feature))
+      CHECK(IsCategorical(input_feature))
         << "Must specify bucket for NUMERIC feature type.";
       // min~max.
       int max = input_feature.stats().max();

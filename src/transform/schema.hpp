@@ -186,9 +186,9 @@ public:
         const auto& feature = features[i];
         std::string feature_name = (feature.name().empty() ?
             std::to_string(i) : feature.name());
-        std::string type = schema_util::IsCategorical(feature) ? "cat" :
-            (schema_util::IsNumerical(feature) ? "num" : "bytes");
-        std::string store_type = schema_util::IsSparse(feature) ? "sp" : "ds";
+        std::string type = IsCategorical(feature) ? "cat" :
+            (IsNumerical(feature) ? "num" : "bytes");
+        std::string store_type = IsSparse(feature) ? "sp" : "ds";
         ss << " " << feature_name << ":" << type << ":" << store_type;
       }
     }

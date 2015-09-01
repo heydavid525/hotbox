@@ -6,12 +6,13 @@
 #include "transform/one_hot_transform.hpp"
 #include "transform/proto/schema.pb.h"
 #include "transform/proto/transforms.pb.h"
+#include "transform/datum_util.hpp"
 #include "test/transform/test_util.hpp"
 
 namespace mldb {
 
-const int kNumCatFeatures = 10;
-const int kNumNumFeatures = 10;
+const int kNumCatFeatures = 5;
+const int kNumNumFeatures = 5;
 
 TEST(OneHotTransformTest, SmokeTest) {
   SchemaConfig schema_config;
@@ -21,12 +22,34 @@ TEST(OneHotTransformTest, SmokeTest) {
   AddCatNumFamily("magic", kNumCatFeatures, kNumNumFeatures, &schema);
 
   OneHotTransformConfig one_hot_config;
-  one_hot_config.set_input_features("magic:cat1+cat2");
-  one_hot_config.set_output_feature_family("onehot_magic_cat");
+  one_hot_config.set_input_features("magic:0+7");
+  one_hot_config.add_buckets(-1);
+  one_hot_config.add_buckets(0);
+  one_hot_config.add_buckets(1.5);
+  one_hot_config.add_buckets(2.5);
+  one_hot_config.set_output_feature_family("onehot_magic");
   one_hot_config.set_in_final(true);
 
   OneHotTransform one_hot_transform(one_hot_config);
   one_hot_transform.TransformSchema(&schema);
+
+  std::string datum1_str = "1 | magic 0:1 1:2 5:3.6 7:-0.5";
+  DatumBase datum1 = CreateDatumFromFamilyString(schema, datum1_str);
+  one_hot_transform.Transform(&datum1);
+  LOG(INFO) << "Transformed datum1: " << datum1.ToString(schema);
+  // family_idx [0, 5) are buckets for magic:0.
+  EXPECT_EQ(0, datum1.GetFeatureVal(schema, "onehot_magic:0"));
+  EXPECT_EQ(1, datum1.GetFeatureVal(schema, "onehot_magic:1"));
+  EXPECT_EQ(0, datum1.GetFeatureVal(schema, "onehot_magic:2"));
+  EXPECT_EQ(0, datum1.GetFeatureVal(schema, "onehot_magic:3"));
+  EXPECT_EQ(0, datum1.GetFeatureVal(schema, "onehot_magic:4"));
+
+  // family_idx [4, 8) are buckets for magic:7.
+  EXPECT_EQ(0, datum1.GetFeatureVal(schema, "onehot_magic:5"));
+  EXPECT_EQ(1, datum1.GetFeatureVal(schema, "onehot_magic:6"));
+  EXPECT_EQ(0, datum1.GetFeatureVal(schema, "onehot_magic:7"));
+  EXPECT_EQ(0, datum1.GetFeatureVal(schema, "onehot_magic:8"));
+  EXPECT_EQ(0, datum1.GetFeatureVal(schema, "onehot_magic:9"));
 }
 
 }  // namespace mldb

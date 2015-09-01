@@ -3,7 +3,6 @@
 #include "transform/schema_util.hpp"
 
 namespace mldb {
-namespace schema_util {
 
 TEST(SchemaUtilTest, SmokeTest) {
   auto finders = ParseFeatureDesc("feat1, feat2,fam1:feat3, feat4,:feat5");
@@ -45,7 +44,6 @@ TEST(SchemaUtilTest, ErrorTest) {
   }
 }
 
-}  // namespace schema_util
 }  // namespace mldb
 
 int main(int argc, char **argv) {

@@ -35,8 +35,9 @@ message OneHotTransformConfig {
   // categorical features, sum of distinct values for each features.
   string output_feature_family = 2;
 
-  // This field is for CATEGORICAL FeatureType
+  // This field is optional for CATEGORICAL FeatureType
   // and default behavior creates one bucket for each CATEGORICAL value.
+  // buckets must be sorted in ascending order.
   repeated double buckets = 3;
 
   // True to not include output_feature_family in the final result. The
