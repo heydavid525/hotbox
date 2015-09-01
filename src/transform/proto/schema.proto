@@ -25,6 +25,7 @@ enum FeatureStoreType {
 message FeatureStats {
   // max + 1 is assumed to be the # of unique values for CATEGORICAL features.
   double max = 5;
+  double min = 6;
 
   double mean = 1;
   double std = 2;
@@ -62,6 +63,24 @@ message EpochInfo {
   uint32 file_map_id= 7;
 }
 
+// Locate which store in DatumProto a feature is stored.
+message FeatureLocator {
+  FeatureType type = 1;
+  FeatureStoreType store_type = 2;
+
+  // Locate feature value in the store. It represents the global index for
+  // dense store (vector) or global key in sparse store (map). For map lookup,
+  // not found means 0. This index is determined at schema creation.
+  int32 offset = 3;
+
+  // TODO(wdai): delete followings:
+  // relative to the family's
+  // offset of respective store. For example, for dense categorical feature
+  // "fam:feat", family 'fam' has dense categorical offset of 10, and
+  // 'family_offset' = 3, then "fam:feat" value is stored in DatumProto's
+  // dense_cat_store[13].
+}
+
 // Feature locates the feature value in DatumRecord, which has 6 data stores
 // (3 FeatureType x 2 FeatureStoreType). FeatureType and FeatureStorage type
 // identify the store in DatumRecord, and idx searches for the value in the
@@ -70,21 +89,9 @@ message EpochInfo {
 // Current max proto sequence: 8.
 message Feature {
   string name = 6;
-  FeatureType type = 1;
-  FeatureStoreType storage_type = 2;
-
-  // Locate feature value in the store. It represents the index for dense
-  // store (vector) or key in sparse store (map), relative to the family's
-  // offset. For example, for dense categorical feature "fam:feat", family
-  // 'fam' has dense categorical offset of 10, and 'family_offset' = 3, then "fam:feat"
-  // value is stored in DatumProto's dense_cat_store[13]. For map lookup, not
-  // found means 0. This index is determined at schema creation.
-  uint32 family_offset = 3;
+  FeatureLocator loc = 1;
 
   FeatureStats stats = 5;
-
-  // The order of features within a family. FeatureFamily's index is 0-based. 
-  int32 family_idx = 7;
 
   // True to have this feature in the final output.
   bool in_final = 8;
@@ -102,18 +109,12 @@ message DatumProto {
   map<uint32, int32> sparse_cat_store = 4;
   map<uint32, float> sparse_num_store = 5;
   map<uint32, bytes> sparse_bytes_store = 6;
-  //repeated uint32 sparse_cat_store_idx = 4;
-  //repeated int32 sparse_cat_store_val = 5;
-  //repeated uint32 sparse_num_store_idx = 6;
-  //repeated float sparse_num_store_val = 7;
-  //repeated uint32 sparse_bytes_store_idx = 8;
-  //repeated bytes sparse_bytes_store_val = 9;
 }
 
 // FeatureFamily contains a set of offset to denote the start of family in
-// each store of DatumProto/DatumBase. Schema maintains these offsets for the
+// each store of DatumProto/DatumProto. Schema maintains these offsets for the
 // next family insertion.
-message DatumBaseOffset {
+message DatumProtoOffset {
   int32 dense_cat_store = 1;
   int32 dense_num_store = 2;
   int32 dense_bytes_store = 3;
@@ -130,10 +131,18 @@ message FeatureFamilyProto {
 
   // Map from feature name (string) to index on features, used in
   // "mobile:num_clicks" type of lookup (name = "num_clicks").
-  repeated string name_lookup_idx = 2;
-  repeated uint32 name_lookup_val = 3;
+  map<string, uint32> name_to_family_idx = 2;
 
-  DatumBaseOffset offset = 4;
+  DatumProtoOffset offset = 4;
+}
+
+// Message to construct default Schema.
+message SchemaConfig {
+  // False to use real number (e.g., in regression)
+  bool int_label = 1;
+
+  // True to use dense weight, good if most data has non-zero weight.
+  bool use_dense_weight = 2;
 }
 
 // Current max proto sequence: 5.
@@ -150,8 +159,7 @@ message SchemaProto {
   //
   // Comment(wdai): This map lookup will only be done once during transform to
   // get the index on DatumRecord stores, thus not performance critical.
-  repeated string families_map_idx = 2;
-  repeated FeatureFamilyProto families_map_val = 3;
+  map<string, FeatureFamilyProto> families = 2;
 
   // # of CATEGORICAL and NUMERICAL features, excluding label, weight, and
   // bytes and unknowns.
@@ -159,7 +167,7 @@ message SchemaProto {
   // Comemnt: 'dim' can belong to DB level if we assume static schema.
   //uint64 dim = 4;
 
-  DatumBaseOffset offset = 5;
+  DatumProtoOffset offset = 5;
 }
 
 enum Compressor {

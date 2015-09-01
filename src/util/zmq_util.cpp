@@ -102,6 +102,7 @@ bool ZMQSendInternal(zmq::socket_t* sock, const void* data, size_t len,
         return false;
     }
   }
+  return false;
 }
 
 }  // anonymous namespace

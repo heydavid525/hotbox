@@ -27,7 +27,7 @@ package mldb;
 // ALL input_features.
 //
 // Output features are stored in sparse format.
-message OneHotTransform {
+message OneHotTransformConfig {
   string input_features = 1;
 
   // Convention: "mobile_onehot:" The # of fields in output_feature_family is
@@ -52,7 +52,7 @@ message OneHotTransform {
 // only 3rd order terms are generated with three input_feature_list)
 //
 // Output features are stored in sparse format.
-message NgramTransform {
+message NgramTransformConfig {
   repeated string input_feature_list = 1;
 
   // Convension: "mobile_web-count_X_other:" if input_feature_list are
@@ -67,7 +67,7 @@ message NgramTransform {
 // value outside of (0, 1)
 //
 // Output features are stored in the same format as the input_features.
-message LogitTransform {
+message LogitTransformConfig {
   string input_features = 1;
   string output_feature_family = 2;
 
@@ -81,7 +81,7 @@ message LogitTransform {
 // Select raw features to include in the final output. Automatically drops
 // BYTES features and multi-nomial categorical features. The selected feature
 // is never in_final and appears in final output.
-message SelectTransform {
+message SelectTransformConfig {
   repeated string input_features = 1;
 
   // By default we drop multinomail categorical features as well but only
@@ -93,7 +93,7 @@ message SelectTransform {
 }
 
 // Hash high dimensional (sparse) features to fixed low-dim.
-message HashTransform {
+message HashTransformConfig {
   repeated string input_features = 1;
   string output_feature_family = 2;
 
@@ -104,13 +104,13 @@ message HashTransform {
   //
   // TODO(wdai): decide based on the sparsity of, say, the first 1000 data
   // points.
-  FeatureStoreType output_storage_type = 4;
+  FeatureStoreType output_store_type = 4;
 
   // TODO(wdai): Option for various hash functions.
 }
 
-// CustomTransform calls a user-defined class for transform.
-message CustomTransform {
+// CustomTransformConfig calls a user-defined class for transform.
+message CustomTransformConfig {
   repeated string input_feature_list = 1;
   string output_feature_family = 2;
 
@@ -121,8 +121,8 @@ message CustomTransform {
 }
 
 /*
-// TODO(wdai): define Model message and ModelTransform.
-message ModelTransform {
+// TODO(wdai): define Model message and ModelTransformConfig.
+message ModelTransformConfig {
   // Full spec of model type and model configuration.
   ModelSpec model = 1;
 }

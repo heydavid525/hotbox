@@ -1,34 +1,45 @@
 #include <gtest/gtest.h>
-#include "transform/schema_util.hpp"
 #include <glog/logging.h>
+#include "transform/schema_util.hpp"
 
 namespace mldb {
 namespace schema_util {
 
 TEST(SchemaUtilTest, SmokeTest) {
-  auto pairs = ParseFeatureDesc("feat1, feat2,fam1:feat3, feat4,:feat5");
-  EXPECT_EQ(5, pairs.size());
-  EXPECT_EQ(kDefaultFamily, pairs[0].first);
-  EXPECT_EQ(kDefaultFamily, pairs[1].first);
-  EXPECT_EQ("fam1", pairs[2].first);
-  EXPECT_EQ("fam1", pairs[3].first);
-  EXPECT_EQ(kDefaultFamily, pairs[4].first);
+  auto finders = ParseFeatureDesc("feat1, feat2,fam1:feat3, feat4,:feat5");
+  EXPECT_EQ(5, finders.size());
+  EXPECT_EQ(kDefaultFamily, finders[0].family_name);
+  EXPECT_EQ(kDefaultFamily, finders[1].family_name);
+  EXPECT_EQ("fam1", finders[2].family_name);
+  EXPECT_EQ(kDefaultFamily, finders[3].family_name);
+  EXPECT_EQ(kDefaultFamily, finders[4].family_name);
 
-  EXPECT_EQ("feat1", pairs[0].second);
-  EXPECT_EQ("feat2", pairs[1].second);
-  EXPECT_EQ("feat3", pairs[2].second);
-  EXPECT_EQ("feat4", pairs[3].second);
-  EXPECT_EQ("feat5", pairs[4].second);
+  EXPECT_EQ("feat1", finders[0].feature_name);
+  EXPECT_EQ("feat2", finders[1].feature_name);
+  EXPECT_EQ("feat3", finders[2].feature_name);
+  EXPECT_EQ("feat4", finders[3].feature_name);
+  EXPECT_EQ("feat5", finders[4].feature_name);
 
-  pairs = ParseFeatureDesc(" , fam2:,");
-  EXPECT_EQ(1, pairs.size());
-  EXPECT_EQ("fam2", pairs[0].first);
-  EXPECT_EQ("", pairs[0].second);
+  finders = ParseFeatureDesc(" , fam2:, fam3:feat1 + feat2, fam4:1+2");
+  EXPECT_EQ(5, finders.size());
+  EXPECT_EQ("fam2", finders[0].family_name);
+  EXPECT_EQ("fam3", finders[1].family_name);
+  EXPECT_EQ("fam3", finders[2].family_name);
+  EXPECT_EQ("fam4", finders[3].family_name);
+  EXPECT_EQ("fam4", finders[4].family_name);
+
+  EXPECT_EQ("", finders[0].feature_name);
+  EXPECT_TRUE(finders[0].all_family);
+  EXPECT_EQ("feat1", finders[1].feature_name);
+  EXPECT_EQ("feat2", finders[2].feature_name);
+  EXPECT_EQ("", finders[3].feature_name);
+  EXPECT_EQ(1, finders[3].family_idx);
+  EXPECT_EQ(2, finders[4].family_idx);
 }
 
 TEST(SchemaUtilTest, ErrorTest) {
   try {
-    auto pairs = ParseFeatureDesc(",");
+    auto finders = ParseFeatureDesc(",");
   } catch (MLDBException& e) {
     LOG(INFO) << e.what();
   }
