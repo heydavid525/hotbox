@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+import "util/proto/warp_config.proto";
+import "schema/proto/schema.proto";
+
+package mldb;
+
+// Current max proto sequence: 6.
+message FeatureStatProto {
+  double max = 5;
+  double min = 6;
+  double mean = 1;
+  double std = 2;
+  //double quantile_5 = 3;
+  //double quantile_95 = 4;
+}
+
+
+message EpochProto {
+  // Comment (yuwr:) This should be a schema index? We might have many
+  // schemas, each schema could have many versions.  Each epoch would
+  // correspond to a schema, but not vice versa, hence the index.
+  //
+  // Comment (wdai): Since schema really is just the mapping from "mobile:ctr"
+  // feature descriptor to the feature id, I feel that this only needs to
+  // change when (1) user changes schema explicitly, or (2) we change the
+  // internal descriptor to feature_id mapping. I feel (2) could be too costly
+  // to do and thus we only needs one version id.
+
+  // uint32 schema_id = 1;
+  //uint32 schema_version = 1;   // for schema evolution (future work).
+
+  // # data in this epoch.
+  uint64 num_data = 2;
+
+  // # of outlier data determined at ingest time.
+  uint64 num_outliers = 3;
+
+  // Ingest period in unix time seconds.
+  uint64 ingest_time_begin = 4;
+  uint64 ingest_time_end = 5;
+
+  // We assue each epoch would have one single FileMap object to locate the files.
+  // We use the file map index to located the object, avoiding ojbect inconsistency.
+  uint32 file_map_id= 7;
+}
+
+enum Compressor {
+  RAW = 0;
+  ZIP = 1;
+  RLE = 2;
+}
+
+// File is assumed to be stored in file chunks of a user defined fixed size (e.g. HDFS).
+// Each file contains a number of data records.
+// (The record would start with a length descriptor (4 bytes) used to segment each compressed record.
+// This is taken care of by the underlying storage interface.)
+message FileInfo {
+  string filepath = 1;
+  string filename = 2;
+  uint32 filesize = 3; // in Bytes
+
+  // timestamp in unix time of seconds.
+  uint64 creationtime = 4;
+  // # data records in the file 
+  uint64 num_data = 5;
+  // use datum# to locate its physical position on the file
+  // e.g. If you have a 64MB file, you can add a few indices 
+  // by the size of 4MB, to reduce sequential seek burden.
+  // Comment(wdai): Let's not worry about this yet. Sequential read of 64MB
+  // files are okay.
+  //repeated map<uint64, uint64> data_idx= 6;
+  Compressor compression_method = 7;
+}
+
+// Comment(wdai): Could you (Weiren) provide some comments explaining the use
+// of these fields? Thanks!
+message FileMap {
+  int32 file_map_id = 1;
+  repeated FileInfo files_info = 2;
+}
+
+enum StorageType {
+  NFS = 0;
+  HDFS = 1;
+}
+
+enum FileFormat {
+  LIBSVM = 0;
+  CSV = 1;
+  FAMILY = 2;
+}
+
+message DBServerConfig {
+  string db_dir = 1;
+  WarpServerConfig warp_server_config = 2;
+}
+
+message DBConfig {
+  // Basic information about DB.
+  string db_name = 1;
+  string db_description = 2;
+  //StorageType storage_type = 3;
+  SchemaConfig schema_config = 3;
+}
+
+message DBMetaData {
+  DBConfig db_config = 1;
+
+  uint32 num_epoch = 5;
+  //uint32 num_schema = 6; // could be retrieved from schema_id.size();
+
+  // Database Creation Timestamp (linux time stamp).
+  uint64 creation_time = 8;
+
+  // There should be a view of epochs in the current DB.
+  //repeated uint32 epoch_id = 1;
+  // There should also be a view of schemas in the current DB
+  //repeated uint32 schema_id = 2;
+}
+
+// TODO(wdai): Define TSchema (TransformedSchema) that contains stats about
+// each transformed column (e.g., estimated # of nonzeros, storage type,
+// feature dim) so trainer and optimize based on these info.

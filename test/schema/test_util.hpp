@@ -1,7 +1,7 @@
 #pragma once
 
-#include "transform/schema.hpp"
-#include "transform/proto/schema.pb.h"
+#include "schema/schema.hpp"
+#include "schema/proto/schema.pb.h"
 
 namespace mldb {
 
@@ -37,7 +37,6 @@ void AddCatNumFamily(const std::string& family_name,
   }
   std::vector<int> family_idxes(num_num_features);
   std::iota(family_idxes.begin(), family_idxes.end(), num_cat_features);
-  LOG(INFO) << "family_idxes: " << family_idxes[0] << "..." << family_idxes[num_num_features-1];
   family.AddFeatures(numerical_features, family_idxes);
 
   DatumProtoOffset offset_inc;

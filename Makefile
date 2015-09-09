@@ -71,8 +71,12 @@ build/%.o: src/%.cpp $(MLDB_HEADERS) $(MLDB_PROTO_HEADERS)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(LDFLAGS) $(HDFS_INCFLAGS) \
 		$(HDFS_LDFLAGS) -c $< -o $@
 
-%.pb.cc %.pb.h: %.proto path
-	$(THIRD_PARTY_BIN)/protoc --cpp_out=$(BUILD) --proto_path=src $<
+python_module: path
+	> $(BUILD)/__init__.py	# Make $(BUILD)/ into a python module.
+
+%.pb.cc %.pb.h: %.proto path python_module
+	$(THIRD_PARTY_BIN)/protoc --cpp_out=$(BUILD) --python_out=$(BUILD) \
+		--proto_path=src $<
 
 mldb_lib: path $(MLDB_LIB)
 

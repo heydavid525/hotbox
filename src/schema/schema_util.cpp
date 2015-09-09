@@ -1,47 +1,25 @@
-#pragma once
-
 #include <glog/logging.h>
-#include <string>
 #include <utility>
-#include <sstream>
 #include <cstdint>
 #include <cstdlib>
-#include "transform/proto/schema.pb.h"
+#include <sstream>
+#include "schema/schema_util.hpp"
+#include "schema/constants.hpp"
 #include "util/string_util.hpp"
-#include "util/mldb_exception.hpp"
-#include "transform/constants.hpp"
+#include "util/mldb_exceptions.hpp"
 
 namespace mldb {
 
-// Find a feature (or a family) in the schema.
-struct FeatureFinder {
-  std::string family_name;
+Feature CreateFeature(const FeatureType& type, const FeatureStoreType& store_type,
+    const std::string& name) {
+  Feature f;
+  f.set_name(name);
+  FeatureLocator* loc = f.mutable_loc();
+  loc->set_type(type);
+  loc->set_store_type(store_type);
+  return f;
+}
 
-  // if true, ignore feature_name and family_idx.
-  bool all_family = false;
-
-  // At most one of the following should be set.
-  std::string feature_name;
-  int family_idx = -1;
-};
-
-class ParseException: public MLDBException {
-public:
-  ParseException(const std::string msg) : MLDBException(msg) { }
-};
-
-// Parse feature descriptor (e.g., "mobile:ctr,num_views"). Return finders
-// ordered by appearance in feature descriptor.
-//
-// Some valid feature descriptors:
-// "feat1,feat2,fam1:feat3,:feat4" --> [(default, feat1), (default, feat2), (fam1,
-// feat3), (default, feat4)]
-// "feat5, feat6, fam2:feat7+feat8, feat9" --> [(default, feat5), (default, feat6),
-// (fam2, feat7), (fam2, feat8), (default, feat9)]
-// "fam3:" --> [(fam3, "")]. Empty string means family-wide selection.
-//
-// TODO(wdai): Beef up the error checking and messages. E.g, check for
-// duplicated selection.
 std::vector<FeatureFinder> ParseFeatureDesc(const std::string& feature_desc) {
   std::vector<FeatureFinder> finders;
   auto trimmed_desc = Trim(feature_desc, ",");  // remove trailing/leading commas
@@ -93,8 +71,6 @@ std::vector<FeatureFinder> ParseFeatureDesc(const std::string& feature_desc) {
   return finders;
 }
 
-// Categorical and Numerical features are considered numeral and can be
-// transformed.
 bool IsNumeral(const Feature& f) {
   return (f.loc().type() == FeatureType::CATEGORICAL) ||
     (f.loc().type() == FeatureType::NUMERICAL);
@@ -121,6 +97,7 @@ bool IsSparse(const Feature& f) {
   return f.loc().store_type() == FeatureStoreType::SPARSE;
 }
 
+/*
 DatumProtoOffset operator+(const DatumProtoOffset& o1,
     const DatumProtoOffset& o2) {
   DatumProtoOffset offset;
@@ -134,5 +111,6 @@ DatumProtoOffset operator+(const DatumProtoOffset& o1,
 
   return offset;
 }
+*/
 
 }  // namespace mldb

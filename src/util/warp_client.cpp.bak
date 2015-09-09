@@ -18,9 +18,7 @@ WarpClient::WarpClient(const WarpClientConfig& config) {
   auto dst_addr = "tcp://" + config.server_ip + ":" +
     std::to_string(kServerPort);
   LOG(INFO) << "Connect dst_addr: " << dst_addr;
-  zmq_util::ZMQConnect(sock_.get(), dst_addr);
-
-  // Wait for connection to establish.
+  zmq_util::ZMQConnect(sock_.get(), dst_addr);  
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
@@ -28,21 +26,15 @@ bool WarpClient::Send(const std::string& data) {
   if (client_id_ < 0) {
     HandshakeWithServer();
   }
-  return zmq_util::ZMQSend(sock_.get(), kServerId, data);
+  std::string ServerZmqID = zmq_util::Convert2ZmqId(kServerId);
+  return zmq_util::ZMQSend(sock_.get(), ServerZmqID, data);
 }
 
-ServerMsg WarpClient::Recv() {
+zmq::message_t WarpClient::Recv() {
   if (client_id_ < 0) {
     HandshakeWithServer();
   }
-  auto recv = zmq_util::ZMQRecv(sock_.get());
-  auto recv_str = std::string(reinterpret_cast<const char*>(recv.data()),
-      recv.size());
-  ServerMsg server_msg;
-  CHECK(server_msg.ParseFromString(recv_str)) << "Failed to parse msg from "
-    "server";
-  CHECK(!server_msg.has_handshake_msg());
-  return server_msg;
+  return zmq_util::ZMQRecv(sock_.get());
 }
 
 void WarpClient::HandshakeWithServer() {
@@ -52,8 +44,10 @@ void WarpClient::HandshakeWithServer() {
   std::string data;
   client_msg.SerializeToString(&data);
   bool success = false;
+  std::string ServerZmqID = zmq_util::Convert2ZmqId(kServerId);
+  LOG(INFO) << "To \"Server with ZMQ ID\": " << ServerZmqID;
   do {
-    success = zmq_util::ZMQSend(sock_.get(), kServerId, data);
+    success = zmq_util::ZMQSend(sock_.get(), ServerZmqID, data);
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   } while(!success);
 
@@ -61,7 +55,7 @@ void WarpClient::HandshakeWithServer() {
   auto rep_str = std::string(reinterpret_cast<const char*>(rep.data()),
       rep.size());
   ServerMsg server_msg;
-  CHECK(server_msg.ParseFromString(rep_str));
+  server_msg.ParseFromString(rep_str);
   CHECK(server_msg.has_handshake_msg());
   client_id_ = server_msg.handshake_msg().client_id();
   LOG(INFO) << "Client " << client_id_ << " finished handshake with server."

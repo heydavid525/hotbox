@@ -22,47 +22,6 @@ enum FeatureStoreType {
   DENSE = 2;
 }
 
-message FeatureStats {
-  // max + 1 is assumed to be the # of unique values for CATEGORICAL features.
-  double max = 5;
-  double min = 6;
-
-  double mean = 1;
-  double std = 2;
-  double quantile_5 = 3;
-  double quantile_95 = 4;
-}
-
-message EpochInfo {
-
-  // Comment (yuwr:) This should be a schema index? We might have many
-  // schemas, each schema could have many versions.  Each epoch would
-  // correspond to a schema, but not vice versa, hence the index.
-  //
-  // Comment (wdai): Since schema really is just the mapping from "mobile:ctr"
-  // feature descriptor to the feature id, I feel that this only needs to
-  // change when (1) user changes schema explicitly, or (2) we change the
-  // internal descriptor to feature_id mapping. I feel (2) could be too costly
-  // to do and thus we only needs one version id.
-
-  // uint32 schema_id = 1;
-  uint32 schema_version = 1;   // for schema evolution (future work).
-
-  // # data in this epoch.
-  uint64 num_data = 2;
-
-  // # of outlier data determined at ingest time.
-  uint64 num_outliers = 3;
-
-  // Ingest period in unix time seconds.
-  uint64 ingest_time_begin = 4;
-  uint64 ingest_time_end = 5;
-
-  // We assue each epoch would have one single FileMap object to locate the files.
-  // We use the file map index to located the object, avoiding ojbect inconsistency.
-  uint32 file_map_id= 7;
-}
-
 // Locate which store in DatumProto a feature is stored.
 message FeatureLocator {
   FeatureType type = 1;
@@ -72,13 +31,6 @@ message FeatureLocator {
   // dense store (vector) or global key in sparse store (map). For map lookup,
   // not found means 0. This index is determined at schema creation.
   int32 offset = 3;
-
-  // TODO(wdai): delete followings:
-  // relative to the family's
-  // offset of respective store. For example, for dense categorical feature
-  // "fam:feat", family 'fam' has dense categorical offset of 10, and
-  // 'family_offset' = 3, then "fam:feat" value is stored in DatumProto's
-  // dense_cat_store[13].
 }
 
 // Feature locates the feature value in DatumRecord, which has 6 data stores
@@ -90,8 +42,6 @@ message FeatureLocator {
 message Feature {
   string name = 6;
   FeatureLocator loc = 1;
-
-  FeatureStats stats = 5;
 
   // True to have this feature in the final output.
   bool in_final = 8;
@@ -127,13 +77,13 @@ message DatumProtoOffset {
 message FeatureFamilyProto {
   // Index lookup on family (e.g., "mobile:0" will find the first entry in
   // features).
-  repeated Feature features = 1;
+  //repeated Feature features = 1;
 
   // Map from feature name (string) to index on features, used in
   // "mobile:num_clicks" type of lookup (name = "num_clicks").
   map<string, uint32> name_to_family_idx = 2;
 
-  DatumProtoOffset offset = 4;
+  //DatumProtoOffset offset = 4;
 }
 
 // Message to construct default Schema.
@@ -169,63 +119,3 @@ message SchemaProto {
 
   DatumProtoOffset offset = 5;
 }
-
-enum Compressor {
-  RAW = 0;
-  ZIP = 1;
-  RLE = 2;
-}
-
-// File is assumed to be stored in file chunks of a user defined fixed size (e.g. HDFS).
-// Each file contains a number of data records.
-// (The record would start with a length descriptor (4 bytes) used to segment each compressed record.
-// This is taken care of by the underlying storage interface.)
-message FileInfo {
-  string filepath = 1;
-  string filename = 2;
-  uint32 filesize = 3; // in Bytes
-
-  // timestamp in unix time of seconds.
-  uint64 creationtime = 4;
-  // # data records in the file 
-  uint64 num_data = 5;
-  // use datum# to locate its physical position on the file
-  // e.g. If you have a 64MB file, you can add a few indices 
-  // by the size of 4MB, to reduce sequential seek burden.
-  // Comment(wdai): Let's not worry about this yet. Sequential read of 64MB
-  // files are okay.
-  //repeated map<uint64, uint64> data_idx= 6;
-  Compressor compression_method = 7;
-}
-
-// Comment(wdai): Could you (Weiren) provide some comments explaining the use
-// of these fields? Thanks!
-message FileMap {
-  int32 file_map_id = 1;
-  repeated FileInfo files_info = 2;
-}
-
-enum StorageType {
-  NFS = 0;
-  HDFS = 1;
-}
-
-message DBMetaData {
-  // Basic information about DB.
-  string db_name = 3;
-  string db_description = 4;
-  uint32 num_epoch = 5;
-  uint32 num_schema = 6; // could be retrieved from schema_id.size();
-  StorageType storage_type = 7;
-  // Database Creation Timestamp.
-  uint64 creation_time = 8;
-
-  // There should be a view of epochs in the current DB.
-  repeated uint32 epoch_id = 1;
-  // There should also be a view of schemas in the current DB
-  repeated uint32 schema_id = 2;
-}
-
-// TODO(wdai): Define TSchema (TransformedSchema) that contains stats about
-// each transformed column (e.g., estimated # of nonzeros, storage type,
-// feature dim) so trainer and optimize based on these info.

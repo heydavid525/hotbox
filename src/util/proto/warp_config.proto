@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package mldb;
+
+message WarpServerConfig {
+  // Default 0 uses a default port.
+  int32 port = 1;
+}

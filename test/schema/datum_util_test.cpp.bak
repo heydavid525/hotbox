@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <glog/logging.h>
-#include "transform/datum_util.hpp"
-#include "transform/schema.hpp"
-#include "transform/proto/schema.pb.h"
-#include "test/transform/test_util.hpp"
+#include "schema/datum_util.hpp"
+#include "schema/schema.hpp"
+#include "schema/proto/schema.pb.h"
+#include "test/schema/test_util.hpp"
 
 namespace mldb {
 

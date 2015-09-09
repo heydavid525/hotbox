@@ -1,5 +1,6 @@
-#include "zmq_util.hpp"
 #include <glog/logging.h>
+#include <cstdint>
+#include "zmq_util.hpp"
 
 namespace mldb {
 namespace zmq_util {
@@ -17,8 +18,10 @@ zmq::context_t* CreateZmqContext(int num_zmq_threads) {
 
 std::string Convert2ZmqId(const std::string& id_str) {
   auto copy_str = id_str;
-  // Turn leftmost bit to 1.
-  copy_str[0] = copy_str[0] | 0x80;
+  // Prepend a byte so the leftmost bit is 1.
+  uint8_t byte_start_with_1 = 1 << 7;
+  LOG(INFO) << "byte_start_with_1: " << byte_start_with_1;
+  copy_str.insert(0, reinterpret_cast<char*>(&byte_start_with_1), 1);
   return copy_str;
 }
 
@@ -81,14 +84,14 @@ bool ZMQSendInternal(zmq::socket_t* sock, const void* data, size_t len,
   } catch (zmq::error_t &e) {
     switch (e.num()) {
       case EHOSTUNREACH:
-        LOG(INFO) << "The client droped?" << e.what();
+        LOG(INFO) << "The client dropped? " << e.what();
         break;
       case ENOTSUP:
       case EFSM:
       case ETERM:
       case ENOTSOCK:
       case EFAULT:
-      case EAGAIN: 
+      case EAGAIN:
         // EAGAIN would not be thrown which got eaten by c++ binding.
         // These errors mean there are bugs in the code, fail fast
         LOG(FATAL) << e.what() << "Possibly due to a lost client";
@@ -111,10 +114,8 @@ bool ZMQSendInternal(zmq::socket_t* sock, const void* data, size_t len,
 // High-level send.
 bool ZMQSend(zmq::socket_t* sock, const std::string& dst_id,
     const std::string& data) {
-  LOG(INFO) << "dst_id: " << dst_id;
   bool zid_sent = ZMQSendInternal(sock, dst_id.c_str(), dst_id.size(),
       ZMQ_SNDMORE);
-  LOG(INFO) << "zid_sent: " << zid_sent;
   return zid_sent && ZMQSendInternal(sock, data.c_str(), data.size());
 }
 

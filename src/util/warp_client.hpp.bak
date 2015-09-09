@@ -29,7 +29,7 @@ public:
   bool Send(const std::string& data);
 
   // Receive from server (blocking).
-  ServerMsg Recv();
+  zmq::message_t Recv();
 
 private:
   // Handshake with the server and get the client's client id. The first

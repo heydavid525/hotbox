@@ -10,13 +10,10 @@ $(TEST_DIR)/%: test/%.cpp $(MLDB_LIB)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(LDFLAGS) $(HDFS_INCFLAGS) \
 		$(TEST_INCFLAGS) $(HDFS_LDFLAGS)  $< -lgtest $(MLDB_LIB) -o $@
 
-test: $(TEST_BIN) transform_test one_hot_transform_test datum_util_test
+test: $(TEST_BIN) #schema_util_test one_hot_transform_test
 
-transform_test: $(TEST_BIN)
-	$(TEST_DIR)/transform/schema_util_test
+#schema_util_test: $(TEST_BIN)
+#	$(TEST_DIR)/transform/schema_util_test
 
-one_hot_transform_test: $(TEST_BIN)
-	$(TEST_DIR)/transform/one_hot_transform_test
-
-datum_util_test: $(TEST_BIN)
-	$(TEST_DIR)/transform/datum_util_test
+#one_hot_transform_test: $(TEST_BIN)
+#	$(TEST_DIR)/transform/one_hot_transform_test
