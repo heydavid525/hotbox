@@ -40,6 +40,7 @@ THIRD_PARTY_BIN = $(THIRD_PARTY)/bin
 INCFLAGS = -Isrc/ -I$(THIRD_PARTY_INCLUDE) \
 					 -Ibuild/ # include generated *pb.h
 INCFLAGS += $(HDFS_INCFLAGS)
+INCFLAGS += $(DMLC_CFLAGS)
 LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
           -L$(THIRD_PARTY_LIB) \
           -pthread -lrt -lnsl \
@@ -49,7 +50,9 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
           -ltcmalloc \
 					-lprotobuf \
 					-D_GLIBCXX_USE_NANOSLEEP
-LDFLAGS += $(HDFS_LDFLAGS)
+
+LDFLAGS+= $(DMLC_LDFLAGS)
+LDFLAGS+= $(HDFS_LDFLAGS)
 
 MLDB_SRC = $(shell find src -type f -name "*.cpp")
 MLDB_PROTO = $(shell find src -type f -name "*.proto")
