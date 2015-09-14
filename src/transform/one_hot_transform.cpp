@@ -1,62 +1,102 @@
 #include <glog/logging.h>
-#include <functional>
-#include "schema/schema_util.hpp"
+#include <string>
+#include "transform/transform_api.hpp"
 #include "transform/one_hot_transform.hpp"
-#include "transform/proto/transform_configs.pb.h"
 
 namespace mldb {
 
-OneHotTransform::OneHotTransform(const OneHotTransformOp& op) {
-  for (int i = 0; i < op.units_size(); ++i) {
-    const auto& unit = op.units(i);
-    const auto& input_feature_loc = unit.input_loc();
-    std::function<void(DatumBase*)> binning_func;
-    int32_t output_offset_start = unit.output_offset_start();
-    if (unit.buckets_size() == 0) {
+void OneHotTransform::TransformSchema(const TransformParams& params,
+    TransformWriter* writer) const {
+  const OneHotTransformConfig& config =
+    params.GetConfig().one_hot_transform_config();
+  const auto& input_features = params.GetInputFeatures();
+  for (int i = 0; i < input_features.size(); ++i) {
+    const auto& input_feature = input_features[i];
+    CHECK(IsNumeral(input_feature));
+    if (config.buckets_size() == 0) {
+      // Use input_feature (need to be categorical) to decide buckets.
+      CHECK(IsCategorical(input_feature))
+        << "Must specify bucket for NUMERIC feature type.";
+      // [min, max].
+      //int max = static_cast<int>(params.GetStat().GetMax());
+      //int min = static_cast<int>(params.GetStat().GetMin());
+      // TODO(wdai): use stat
+      int min = 0;
+      int max = 10;
+      int num_buckets = max - min + 1;
+      for (int i = 0; i < num_buckets; ++i) {
+        auto feature_name = input_feature.name() + "-one-hot-bucket-"
+          + std::to_string(min + i);
+        writer->AddSparseCatFeature(config.output_feature_family(), feature_name,
+            config.in_final());
+      }
+    } else {
+      const auto& buckets = config.buckets();
+      int num_buckets = config.buckets_size() + 1;
+      for (int i = 0; i < num_buckets; ++i) {
+        std::string range = (i == 0) ? "<" + std::to_string(buckets.Get(0)) :
+          (i == num_buckets - 1) ? ">" + std::to_string(buckets.Get(i)) :
+          "[" + std::to_string(buckets.Get(i-1)) + ", " +
+          std::to_string(buckets.Get(i)) + ")";
+        auto feature_name = input_feature.name() + "-one-hot-bucket-" + range;
+        writer->AddSparseCatFeature(config.output_feature_family(), feature_name,
+            config.in_final());
+      }
+    }
+  }
+}
+
+std::function<void(DatumBase*)> OneHotTransform::GenerateTransform(
+    const TransformParams& params) const {
+  const OneHotTransformConfig& config =
+    params.GetConfig().one_hot_transform_config();
+  std::vector<std::function<void(DatumBase*)>> transforms;
+  const auto& input_features = params.GetInputFeatures();
+  int offset = 0;
+  for (int i = 0; i < input_features.size(); ++i) {
+    const auto& input_feature_loc = input_features[i].loc();
+    if (config.buckets_size() == 0) {
       // Categorical feature into natural binning.
-      int min = unit.min();
-      int max = unit.max();
+      int min = 0;
+      int max = 10;
       // bin into num_buckets in sparse_cat_store starting with
       // 'output_offset_start'.
-      binning_func =
-        [input_feature_loc, output_offset_start, min, max]
+      transforms.push_back(
+        [input_feature_loc, min, max, offset]
         (DatumBase* datum) {
           int val = static_cast<int>(datum->GetFeatureVal(input_feature_loc));
           CHECK_LE(val, max);
           CHECK_LE(min, val);
           int bin_id = val - min;
-          datum->SetSparseCatFeatureVal(output_offset_start + bin_id, 1);
-        };
-      transforms_.push_back(binning_func);
+          datum->SetSparseCatFeatureVal(offset + bin_id, 1);
+        });
+      // Advance offset to point at bins associated with the next feature.
+      offset += max - min + 1;
     } else {
-      // Use the specified buckets.
-      const auto& buckets = unit.buckets();
-      binning_func =
-        [input_feature_loc, output_offset_start, buckets]
+      const auto& buckets = config.buckets();
+      transforms.push_back(
+        [input_feature_loc, buckets, offset]
         (DatumBase* datum) {
           float val = datum->GetFeatureVal(input_feature_loc);
           if (val < buckets.Get(0)) {
             // First bucket
-            datum->SetSparseCatFeatureVal(output_offset_start, 1);
+            datum->SetSparseCatFeatureVal(offset, 1);
           } else {
             for (int i = 0; i < buckets.size(); ++i) {
-              if (val > buckets.Get(i)) {
-                datum->SetSparseCatFeatureVal(output_offset_start + i + 1, 1);
+              if (val >= buckets.Get(i)) {
+                datum->SetSparseCatFeatureVal(offset + i + 1, 1);
                 break;
               }
             }
           }
-        };
-      transforms_.push_back(binning_func);
+        });
+      offset += config.buckets_size() + 1;
     }
   }
-}
-
-void OneHotTransform::Transform(DatumBase* datum) const {
-  //CHECK(this->recv_schema_);
-  for (int i = 0; i < transforms_.size(); ++i) {
-    transforms_[i](datum);
-  }
+  return [transforms] (DatumBase* datum) {
+    for (const auto& transform : transforms) {
+      transform(datum);
+    }};
 }
 
 }  // namespace mldb

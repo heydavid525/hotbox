@@ -4,6 +4,7 @@ import "schema/proto/schema.proto";
 
 package mldb;
 
+/*
 message TransformOp {
   oneof op {
     OneHotTransformOp one_hot_op = 1;
@@ -29,6 +30,13 @@ message OneHotTransformOpUnit {
 
 message OneHotTransformOp {
   repeated OneHotTransformOpUnit units = 1;
+}
+*/
+
+message TransformConfig {
+  oneof config {
+    OneHotTransformConfig one_hot_transform_config = 1;
+  }
 }
 
 // Unless otherwise specified, all transforms ignores BYTE features and print
@@ -108,7 +116,7 @@ message LogitTransformConfig {
 
 // Select raw features to include in the final output. Automatically drops
 // BYTES features and multi-nomial categorical features. The selected feature
-// is never in_final and appears in final output.
+// is always in_final and appears in final output.
 message SelectTransformConfig {
   repeated string input_features = 1;
 

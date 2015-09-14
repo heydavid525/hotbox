@@ -1,21 +1,16 @@
 #pragma once
 
-#include <vector>
-#include <functional>
-#include "schema/datum_base.hpp"
-#include "transform/transform_if.hpp"
-#include "transform/proto/transform_configs.pb.h"
+#include "transform/transform_api.hpp"
 
 namespace mldb {
 
 class OneHotTransform : public TransformIf {
 public:
-  OneHotTransform(const OneHotTransformOp& op);
+  void TransformSchema(const TransformParams& params,
+      TransformWriter* writer) const override;
 
-  void Transform(DatumBase* datum) const override;
-
-private:
-  std::vector<std::function<void(DatumBase*)>> transforms_;
+  std::function<void(DatumBase*)> GenerateTransform(
+      const TransformParams& params) const override;
 };
 
 }  // namespace mldb
