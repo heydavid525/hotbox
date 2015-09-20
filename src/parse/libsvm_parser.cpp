@@ -3,15 +3,17 @@
 #include <utility>
 #include <cstdint>
 #include <string>
-#include "parser/libsvm_parser.hpp"
+#include "parse/libsvm_parser.hpp"
 #include "schema/constants.hpp"
 
 namespace mldb {
 
-LibSVMParser::LibSVMParser(const LibSVMParserConfig& config) :
-  feature_one_based_(config.feature_one_based()),
-  label_one_based_(config.label_one_based()) {
-  }
+void LibSVMParser::SetConfig(const ParserConfig& config) {
+  CHECK(config.has_libsvm_config());
+  const LibSVMParserConfig& libsvm_config = config.libsvm_config();
+  feature_one_based_ = libsvm_config.feature_one_based();
+  label_one_based_ = libsvm_config.label_one_based();
+}
 
 void LibSVMParser::Parse(const std::string& line, Schema* schema,
     DatumBase* datum) const {

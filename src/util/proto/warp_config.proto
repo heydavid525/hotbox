@@ -6,3 +6,8 @@ message WarpServerConfig {
   // Default 0 uses a default port.
   int32 port = 1;
 }
+
+message WarpClientConfig {
+  // E.g. "50.1.1.2".
+  string server_ip = 1;
+}

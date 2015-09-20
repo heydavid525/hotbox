@@ -1,15 +1,16 @@
 #pragma once
 
-#include "parser/parser_if.hpp"
-#include "parser/proto/parser_configs.pb.h"
+#include "parse/parser_if.hpp"
+#include "parse/proto/parser_configs.pb.h"
 #include "schema/datum_base.hpp"
 
 namespace mldb {
 
 class LibSVMParser : public ParserIf {
 public:
-  LibSVMParser(const LibSVMParserConfig& config);
+  void SetConfig(const ParserConfig& config);
 
+protected:
   void Parse(const std::string& line, Schema* schema,
       DatumBase* datum) const override;
 

@@ -44,6 +44,10 @@ float DatumBase::GetFeatureVal(const Schema& schema,
   return GetFeatureVal(loc);
 }
 
+float DatumBase::GetFeatureVal(const Feature& feature) const {
+  return GetFeatureVal(feature.loc());
+}
+
 float DatumBase::GetFeatureVal(const FeatureLocator& loc) const {
   CHECK_NOTNULL(proto_.get());
   CHECK(IsNumeral(loc));

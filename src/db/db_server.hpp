@@ -2,10 +2,11 @@
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+#include "db/db.hpp"
 #include "db/proto/db.pb.h"
+#include "db/util.hpp"
 #include "util/warp_server.hpp"
 #include "util/proto/warp_msg.pb.h"
-#include "glog/logging.h"
 #include <boost/filesystem.hpp>
 #include <string>
 #include <map>
@@ -16,31 +17,36 @@ class DBServer {
 public:
   DBServer(const DBServerConfig& config) : db_dir_(config.db_dir()),
   server_(config.warp_server_config()) { }
+
   void Start() {
     CreateDirectory(db_dir_);
+    RegisterParsers();
+    LOG(INFO) << "DBServer running. DB path is " << db_dir_;
 
     while (true) {
       int client_id;
       ClientMsg client_msg = server_.Recv(&client_id);
 
-      if (client_msg.has_create_db()) {
-      switch (client_msg.msg_case()) {
-        case kCreateDBReq:
-          CreateDBReqHandler(client_id, client_msg.create_db_req());
-          break;
-        case kIngestFileReq:
-          IngestFileReqHandler(client_id, client_msg.ingest_file_req());
-          break;
-        default:
-          LOG(ERROR) << "Unrecognized client msg case: "
-            << client_msg.msg_case();
+      if (client_msg.has_create_db_req()) {
+        LOG(INFO) << "Received create_db_req";
+        CreateDBReqHandler(client_id, client_msg.create_db_req());
+      } else if (client_msg.has_ingest_file_req()) {
+        LOG(INFO) << "Received in_gest_file_req";
+        IngestFileReqHandler(client_id, client_msg.ingest_file_req());
+      } else if (client_msg.has_db_server_shutdown_req()) {
+        LOG(INFO) << "Received db_server_shutdown_req";
+        return;
+      } else {
+        LOG(ERROR) << "Unrecognized client msg case: "
+          << client_msg.msg_case();
       }
     }
   }
+
 private:
   void CreateDirectory(const boost::filesystem::path& dir) {
     // Create directory if necessary.
-    if (boost::filesystem::exist(dir)) {
+    if (boost::filesystem::exists(dir)) {
       CHECK(boost::filesystem::is_directory(dir));
     } else {
       CHECK(boost::filesystem::create_directory(dir));
@@ -65,8 +71,8 @@ private:
     SendGenericReply(client_id, "Done creating DB");
   }
 
-   IngestFileReqHandler(const IngestFileReq& req) {
-    const auto& it = dbs_.fine(req.db_name());
+  void IngestFileReqHandler(int client_id, const IngestFileReq& req) {
+    const auto& it = dbs_.find(req.db_name());
     if (it == dbs_.cend()) {
       SendGenericReply(client_id, "DB " + req.db_name() + " not found.");
     }
@@ -78,7 +84,7 @@ private:
 
   WarpServer server_;
 
-  std::map<std::string, <std::unique_ptr<DB>> dbs_;
-  };
+  std::map<std::string, std::unique_ptr<DB>> dbs_;
+};
 
 }  // namespace

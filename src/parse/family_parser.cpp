@@ -3,7 +3,7 @@
 #include <utility>
 #include <glog/logging.h>
 #include "schema/constants.hpp"
-#include "parser/family_parser.hpp"
+#include "parse/family_parser.hpp"
 
 namespace mldb {
 

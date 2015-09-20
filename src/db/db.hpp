@@ -45,7 +45,7 @@ public:
 private:
   DBMetaData meta_data_;
 
-  // TODO(wdai): Allows multiple schemas.
+  // TODO(wdai): Allows multiple schemas (schema evolution).
   Schema schema_;
 
   std::vector<Epoch> epochs_;

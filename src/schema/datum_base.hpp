@@ -27,6 +27,7 @@ public:
 
   // Get numeral feature value (CATEGORICAL or NUMERIC). Error otherwise.
   // TODO(wdai): Return flexitype in the future.
+  float GetFeatureVal(const Feature& feature) const;
   float GetFeatureVal(const FeatureLocator& loc) const;
 
   // Assumes the dense feature stores are resized already.

@@ -26,6 +26,25 @@ public:
   }
 };
 
+class BaseX {
+public:
+  virtual std::string GetClassName() const = 0;
+};
+
+class DerivedX1 : public BaseX {
+public:
+  std::string GetClassName() const override {
+    return "DerivedX1";
+  }
+};
+
+class DerivedX2 : public BaseX {
+public:
+  std::string GetClassName() const override {
+    return "DerivedX2";
+  }
+};
+
 }  // anonymous namespace
 
 TEST(ClassRegisteryTest, SmokeTest) {
@@ -34,6 +53,12 @@ TEST(ClassRegisteryTest, SmokeTest) {
   auto& registry = ClassRegistry<Base>::GetRegistry();
   EXPECT_EQ("Derived1", registry.CreateObject(0)->GetClassName());
   EXPECT_EQ("Derived2", registry.CreateObject(1)->GetClassName());
+
+  ClassRegistry<BaseX>::GetRegistry().AddCreator(0, Creator<BaseX, DerivedX1>);
+  ClassRegistry<BaseX>::GetRegistry().AddCreator(1, Creator<BaseX, DerivedX2>);
+  auto& registryX = ClassRegistry<BaseX>::GetRegistry();
+  EXPECT_EQ("DerivedX1", registryX.CreateObject(0)->GetClassName());
+  EXPECT_EQ("DerivedX2", registryX.CreateObject(1)->GetClassName());
 }
 
 }  // namespace mldb

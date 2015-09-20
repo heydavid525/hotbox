@@ -14,13 +14,14 @@ zmq::context_t* CreateZmqContext(int num_zmq_threads) {
   } catch (...) {
     LOG(FATAL) << "Failed to create zmq context";
   }
+  return nullptr; // should never reach here.
 }
 
 std::string Convert2ZmqId(const std::string& id_str) {
   auto copy_str = id_str;
   // Prepend a byte so the leftmost bit is 1.
   uint8_t byte_start_with_1 = 1 << 7;
-  LOG(INFO) << "byte_start_with_1: " << byte_start_with_1;
+  //LOG(INFO) << "byte_start_with_1: " << byte_start_with_1;
   copy_str.insert(0, reinterpret_cast<char*>(&byte_start_with_1), 1);
   return copy_str;
 }
@@ -116,7 +117,10 @@ bool ZMQSend(zmq::socket_t* sock, const std::string& dst_id,
     const std::string& data) {
   bool zid_sent = ZMQSendInternal(sock, dst_id.c_str(), dst_id.size(),
       ZMQ_SNDMORE);
-  return zid_sent && ZMQSendInternal(sock, data.c_str(), data.size());
+  // Send an empty frame to be consistent with REQ socket behavior.
+  bool empty_sent = ZMQSendInternal(sock, dst_id.c_str(), 0, ZMQ_SNDMORE);
+  return zid_sent && empty_sent &&
+    ZMQSendInternal(sock, data.c_str(), data.size());
 }
 
 
@@ -160,7 +164,16 @@ zmq::message_t ZMQRecv(zmq::socket_t* sock, std::string* src_id) {
     *src_id = std::string(reinterpret_cast<const char*>(msg_src_id.data()),
         msg_src_id.size());
   }
-  return ZMQRecvInternal(sock);
+  auto msg = ZMQRecvInternal(sock);
+  // second frame is always empty.
+  // Comment(wdai): This is to immitate REQ socket behavior, which adds an
+  // empty frame.
+  CHECK_EQ(0, msg.size());
+  // This msg must be from a REQ socket, which prepends an empty frame. Read
+  // one more frame.
+  msg = ZMQRecvInternal(sock);
+  CHECK_GT(msg.size(), 0) << "Empty msg.";
+  return msg;
 }
 
 }   // zmq_util

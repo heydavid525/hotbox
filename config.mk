@@ -14,7 +14,7 @@ ifndef HADOOP_HDFS_HOME
 endif
 
 # whether use HDFS support during compile
-USE_HDFS = 1
+USE_HDFS = 0
 
 ifeq ($(USE_HDFS),1)
   ifndef HDFS_INC_PATH

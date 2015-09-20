@@ -9,14 +9,15 @@ from os.path import dirname
 from os.path import join
 
 project_dir = dirname(dirname(dirname(os.path.realpath(__file__))))
+print project_dir
+#sys.path.insert(1, join(project_dir, 'build'))
+#sys.path.insert(1, join(project_dir, 'third_party', 'include'))
 sys.path.append(join(project_dir, 'build'))
 sys.path.append(join(project_dir, 'third_party', 'include'))
 
 from util.proto.warp_msg_pb2 import *
 
 if __name__ == "__main__":
-  import sys
-  print(sys.version)
   parser = argparse.ArgumentParser(
       formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument('--server_ip', default='', help='server ip',
@@ -40,5 +41,3 @@ if __name__ == "__main__":
   except Exception as e:
     print(e.message)
   time.sleep(5)
-
-

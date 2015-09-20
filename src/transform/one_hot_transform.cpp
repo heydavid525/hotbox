@@ -54,7 +54,7 @@ std::function<void(DatumBase*)> OneHotTransform::GenerateTransform(
   const auto& input_features = params.GetInputFeatures();
   int offset = 0;
   for (int i = 0; i < input_features.size(); ++i) {
-    const auto& input_feature_loc = input_features[i].loc();
+    const auto& input_feature = input_features[i];
     if (config.buckets_size() == 0) {
       // Categorical feature into natural binning.
       int min = 0;
@@ -62,9 +62,9 @@ std::function<void(DatumBase*)> OneHotTransform::GenerateTransform(
       // bin into num_buckets in sparse_cat_store starting with
       // 'output_offset_start'.
       transforms.push_back(
-        [input_feature_loc, min, max, offset]
+        [input_feature, min, max, offset]
         (DatumBase* datum) {
-          int val = static_cast<int>(datum->GetFeatureVal(input_feature_loc));
+          int val = static_cast<int>(datum->GetFeatureVal(input_feature));
           CHECK_LE(val, max);
           CHECK_LE(min, val);
           int bin_id = val - min;
@@ -75,9 +75,9 @@ std::function<void(DatumBase*)> OneHotTransform::GenerateTransform(
     } else {
       const auto& buckets = config.buckets();
       transforms.push_back(
-        [input_feature_loc, buckets, offset]
+        [input_feature, buckets, offset]
         (DatumBase* datum) {
-          float val = datum->GetFeatureVal(input_feature_loc);
+          float val = datum->GetFeatureVal(input_feature);
           if (val < buckets.Get(0)) {
             // First bucket
             datum->SetSparseCatFeatureVal(offset, 1);

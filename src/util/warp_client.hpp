@@ -3,18 +3,14 @@
 #include "zmq_util.hpp"
 #include "warp_server.hpp"
 #include "util/proto/warp_msg.pb.h"
+#include "util/proto/warp_config.pb.h"
 #include <zmq.hpp>
 #include <utility>
 #include <memory>
 #include <string>
-#include <unordered_map>
+#include <cstdint>
 
 namespace mldb {
-
-struct WarpClientConfig {
-  // E.g. "50.1.1.2".
-  std::string server_ip;
-};
 
 class WarpClient {
 public:

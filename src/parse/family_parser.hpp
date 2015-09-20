@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include "parser/parser_if.hpp"
+#include "parse/parser_if.hpp"
 
 namespace mldb {
 
@@ -15,15 +15,17 @@ namespace mldb {
 //    0 1 |0:3 1:4
 //
 // puts the features into default family. Whitespaces
-class FamilyParser : public ParserIf {
-public:
+class FamilyParser : public NoConfigParserIf {
+protected:
   void Parse(const std::string& line, Schema* schema, DatumBase* datum)
     const override;
 
 private:
-  // ReadFamily uses InferType from ParserIf.
+  // Comment(wdai): ReadFamily uses InferType from ParserIf, thus has to be
+  // under FamilyParser.
   static char* ReadFamily(const std::string& line, char* ptr, Schema* schema,
       DatumBase* datum);
+
 };
 
 }  // namespace mldb

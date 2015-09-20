@@ -86,9 +86,10 @@ enum StorageType {
 }
 
 enum FileFormat {
-  LIBSVM = 0;
-  CSV = 1;
-  FAMILY = 2;
+  UNKNOWN_FILE_FORMAT = 0;  // so that default FileFormat results in error.
+  LIBSVM = 1;
+  CSV = 2;
+  FAMILY = 3;
 }
 
 message DBServerConfig {

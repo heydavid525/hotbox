@@ -9,17 +9,40 @@
 namespace mldb {
 
 // Singleton class ClassRegistry implements registration patterns.
+// 
+// Usage:
+//
+// class Base {
+// public:
+//   virtual std::string GetClassName() const = 0;
+// };
+// 
+// class Derived1 : public Base {
+// public:
+//   std::string GetClassName() const override {
+//     return "Derived1";
+//   }
+// };
+// 
+// class Derived2 : public Base {
+// public:
+//   std::string GetClassName() const override {
+//     return "Derived2";
+//   }
+// };
+//
+// ClassRegistry<Base>::GetRegistry().AddCreator(0, Creator<Base, Derived1>);
+// ClassRegistry<Base>::GetRegistry().AddCreator(1, Creator<Base, Derived2>);
+// auto& registry = ClassRegistry<Base>::GetRegistry();
+// EXPECT_EQ("Derived1", registry.CreateObject(0)->GetClassName());
+// EXPECT_EQ("Derived2", registry.CreateObject(1)->GetClassName());
+//
+// This can apply to multiple Base class, each having their own registry.
 template<typename BaseClass>
 class ClassRegistry {
 public:
   //typedef BaseClass* (*CreateFunc)();
   typedef std::function<BaseClass*(void)> CreateFunc;
-
-  /*
-  void SetDefaultCreator(CreateFunc creator) {
-    default_creator_ = creator;
-  }
-  */
 
   void AddCreator(int key, CreateFunc creator) {
     const auto pair = creator_map_.insert(std::make_pair(key, creator));
@@ -47,7 +70,6 @@ private:
   void operator=(const ClassRegistry&)  = delete;
 
 private:
-  //CreateFunc default_creator_;
   std::map<int, CreateFunc> creator_map_;
 };
 

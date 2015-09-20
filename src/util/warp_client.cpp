@@ -1,4 +1,5 @@
-#include "warp_client.hpp"
+#include "util/warp_client.hpp"
+#include "util/global_config.hpp"
 #include <glog/logging.h>
 #include <chrono>
 #include <thread>
@@ -15,8 +16,8 @@ WarpClient::WarpClient(const WarpClientConfig& config) {
   zmq_util::ZMQSetSockOpt(sock_.get(), ZMQ_ROUTER_MANDATORY, &(sock_mandatory),
       sizeof(sock_mandatory));
 
-  auto dst_addr = "tcp://" + config.server_ip + ":" +
-    std::to_string(kServerPort);
+  auto dst_addr = "tcp://" + config.server_ip() + ":" +
+    GlobalConfig::GetInstance().Get<std::string>("default_server_port");
   LOG(INFO) << "Connect dst_addr: " << dst_addr;
   zmq_util::ZMQConnect(sock_.get(), dst_addr);
 

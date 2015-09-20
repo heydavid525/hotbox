@@ -19,6 +19,17 @@ void FeatureFamily::DeleteFeature(int32_t family_idx) {
 
 const Feature& FeatureFamily::GetFeature(const std::string& feature_name)
   const {
+    const auto& it = name_to_family_idx_.find(feature_name);
+    if (it == name_to_family_idx_.cend()) {
+      FeatureFinder not_found_feature;
+      not_found_feature.family_name = family_name_;
+      not_found_feature.feature_name = feature_name;
+      throw FeatureNotFoundException(not_found_feature);
+    }
+    return GetFeature(it->second);
+  }
+
+Feature& FeatureFamily::GetMutableFeature(const std::string& feature_name) {
   const auto& it = name_to_family_idx_.find(feature_name);
   if (it == name_to_family_idx_.cend()) {
     FeatureFinder not_found_feature;
@@ -26,10 +37,20 @@ const Feature& FeatureFamily::GetFeature(const std::string& feature_name)
     not_found_feature.feature_name = feature_name;
     throw FeatureNotFoundException(not_found_feature);
   }
-  return GetFeature(it->second);
-  }
+  return GetMutableFeature(it->second);
+}
 
 const Feature& FeatureFamily::GetFeature(int32_t family_idx) const {
+  if (!initialized_[family_idx]) {
+    FeatureFinder not_found_feature;
+    not_found_feature.family_name = family_name_;
+    not_found_feature.family_idx = family_idx;
+    throw FeatureNotFoundException(not_found_feature);
+  }
+  return features_[family_idx];
+}
+
+Feature& FeatureFamily::GetMutableFeature(int32_t family_idx) {
   if (!initialized_[family_idx]) {
     FeatureFinder not_found_feature;
     not_found_feature.family_name = family_name_;

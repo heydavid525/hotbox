@@ -3,7 +3,7 @@ syntax = "proto3";
 package mldb;
 
 enum FeatureType {
-  UNKNOWN = 0;  // if we can't infer the feature type.
+  UNKNOWN_FEATURE_TYPE = 0;  // if we can't infer the feature type.
   CATEGORICAL = 1;  // int32
   NUMERICAL = 2;    // float
   BYTES = 3;  // arbitrary byte string.
@@ -38,13 +38,15 @@ message FeatureLocator {
 // identify the store in DatumRecord, and idx searches for the value in the
 // appropriate store.
 //
-// Current max proto sequence: 8.
+// Current max proto sequence: 3.
 message Feature {
-  string name = 6;
-  FeatureLocator loc = 1;
+  string name = 1;
+  FeatureLocator loc = 2;
+
+  // TODO(wdai): is_factor = 7;
 
   // True to have this feature in the final output.
-  bool in_final = 8;
+  bool in_final = 3;
 }
 
 // Each data instance is stored as DatumProto, which has 6 data stores

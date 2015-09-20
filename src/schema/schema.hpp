@@ -23,15 +23,21 @@ public:
   void AddFeature(const std::string& family_name, int32_t family_idx,
       Feature* new_feature);
 
-  const Feature& GetFeature(const std::string& family_name, int32_t family_idx);
+  const Feature& GetFeature(const std::string& family_name, int32_t family_idx)
+    const;
 
-  const Feature& GetFeature(const FeatureFinder& finder);
+  Feature& GetMutableFeature(const std::string& family_name,
+      int32_t family_idx);
+
+  const Feature& GetFeature(const FeatureFinder& finder) const;
+
+  Feature& GetMutableFeature(const FeatureFinder& finder);
 
   // Can throws FamilyNotFoundException.
   const FeatureFamily& GetFamily(const std::string& family_name) const;
 
   // Try to get a family. If it doesn't exist, create it.
-  FeatureFamily& GetOrCreateFamily(const std::string& family_name);
+  FeatureFamily& GetOrCreateFamily(const std::string& family_name) const;
 
   const DatumProtoOffset& GetDatumProtoOffset() const;
 
@@ -43,7 +49,9 @@ private:
   void UpdateOffset(Feature* new_feature);
 
 private:
-  std::map<std::string, FeatureFamily> families_;
+  // Comment(wdai): declare it mutable so we can create FeatureFamily in const
+  // functions.
+  mutable std::map<std::string, FeatureFamily> families_;
 
   // Tracks the insert point of the next feature.
   DatumProtoOffset append_offset_;

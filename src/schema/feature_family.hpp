@@ -18,8 +18,10 @@ public:
   void DeleteFeature(int32_t family_idx);
 
   const Feature& GetFeature(const std::string& feature_name) const;
+  Feature& GetMutableFeature(const std::string& feature_name);
 
   const Feature& GetFeature(int32_t family_idx) const;
+  Feature& GetMutableFeature(int32_t family_idx);
 
   const std::vector<Feature>& GetFeatures() const;
 

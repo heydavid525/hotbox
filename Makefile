@@ -49,7 +49,9 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
           -lgflags \
           -ltcmalloc \
 					-lprotobuf \
-					-D_GLIBCXX_USE_NANOSLEEP
+					-D_GLIBCXX_USE_NANOSLEEP \
+					-lboost_filesystem \
+					-lyaml-cpp
 
 LDFLAGS+= $(DMLC_LDFLAGS)
 LDFLAGS+= $(HDFS_LDFLAGS)
@@ -63,6 +65,8 @@ MLDB_PROTO_HEADERS = $(MLDB_PROTO:.proto=.pb.h)
 
 $(MLDB_LIB): $(MLDB_OBJ) path
 	ar csrv $@ $(filter %.o, $?)
+	# Make $(BUILD)/ into a python module.
+	python $(PROJECT)/python/util/modularize.py $(BUILD)
 
 build/%.pb.o: build/%.pb.cc $(MLDB_PROTO_HEADERS)
 	mkdir -p $(@D)
@@ -74,10 +78,7 @@ build/%.o: src/%.cpp $(MLDB_HEADERS) $(MLDB_PROTO_HEADERS)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(LDFLAGS) $(HDFS_INCFLAGS) \
 		$(HDFS_LDFLAGS) -c $< -o $@
 
-python_module: path
-	> $(BUILD)/__init__.py	# Make $(BUILD)/ into a python module.
-
-%.pb.cc %.pb.h: %.proto path python_module
+%.pb.cc %.pb.h: %.proto path
 	$(THIRD_PARTY_BIN)/protoc --cpp_out=$(BUILD) --python_out=$(BUILD) \
 		--proto_path=src $<
 

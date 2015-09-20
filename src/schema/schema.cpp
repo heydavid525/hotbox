@@ -31,14 +31,26 @@ void Schema::AddFeature(const std::string& family_name, int32_t family_idx,
 }
 
 const Feature& Schema::GetFeature(const std::string& family_name,
-    int32_t family_idx) {
+    int32_t family_idx) const {
   return GetOrCreateFamily(family_name).GetFeature(family_idx);
 }
 
-const Feature& Schema::GetFeature(const FeatureFinder& finder) {
+Feature& Schema::GetMutableFeature(const std::string& family_name,
+    int32_t family_idx) {
+  return GetOrCreateFamily(family_name).GetMutableFeature(family_idx);
+}
+
+const Feature& Schema::GetFeature(const FeatureFinder& finder) const {
   const auto& family = GetOrCreateFamily(finder.family_name);
   return finder.feature_name.empty() ? family.GetFeature(finder.family_idx) :
     family.GetFeature(finder.feature_name);
+}
+
+Feature& Schema::GetMutableFeature(const FeatureFinder& finder) {
+  auto& family = GetOrCreateFamily(finder.family_name);
+  return finder.feature_name.empty() ?
+    family.GetMutableFeature(finder.family_idx) :
+    family.GetMutableFeature(finder.feature_name);
 }
 
 const FeatureFamily& Schema::GetFamily(const std::string& family_name) const {
@@ -49,7 +61,8 @@ const FeatureFamily& Schema::GetFamily(const std::string& family_name) const {
   return it->second;
 }
 
-FeatureFamily& Schema::GetOrCreateFamily(const std::string& family_name) {
+FeatureFamily& Schema::GetOrCreateFamily(const std::string& family_name)
+  const {
   auto it = families_.find(family_name);
   if (it == families_.cend()) {
     auto inserted = families_.emplace(
