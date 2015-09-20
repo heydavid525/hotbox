@@ -1,0 +1,3 @@
+# Only use 'key: value' pairs, one per line. No sequence nor general yaml
+# syntax. Comments are okay.
+default_server_port: 19856
