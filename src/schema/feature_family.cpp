@@ -9,12 +9,12 @@ FeatureFamily::FeatureFamily(const std::string& family_name) :
   family_name_(family_name) { }
 
 bool FeatureFamily::HasFeature(int32_t family_idx) const {
-  return initialized_[family_idx];
+  return features_.size() > family_idx && features_[family_idx].initialized();
 }
 
-// TODO(wdai): compact the offsets in DatumProto.
+// TODO(wdai): compact the offsets in DatumProto (can be expensive).
 void FeatureFamily::DeleteFeature(int32_t family_idx) {
-  initialized_[family_idx] = false;
+  features_[family_idx].set_initialized(false);
 }
 
 const Feature& FeatureFamily::GetFeature(const std::string& feature_name)
@@ -41,50 +41,62 @@ Feature& FeatureFamily::GetMutableFeature(const std::string& feature_name) {
 }
 
 const Feature& FeatureFamily::GetFeature(int32_t family_idx) const {
-  if (!initialized_[family_idx]) {
-    FeatureFinder not_found_feature;
-    not_found_feature.family_name = family_name_;
-    not_found_feature.family_idx = family_idx;
-    throw FeatureNotFoundException(not_found_feature);
-  }
+  CheckFeatureExist(family_idx);
   return features_[family_idx];
 }
 
 Feature& FeatureFamily::GetMutableFeature(int32_t family_idx) {
-  if (!initialized_[family_idx]) {
-    FeatureFinder not_found_feature;
-    not_found_feature.family_name = family_name_;
-    not_found_feature.family_idx = family_idx;
-    throw FeatureNotFoundException(not_found_feature);
-  }
+  CheckFeatureExist(family_idx);
   return features_[family_idx];
 }
 
-// TODO(wdai): Do smarter thing about initialized_.
 const std::vector<Feature>& FeatureFamily::GetFeatures() const {
-  for (int i = 0; i < initialized_.size(); ++i) {
-    CHECK(initialized_[i]) << "Feature " << i << " of family " << family_name_
-      << " uninitialized";
-  }
   return features_;
+}
+
+int FeatureFamily::GetNumFeatures() const {
+  int num_features = 0;
+  for (int i = 0; i < features_.size(); ++i) {
+    if (features_[i].initialized()) {
+      num_features++;
+    }
+  }
+  return num_features;
+}
+
+int FeatureFamily::GetMaxFeatureId() const {
+  for (int i = features_.size() - 1; i >= 0; --i) {
+    if (features_[i].initialized()) {
+      return i;
+    }
+  }
+  return 0;
 }
 
 void FeatureFamily::AddFeature(const Feature& new_feature,
     int32_t family_idx) {
   if (family_idx >= features_.size()) {
     features_.resize(family_idx + 1);
-    initialized_.resize(family_idx + 1);
   }
-  features_[family_idx] = new_feature;
-  CHECK(!initialized_[family_idx]) << "Family idx "
+  CHECK(!features_[family_idx].initialized()) << "Family idx "
     << family_idx << " in " << family_name_ << " is already initialized.";
-  initialized_[family_idx] = true;
+  features_[family_idx] = new_feature;
+  features_[family_idx].set_initialized(true);
   const auto& feature_name = new_feature.name();
   if (!feature_name.empty()) {
     const auto& r =
       name_to_family_idx_.emplace(std::make_pair(feature_name, family_idx));
     CHECK(r.second) << "Feature name " << feature_name
       << " already existed in family " << family_name_;
+  }
+}
+
+void FeatureFamily::CheckFeatureExist(int family_idx) const {
+  if (!HasFeature(family_idx)) {
+    FeatureFinder not_found_feature;
+    not_found_feature.family_name = family_name_;
+    not_found_feature.family_idx = family_idx;
+    throw FeatureNotFoundException(not_found_feature);
   }
 }
 

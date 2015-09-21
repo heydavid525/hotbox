@@ -7,27 +7,29 @@
 
 namespace mldb {
 
-Schema::Schema(const SchemaConfig& config) {
+Schema::Schema(const SchemaConfig& config) : internal_family_(kInternalFamily) {
   // Add label.
   auto type = config.int_label() ? FeatureType::CATEGORICAL :
     FeatureType::NUMERICAL;
   auto store_type = FeatureStoreType::DENSE;
   Feature label = CreateFeature(type, store_type, kLabelFeatureName);
-  int family_idx = 0;
-  AddFeature(kInternalFamily, family_idx++, &label);
+  int internal_family_idx = 0;
+  AddFeature(kInternalFamily, internal_family_idx++, &label);
 
   // Add weight
   type = FeatureType::NUMERICAL;
   store_type = config.use_dense_weight() ? FeatureStoreType::DENSE
     : FeatureStoreType::SPARSE;
   Feature weight = CreateFeature(type, store_type, kWeightFeatureName);
-  AddFeature(kInternalFamily, family_idx, &weight);
+  AddFeature(kInternalFamily, internal_family_idx, &weight);
 }
 
 void Schema::AddFeature(const std::string& family_name, int32_t family_idx,
     Feature* new_feature) {
+  LOG(INFO) << "Adding feature " << family_name << ":" << family_idx;
   UpdateOffset(new_feature);
   GetOrCreateFamily(family_name).AddFeature(*new_feature, family_idx);
+  LOG(INFO) << "Done adding feature " << family_name << ":" << family_idx;
 }
 
 const Feature& Schema::GetFeature(const std::string& family_name,
@@ -63,6 +65,9 @@ const FeatureFamily& Schema::GetFamily(const std::string& family_name) const {
 
 FeatureFamily& Schema::GetOrCreateFamily(const std::string& family_name)
   const {
+  if (family_name == kInternalFamily) {
+    return internal_family_;
+  }
   auto it = families_.find(family_name);
   if (it == families_.cend()) {
     auto inserted = families_.emplace(
@@ -78,6 +83,14 @@ const DatumProtoOffset& Schema::GetDatumProtoOffset() const {
 
 const std::map<std::string, FeatureFamily>& Schema::GetFamilies() const {
   return families_;
+}
+
+int Schema::GetNumFeatures() const {
+  int num_features = 0;
+  for (const auto& p : families_) {
+    num_features += p.second.GetNumFeatures();
+  }
+  return num_features;
 }
 
 void Schema::UpdateOffset(Feature* new_feature) {

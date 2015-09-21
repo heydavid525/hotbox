@@ -2,7 +2,7 @@
 
 #include "schema/schema.hpp"
 #include "schema/datum_base.hpp"
-#include "parse/proto/parser_configs.pb.h"
+#include "parse/proto/parser_config.pb.h"
 #include <cmath>
 
 namespace mldb {

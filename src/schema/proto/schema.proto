@@ -38,7 +38,7 @@ message FeatureLocator {
 // identify the store in DatumRecord, and idx searches for the value in the
 // appropriate store.
 //
-// Current max proto sequence: 3.
+// Current max proto sequence: 4.
 message Feature {
   string name = 1;
   FeatureLocator loc = 2;
@@ -47,6 +47,10 @@ message Feature {
 
   // True to have this feature in the final output.
   bool in_final = 3;
+
+  // False if a feature isn't explicily initialized (loc won't be valid). This
+  // is set internally by FeatureFamily.
+  bool initialized = 4;
 }
 
 // Each data instance is stored as DatumProto, which has 6 data stores

@@ -9,10 +9,13 @@
 namespace mldb {
 
 void LibSVMParser::SetConfig(const ParserConfig& config) {
-  CHECK(config.has_libsvm_config());
-  const LibSVMParserConfig& libsvm_config = config.libsvm_config();
-  feature_one_based_ = libsvm_config.feature_one_based();
-  label_one_based_ = libsvm_config.label_one_based();
+  // Default is to not change feature nor label (feature_one_based_ and
+  // label_one_based_ are false).
+  if (config.has_libsvm_config()) {
+    const LibSVMParserConfig& libsvm_config = config.libsvm_config();
+    feature_one_based_ = libsvm_config.feature_one_based();
+    label_one_based_ = libsvm_config.label_one_based();
+  }
 }
 
 void LibSVMParser::Parse(const std::string& line, Schema* schema,

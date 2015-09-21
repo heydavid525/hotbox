@@ -39,8 +39,8 @@ public:
       << std::ctime(&read_timestamp);
   }
 
-  // Initialize schema if this is the first ingest.
-  void IngestFile(const IngestFileReq& req);
+  // Initialize/augment schema accordingly. Return a message.
+  std::string ReadFile(const ReadFileReq& req);
 
 private:
   DBMetaData meta_data_;

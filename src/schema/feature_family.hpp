@@ -23,7 +23,15 @@ public:
   const Feature& GetFeature(int32_t family_idx) const;
   Feature& GetMutableFeature(int32_t family_idx);
 
+  // Return both initialized and uninitialized features.
   const std::vector<Feature>& GetFeatures() const;
+
+  // Only count the initialized features.
+  int GetNumFeatures() const;
+
+  // Get max feature id in this family. MaxFeatureId + 1 == NumFeatures iff
+  // there are uninitialized features.
+  int GetMaxFeatureId() const;
 
 private:
   // Allow Schema to access AddFeature.
@@ -34,6 +42,9 @@ private:
   // new_feature needs to have offset set.
   void AddFeature(const Feature& new_feature, int32_t family_idx);
 
+  // Throws FeatureNotFoundException if not found.
+  void CheckFeatureExist(int family_idx) const;
+
 private:
   std::string family_name_;
 
@@ -41,7 +52,6 @@ private:
   std::map<std::string, int32_t> name_to_family_idx_;
 
   std::vector<Feature> features_;
-  std::vector<bool> initialized_;
 };
 
 }  // namespace mldb

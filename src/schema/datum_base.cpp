@@ -146,17 +146,31 @@ std::string DatumBase::ToString(const Schema& schema) const {
   CHECK_NOTNULL(proto_.get());
   std::stringstream ss;
   const auto& families = schema.GetFamilies();
+  ss << GetLabel(schema);
+  float weight = GetWeight(schema);
+  if (weight != 1) {
+    ss << " " << weight;
+  }
   for (const auto& pair : families) {
     const std::string& family_name = pair.first;
     ss << " |" << family_name;
     const std::vector<Feature>& features = pair.second.GetFeatures();
     for (int i = 0; i < features.size(); ++i) {
+      if (!features[i].initialized()) {
+        continue;
+      }
       std::string feature_name = (features[i].name().empty() ?
           std::to_string(i) : features[i].name());
       ss << " " << feature_name << ":" << GetFeatureVal(features[i].loc());
     }
   }
   return ss.str();
+}
+
+std::string DatumBase::Serialize() const {
+  std::string serialized;
+  proto_->SerializeToString(&serialized);
+  return serialized;
 }
 
 }  // namespace mldb

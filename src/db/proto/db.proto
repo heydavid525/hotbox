@@ -33,12 +33,12 @@ message EpochProto {
   // # data in this epoch.
   uint64 num_data = 2;
 
-  // # of outlier data determined at ingest time.
+  // # of outlier data determined at read time.
   uint64 num_outliers = 3;
 
-  // Ingest period in unix time seconds.
-  uint64 ingest_time_begin = 4;
-  uint64 ingest_time_end = 5;
+  // Read period in unix time seconds.
+  uint64 read_time_begin = 4;
+  uint64 read_time_end = 5;
 
   // We assue each epoch would have one single FileMap object to locate the files.
   // We use the file map index to located the object, avoiding ojbect inconsistency.
@@ -103,6 +103,10 @@ message DBConfig {
   string db_description = 2;
   //StorageType storage_type = 3;
   SchemaConfig schema_config = 3;
+
+  // All DB info will be stored under this directory. This parameter should be
+  // set by DBServer, which knows the DB root dir.
+  string db_dir = 4;
 }
 
 message DBMetaData {
@@ -118,6 +122,12 @@ message DBMetaData {
   //repeated uint32 epoch_id = 1;
   // There should also be a view of schemas in the current DB
   //repeated uint32 schema_id = 2;
+}
+
+// Each atom file is a DBAtom message. Kind of like page in DB.
+message DBAtom {
+  // Store serialized DatumProe
+  repeated string datum_protos = 1;
 }
 
 // TODO(wdai): Define TSchema (TransformedSchema) that contains stats about

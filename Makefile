@@ -51,7 +51,8 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
 					-lprotobuf \
 					-D_GLIBCXX_USE_NANOSLEEP \
 					-lboost_filesystem \
-					-lyaml-cpp
+					-lyaml-cpp \
+					-lsnappy
 
 LDFLAGS+= $(DMLC_LDFLAGS)
 LDFLAGS+= $(HDFS_LDFLAGS)

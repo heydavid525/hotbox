@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "parse/parser_if.hpp"
 #include "schema/schema_util.hpp"
 #include "schema/constants.hpp"

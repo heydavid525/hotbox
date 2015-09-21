@@ -50,6 +50,9 @@ public:
   // Print with schema info. Only print numeral features (no bytes).
   std::string ToString(const Schema& schema) const;
 
+  // Return the serialized bytes from proto_.
+  std::string Serialize() const;
+
 private:
   std::unique_ptr<DatumProto> proto_;
 };

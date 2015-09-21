@@ -41,7 +41,11 @@ public:
 
   const DatumProtoOffset& GetDatumProtoOffset() const;
 
+  // Not including kInternalFamily.
   const std::map<std::string, FeatureFamily>& GetFamilies() const;
+
+  // Get # of features (not including label/weight) in this schema.
+  int GetNumFeatures() const;
 
 private:
   // Increment the appropriate append_offset_ and assign the offset to
@@ -52,6 +56,9 @@ private:
   // Comment(wdai): declare it mutable so we can create FeatureFamily in const
   // functions.
   mutable std::map<std::string, FeatureFamily> families_;
+
+  // Internal family is treated specially.
+  mutable FeatureFamily internal_family_;
 
   // Tracks the insert point of the next feature.
   DatumProtoOffset append_offset_;

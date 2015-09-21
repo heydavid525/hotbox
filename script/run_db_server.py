@@ -5,6 +5,8 @@ from os.path import dirname
 from os.path import join
 
 project_dir = dirname(dirname(os.path.realpath(__file__)))
+db_testbed = join(project_dir, 'db_testbed')
+os.system('mkdir -p %s' % db_testbed)
 prog = join(project_dir, "build", "test", "db", "db_server_main")
 
 env_params = (
