@@ -7,8 +7,8 @@ TEST_INCFLAGS = -I$(PROJECT)
 
 $(TEST_DIR)/%: test/%.cpp $(MLDB_LIB)
 	mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(LDFLAGS) $(HDFS_INCFLAGS) \
-		$(TEST_INCFLAGS) $(HDFS_LDFLAGS)  $< -lgtest $(MLDB_LIB) -o $@
+	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
+		$< -lgtest $(LDFLAGS) $(MLDB_LIB) -o $@
 
 test: $(TEST_BIN) class_registry_test #schema_util_test one_hot_transform_test
 

@@ -7,7 +7,7 @@
 #ifndef DMLC_IO_FILESYS_H_
 #define DMLC_IO_FILESYS_H_
 
-#include "io.hpp"
+#include <dmlc/io.h>
 #include <cstring>
 #include <string>
 #include <vector>

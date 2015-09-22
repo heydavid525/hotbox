@@ -21,7 +21,7 @@ clean:
 .PHONY: all path clean
 
 CXX = g++
-CXXFLAGS = -O2 \
+CXXFLAGS += -O2 \
            -std=c++11 \
            -Wall \
 					 -Wno-sign-compare \
@@ -29,7 +29,7 @@ CXXFLAGS = -O2 \
            -fno-builtin-calloc \
            -fno-builtin-realloc \
            -fno-builtin-free \
-           -fno-omit-frame-pointer
+           -fno-omit-frame-pointer 
 
 THIRD_PARTY = $(PROJECT)/third_party
 THIRD_PARTY_SRC = $(THIRD_PARTY)/src
@@ -37,13 +37,15 @@ THIRD_PARTY_INCLUDE = $(THIRD_PARTY)/include
 THIRD_PARTY_LIB = $(THIRD_PARTY)/lib
 THIRD_PARTY_BIN = $(THIRD_PARTY)/bin
 
-INCFLAGS = -Isrc/ -I$(THIRD_PARTY_INCLUDE) \
-					 -Ibuild/ # include generated *pb.h
-INCFLAGS += $(HDFS_INCFLAGS)
-INCFLAGS += $(DMLC_CFLAGS)
+INCFLAGS =  -Isrc/ -I$(THIRD_PARTY_INCLUDE) 
+INCFLAGS += -Ibuild/ # include generated *pb.h 
+INCFLAGS += -I$(JAVA_HOME)/include # include java for HDFS/DMLC access
+
 LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
+		  -Wl,-rpath=$(LIBJVM) \
           -L$(THIRD_PARTY_LIB) \
-          -pthread -lrt -lnsl \
+          -L$(LIBJVM) -ljvm \
+          -lpthread -lrt -lnsl \
           -lzmq \
           -lglog \
           -lgflags \
@@ -51,11 +53,12 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
 					-lprotobuf \
 					-D_GLIBCXX_USE_NANOSLEEP \
 					-lboost_filesystem \
+					-lboost_system \
+					-lpthread \
 					-lyaml-cpp \
-					-lsnappy
-
-LDFLAGS+= $(DMLC_LDFLAGS)
-LDFLAGS+= $(HDFS_LDFLAGS)
+					-lsnappy \
+                                        -ldmlc \
+                                        -lhdfs 
 
 MLDB_SRC = $(shell find src -type f -name "*.cpp")
 MLDB_PROTO = $(shell find src -type f -name "*.proto")
