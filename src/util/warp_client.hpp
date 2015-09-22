@@ -3,7 +3,6 @@
 #include "zmq_util.hpp"
 #include "warp_server.hpp"
 #include "util/proto/warp_msg.pb.h"
-#include "util/proto/warp_config.pb.h"
 #include <zmq.hpp>
 #include <utility>
 #include <memory>
@@ -15,11 +14,11 @@ namespace mldb {
 class WarpClient {
 public:
   // Server binds to a socket, while clients connect to it. The order of bind
-  // and connect doesn't matter (but for inproc, which we don't use, order
+  // and connect doesn't matter (Comment: for inproc, which we don't use, order
   // matters).
   //
   // Client router socket's identity is set internally by zmq.
-  explicit WarpClient(const WarpClientConfig& config);
+  explicit WarpClient();
 
   // Return success or not. Always async.
   bool Send(const std::string& data);

@@ -7,7 +7,7 @@
 
 namespace mldb {
 
-WarpClient::WarpClient(const WarpClientConfig& config) {
+WarpClient::WarpClient() {
   zmq_ctx_.reset(zmq_util::CreateZmqContext());
   sock_.reset(new zmq::socket_t(*zmq_ctx_, ZMQ_ROUTER));
 
@@ -15,9 +15,9 @@ WarpClient::WarpClient(const WarpClientConfig& config) {
   int sock_mandatory = 1;
   zmq_util::ZMQSetSockOpt(sock_.get(), ZMQ_ROUTER_MANDATORY, &(sock_mandatory),
       sizeof(sock_mandatory));
-
-  auto dst_addr = "tcp://" + config.server_ip() + ":" +
-    GlobalConfig::GetInstance().Get<std::string>("default_server_port");
+  auto& global_config = GlobalConfig::GetInstance();
+  auto dst_addr = "tcp://" + global_config.Get<std::string>("server_ip")
+    + ":" + global_config.Get<std::string>("server_port");
   LOG(INFO) << "Connect dst_addr: " << dst_addr;
   zmq_util::ZMQConnect(sock_.get(), dst_addr);
 

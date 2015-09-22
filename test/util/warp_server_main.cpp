@@ -8,7 +8,7 @@ int main(int argc, char *argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
   mldb::WarpServerConfig server_config;
-  mldb::WarpServer server(server_config);
+  mldb::WarpServer server;
   int client_id;
   mldb::ClientMsg req_msg = server.Recv(&client_id);
   CHECK(req_msg.has_generic_req());

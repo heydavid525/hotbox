@@ -7,7 +7,6 @@
 #include <map>
 #include "zmq_util.hpp"
 #include "util/proto/warp_msg.pb.h"
-#include "util/proto/warp_config.pb.h"
 
 namespace mldb {
 
@@ -17,7 +16,7 @@ const std::string kServerId = zmq_util::Convert2ZmqId("mldb_server");
 // tcp://*:kServerPort.
 class WarpServer {
 public:
-  WarpServer(const WarpServerConfig& config);
+  WarpServer();
 
   // Send to a client.
   bool Send(int client_id, const std::string& data);

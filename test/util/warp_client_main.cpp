@@ -11,7 +11,7 @@ int main(int argc, char *argv[]) {
   google::InitGoogleLogging(argv[0]);
   mldb::WarpClientConfig warp_config;
   warp_config.set_server_ip(FLAGS_server_ip);
-  mldb::WarpClient client(warp_config);
+  mldb::WarpClient client;
   mldb::ClientMsg req_msg;
   auto generic_req = req_msg.mutable_generic_req();
   generic_req->set_req("hello world");

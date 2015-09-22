@@ -4,8 +4,7 @@
 
 namespace mldb {
 
-DBServer::DBServer(const DBServerConfig& config) : db_dir_(config.db_dir()),
-  server_(config.warp_server_config()) { }
+DBServer::DBServer(const DBServerConfig& config) : db_dir_(config.db_dir()) { }
 
 void DBServer::Start() {
   CreateDirectory(db_dir_);

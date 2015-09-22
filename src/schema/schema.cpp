@@ -26,10 +26,8 @@ Schema::Schema(const SchemaConfig& config) : internal_family_(kInternalFamily) {
 
 void Schema::AddFeature(const std::string& family_name, int32_t family_idx,
     Feature* new_feature) {
-  LOG(INFO) << "Adding feature " << family_name << ":" << family_idx;
   UpdateOffset(new_feature);
   GetOrCreateFamily(family_name).AddFeature(*new_feature, family_idx);
-  LOG(INFO) << "Done adding feature " << family_name << ":" << family_idx;
 }
 
 const Feature& Schema::GetFeature(const std::string& family_name,

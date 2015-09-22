@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-import "util/proto/warp_config.proto";
+//import "util/proto/warp_config.proto";
 import "schema/proto/schema.proto";
 
 package mldb;
@@ -94,7 +94,7 @@ enum FileFormat {
 
 message DBServerConfig {
   string db_dir = 1;
-  WarpServerConfig warp_server_config = 2;
+  //WarpServerConfig warp_server_config = 2;
 }
 
 message DBConfig {

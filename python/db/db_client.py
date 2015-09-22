@@ -18,13 +18,13 @@ from util.proto.warp_config_pb2 import WarpClientConfig
 import db.proto.db_pb2 as db_pb
 
 class WarpClient:
-  def __init__(self, warp_client_config):
+  def __init__(self):
     self.context = zmq.Context()
     self.sock = self.context.socket(zmq.REQ)
     with open(join(project_dir, 'config.yaml')) as f:
       default_config = yaml.load(f)
-    server_ip = warp_client_config.server_ip
-    server_port = default_config['default_server_port']
+    server_ip = default_config['server_ip']
+    server_port = default_config['server_port']
     connect_point = "tcp://%s:%s" % (server_ip, server_port)
     print("WarpClient connecting to %s" % connect_point)
     self.sock.connect(connect_point)
@@ -65,9 +65,7 @@ class DBClient:
   that.
   """
   def __init__(self, server_ip):
-    warp_client_config = WarpClientConfig()
-    warp_client_config.server_ip = server_ip
-    self.warp_client = WarpClient(warp_client_config)
+    self.warp_client = WarpClient()
 
   def CreateDB(self, db_name, db_description='', int_label=True,
     use_dense_weight=True):
