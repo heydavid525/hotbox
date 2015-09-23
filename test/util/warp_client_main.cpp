@@ -1,6 +1,5 @@
 #include "util/warp_client.hpp"
 #include "util/proto/warp_msg.pb.h"
-#include "util/proto/warp_config.pb.h"
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
@@ -9,8 +8,6 @@ DEFINE_string(server_ip, "", "server ip.");
 int main(int argc, char *argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
-  mldb::WarpClientConfig warp_config;
-  warp_config.set_server_ip(FLAGS_server_ip);
   mldb::WarpClient client;
   mldb::ClientMsg req_msg;
   auto generic_req = req_msg.mutable_generic_req();

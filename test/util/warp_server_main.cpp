@@ -1,13 +1,11 @@
 #include "util/warp_server.hpp"
 #include "util/proto/warp_msg.pb.h"
-#include "util/proto/warp_config.pb.h"
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
 int main(int argc, char *argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
-  mldb::WarpServerConfig server_config;
   mldb::WarpServer server;
   int client_id;
   mldb::ClientMsg req_msg = server.Recv(&client_id);
