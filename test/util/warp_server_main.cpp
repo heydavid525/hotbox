@@ -15,10 +15,8 @@ int main(int argc, char *argv[]) {
     << req_str;
   mldb::ServerMsg reply_msg;
   auto generic_reply = reply_msg.mutable_generic_reply();
-  generic_reply->set_reply("got it");
-  std::string data;
-  reply_msg.SerializeToString(&data);
-  server.Send(client_id, data);
+  generic_reply->set_msg("got it");
+  server.Send(client_id, reply_msg);
   LOG(INFO) << "Server gave generic reply";
   return 0;
 };

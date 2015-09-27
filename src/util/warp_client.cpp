@@ -1,9 +1,11 @@
 #include "util/warp_client.hpp"
 #include "util/global_config.hpp"
+#include "util/proto/warp_msg.pb.h"
 #include <glog/logging.h>
 #include <chrono>
 #include <thread>
 #include <utility>
+#include <string>
 
 namespace mldb {
 
@@ -32,6 +34,12 @@ bool WarpClient::Send(const std::string& data) {
   return zmq_util::ZMQSend(sock_.get(), kServerId, data);
 }
 
+bool WarpClient::Send(const ClientMsg& msg) {
+  std::string data;
+  msg.SerializeToString(&data);
+  return Send(data);
+}
+
 ServerMsg WarpClient::Recv() {
   if (client_id_ < 0) {
     HandshakeWithServer();
@@ -46,12 +54,13 @@ ServerMsg WarpClient::Recv() {
   return server_msg;
 }
 
-ServerMsg WarpClient::SendRecv(const std::string& data) {
-  CHECK(Send(data));
+ServerMsg WarpClient::SendRecv(const ClientMsg& msg) {
+  CHECK(Send(msg));
   return Recv();
 }
 
 void WarpClient::HandshakeWithServer() {
+  LOG(INFO) << "Client initiate handshake";
   ClientMsg client_msg;
   // Don't need to set anything in the returned handshake_msg.
   client_msg.mutable_handshake_msg();

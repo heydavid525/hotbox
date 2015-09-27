@@ -7,6 +7,7 @@
 #include "util/proto/warp_msg.pb.h"
 #include <boost/filesystem.hpp>
 #include <string>
+#include <set>
 #include <map>
 
 namespace mldb {
@@ -27,12 +28,16 @@ private:
 
   void ReadFileReqHandler(int client_id, const ReadFileReq& req);
 
+  void CreateSessionHandler(int client_id, const CreateSessionReq& req);
+
 private:
   boost::filesystem::path db_dir_;
 
   WarpServer server_;
 
   std::map<std::string, std::unique_ptr<DB>> dbs_;
+
+  std::set<std::string> curr_sessions_;
 };
 
 }  // namespace

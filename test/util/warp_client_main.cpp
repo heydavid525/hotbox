@@ -12,12 +12,10 @@ int main(int argc, char *argv[]) {
   mldb::ClientMsg req_msg;
   auto generic_req = req_msg.mutable_generic_req();
   generic_req->set_req("hello world");
-  std::string data;
-  req_msg.SerializeToString(&data);
-  client.Send(data);
+  client.Send(req_msg);
   LOG(INFO) << "client done sending generic request.";
   auto generic_reply = client.Recv();
   LOG(INFO) << "Client got server's generic reply: "
-    << generic_reply.generic_reply().reply();
+    << generic_reply.generic_reply().msg();
   return 0;
 };

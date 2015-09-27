@@ -34,7 +34,8 @@ std::string DB::ReadFile(const ReadFileReq& req) {
   atom.SerializeToString(&serialized_atom);
 
   std::string compressed_atom;
-  snappy::Compress(serialized_atom.c_str(), serialized_atom.size(), &compressed_atom);
+  snappy::Compress(serialized_atom.c_str(), serialized_atom.size(),
+      &compressed_atom);
 
   std::string output_file = meta_data_.db_config().db_dir() + "/atom";
   {

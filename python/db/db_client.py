@@ -87,7 +87,7 @@ class DBClient:
         use_dense_weight
     reply = self.warp_client.SendRecv(msg)
     assert reply.HasField('generic_reply')
-    print(reply.generic_reply.reply)
+    print(reply.generic_reply.msg)
     return DB(db_name, self.warp_client)
 
   def GetDB(self, db_name):
@@ -125,7 +125,7 @@ class DB:
     msg.read_file_req.header = header
     reply = self.warp_client.SendRecv(msg)
     print('Reading file %s ...' % file_path)
-    print(reply.generic_reply.reply)
+    print(reply.generic_reply.msg)
 
 if __name__ == "__main__":
   server_ip = "localhost"

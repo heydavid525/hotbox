@@ -21,15 +21,18 @@ public:
   explicit WarpClient();
 
   // Return success or not. Always async.
-  bool Send(const std::string& data);
+  bool Send(const ClientMsg& msg);
 
   // Receive from server (blocking).
   ServerMsg Recv();
 
   // Convenience method for Send and Recv. WarpClient acts like a REQ client.
-  ServerMsg SendRecv(const std::string& data);
+  ServerMsg SendRecv(const ClientMsg& msg);
 
 private:
+  // Lower level Send.
+  bool Send(const std::string& data);
+
   // Handshake with the server and get the client's client id. The first
   // connect and receive.
   void HandshakeWithServer();

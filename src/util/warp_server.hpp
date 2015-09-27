@@ -19,13 +19,17 @@ public:
   WarpServer();
 
   // Send to a client.
-  bool Send(int client_id, const std::string& data);
+  bool Send(int client_id, const ServerMsg& msg);
 
   // Recv internally handles handshake. The rest is handled externally.
   ClientMsg Recv(int* client_id);
 
   // Get the list of active clients.
   std::vector<int> GetClientIds() const;
+
+private:
+  // Lower level implementation.
+  bool Send(int client_id, const std::string& data);
 
 private:
   std::unique_ptr<zmq::context_t> zmq_ctx_;

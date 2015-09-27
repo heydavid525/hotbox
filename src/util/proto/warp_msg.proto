@@ -43,7 +43,7 @@ message GenericRequest {
 }
 
 message GenericReply {
-  string reply = 1;
+  string msg = 1;
 }
 
 message CreateDBReq {
@@ -72,7 +72,14 @@ message CreateSessionReq {
   SessionOptionsProto session_options = 1;
 }
 
+enum StatusCode {
+  OK = 0;
+  DB_NOT_FOUND = 1;
+  SESSION_ALREADY_EXISTS = 2;
+}
+
 message CreateSessionReply {
   string msg = 1;
+  StatusCode status_code = 2;
   // TODO
 }

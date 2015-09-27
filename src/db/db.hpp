@@ -42,6 +42,10 @@ public:
   // Initialize/augment schema accordingly. Return a message.
   std::string ReadFile(const ReadFileReq& req);
 
+  void CreateSession(const SessionOptionsProto& session_options) {
+    // TODO(wdai)
+  }
+
 private:
   DBMetaData meta_data_;
 
