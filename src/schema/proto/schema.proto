@@ -45,8 +45,8 @@ message Feature {
 
   // TODO(wdai): is_factor = 7;
 
-  // True to have this feature in the final output.
-  bool in_final = 3;
+  // False to have this feature in the final output.
+  bool not_in_final = 3;
 
   // False if a feature isn't explicily initialized (loc won't be valid). This
   // is set internally by FeatureFamily.

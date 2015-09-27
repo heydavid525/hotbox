@@ -16,11 +16,11 @@ public:
   }
 
   void AddDenseCatFeature(const std::string& family_name,
-      const std::string& feature_name, bool in_final = true) {
+      const std::string& feature_name, bool not_in_final = false) {
     // offset could be 0 for, say, byte features, so we use -1 to indiate
     // uninitialized start_offset.
     int offset = AddFeature(family_name, feature_name,
-        FeatureType::CATEGORICAL, FeatureStoreType::DENSE, in_final);
+        FeatureType::CATEGORICAL, FeatureStoreType::DENSE, not_in_final);
     if (output_offset_start_.dense_cat_store() == -1) {
       output_offset_start_.set_dense_cat_store(offset);
     }
@@ -29,11 +29,11 @@ public:
   }
 
   void AddDenseNumFeature(const std::string& family_name,
-      const std::string& feature_name, bool in_final = true) {
+      const std::string& feature_name, bool not_in_final = false) {
     // offset could be 0 for, say, byte features, so we use -1 to indiate
     // uninitialized start_offset.
     int offset = AddFeature(family_name, feature_name,
-        FeatureType::NUMERICAL, FeatureStoreType::DENSE, in_final);
+        FeatureType::NUMERICAL, FeatureStoreType::DENSE, not_in_final);
     if (output_offset_start_.dense_num_store() == -1) {
       output_offset_start_.set_dense_num_store(offset);
     }
@@ -42,11 +42,11 @@ public:
   }
 
   void AddSparseCatFeature(const std::string& family_name,
-      const std::string& feature_name, bool in_final = true) {
+      const std::string& feature_name, bool not_in_final = false) {
     // offset could be 0 for, say, byte features, so we use -1 to indiate
     // uninitialized start_offset.
     int offset = AddFeature(family_name, feature_name,
-        FeatureType::CATEGORICAL, FeatureStoreType::SPARSE, in_final);
+        FeatureType::CATEGORICAL, FeatureStoreType::SPARSE, not_in_final);
     if (output_offset_start_.sparse_cat_store() == -1) {
       output_offset_start_.set_sparse_cat_store(offset);
     }
@@ -55,11 +55,11 @@ public:
   }
 
   void AddSparseNumFeature(const std::string& family_name,
-      const std::string& feature_name, bool in_final = true) {
+      const std::string& feature_name, bool not_in_final = false) {
     // offset could be 0 for, say, byte features, so we use -1 to indiate
     // uninitialized start_offset.
     int offset = AddFeature(family_name, feature_name,
-        FeatureType::NUMERICAL, FeatureStoreType::SPARSE, in_final);
+        FeatureType::NUMERICAL, FeatureStoreType::SPARSE, not_in_final);
     if (output_offset_start_.sparse_num_store() == -1) {
       output_offset_start_.set_sparse_num_store(offset);
     }
@@ -82,13 +82,13 @@ private:
   // Return the offset for the added feature.
   int AddFeature(const std::string& family_name,
     const std::string& feature_name, FeatureType type,
-    FeatureStoreType store_type, bool in_final) {
+    FeatureStoreType store_type, bool not_in_final) {
     Feature new_feature;
     FeatureLocator* loc = new_feature.mutable_loc();
     loc->set_type(type);
     loc->set_store_type(store_type);
     new_feature.set_name(feature_name);
-    new_feature.set_in_final(in_final);
+    new_feature.set_not_in_final(not_in_final);
     schema_->AddFeature(family_name, output_family_idx_[family_name]++,
         &new_feature);
     return new_feature.loc().offset();

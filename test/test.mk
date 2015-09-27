@@ -13,7 +13,7 @@ TEST_INCFLAGS = -I$(PROJECT)
 $(TEST_DIR)/%: test/%.cpp $(MLDB_LIB) test/facility/test_facility.hpp
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
-		$< -lgtest $(LDFLAGS) $(MLDB_LIB) test/facility/test_facility.hpp -o $@
+		$< -lgtest $(MLDB_LIB) $(LDFLAGS) test/facility/test_facility.hpp -o $@
 
 test: $(TEST_BIN) class_registry_test stream_test #schema_util_test one_hot_transform_test
 

@@ -35,8 +35,12 @@ message OneHotTransformOp {
 
 message TransformConfig {
   oneof config {
-    OneHotTransformConfig one_hot_transform_config = 1;
+    OneHotTransformConfig one_hot_transform = 1;
   }
+}
+
+message TransformConfigList {
+  repeated TransformConfig configs = 1;
 }
 
 // Unless otherwise specified, all transforms ignores BYTE features and print
@@ -77,7 +81,7 @@ message OneHotTransformConfig {
 
   // True to not include output_feature_family in the final result. The
   // output_feature_family will only be input to other transforms.
-  bool in_final = 4;
+  bool not_in_final = 4;
 }
 
 // Take cartesian products between input_feature_list[0],
@@ -95,7 +99,7 @@ message NgramTransformConfig {
   // ["mobile:,web:count", "other:"]
   string output_feature_family = 2;
 
-  bool in_final = 3;
+  bool not_in_final = 3;
 }
 
 // f(p) = log(p/(1-p)) for p \in (0, 1) is very useful for transforming
@@ -111,12 +115,12 @@ message LogitTransformConfig {
   double upper_bound = 3;
   double lower_bound = 4;
 
-  bool in_final = 5;
+  bool not_in_final = 5;
 }
 
 // Select raw features to include in the final output. Automatically drops
 // BYTES features and multi-nomial categorical features. The selected feature
-// is always in_final and appears in final output.
+// is always not_in_final = false and appears in final output.
 message SelectTransformConfig {
   repeated string input_features = 1;
 

@@ -26,6 +26,9 @@ public:
   // Receive from server (blocking).
   ServerMsg Recv();
 
+  // Convenience method for Send and Recv. WarpClient acts like a REQ client.
+  ServerMsg SendRecv(const std::string& data);
+
 private:
   // Handshake with the server and get the client's client id. The first
   // connect and receive.

@@ -2,6 +2,7 @@ syntax = "proto3";
 
 import "db/proto/db.proto";
 import "parse/proto/parser_config.proto";
+import "client/proto/client.proto";
 
 package mldb;
 
@@ -13,6 +14,7 @@ message ClientMsg {
     CreateDBReq create_db_req = 3;
     ReadFileReq read_file_req = 4;
     DBServerShutdownReq db_server_shutdown_req = 5;
+    CreateSessionReq create_session_req = 6;
   }
 }
 
@@ -21,6 +23,7 @@ message ServerMsg {
   oneof msg {
     ServerHandshake handshake_msg = 1;
     GenericReply generic_reply = 2;
+    CreateSessionReply create_session_reply = 3;
   }
 }
 
@@ -63,4 +66,13 @@ message ReadFileReq {
 }
 
 message DBServerShutdownReq {
+}
+
+message CreateSessionReq {
+  SessionOptionsProto session_options = 1;
+}
+
+message CreateSessionReply {
+  string msg = 1;
+  // TODO
 }

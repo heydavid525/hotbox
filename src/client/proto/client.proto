@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+//import "db/proto/db.proto";
+import "transform/proto/transform_config.proto";
+
+package mldb;
+
+message SessionOptionsProto {
+  string session_id = 1;
+
+  TransformConfigList transform_config_list = 2;
+
+  // TODO(wdai)
+  //int64 max_examples = 3;
+  //double subsample_rate = 4;
+}

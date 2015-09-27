@@ -46,6 +46,11 @@ ServerMsg WarpClient::Recv() {
   return server_msg;
 }
 
+ServerMsg WarpClient::SendRecv(const std::string& data) {
+  CHECK(Send(data));
+  return Recv();
+}
+
 void WarpClient::HandshakeWithServer() {
   ClientMsg client_msg;
   // Don't need to set anything in the returned handshake_msg.

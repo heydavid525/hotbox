@@ -8,7 +8,7 @@ namespace mldb {
 void OneHotTransform::TransformSchema(const TransformParams& params,
     TransformWriter* writer) const {
   const OneHotTransformConfig& config =
-    params.GetConfig().one_hot_transform_config();
+    params.GetConfig().one_hot_transform();
   const auto& input_features = params.GetInputFeatures();
   for (int i = 0; i < input_features.size(); ++i) {
     const auto& input_feature = input_features[i];
@@ -28,7 +28,7 @@ void OneHotTransform::TransformSchema(const TransformParams& params,
         auto feature_name = input_feature.name() + "-one-hot-bucket-"
           + std::to_string(min + i);
         writer->AddSparseCatFeature(config.output_feature_family(), feature_name,
-            config.in_final());
+            config.not_in_final());
       }
     } else {
       const auto& buckets = config.buckets();
@@ -40,7 +40,7 @@ void OneHotTransform::TransformSchema(const TransformParams& params,
           std::to_string(buckets.Get(i)) + ")";
         auto feature_name = input_feature.name() + "-one-hot-bucket-" + range;
         writer->AddSparseCatFeature(config.output_feature_family(), feature_name,
-            config.in_final());
+            config.not_in_final());
       }
     }
   }
@@ -49,7 +49,7 @@ void OneHotTransform::TransformSchema(const TransformParams& params,
 std::function<void(DatumBase*)> OneHotTransform::GenerateTransform(
     const TransformParams& params) const {
   const OneHotTransformConfig& config =
-    params.GetConfig().one_hot_transform_config();
+    params.GetConfig().one_hot_transform();
   std::vector<std::function<void(DatumBase*)>> transforms;
   const auto& input_features = params.GetInputFeatures();
   int offset = 0;
