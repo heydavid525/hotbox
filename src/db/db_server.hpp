@@ -12,6 +12,15 @@
 
 namespace mldb {
 
+// Comment(wdai): Currently list of DB are stored as a DB file under db_dir_,
+// and each DB is stored under a folder (e.g., db_dir_/test_db for DB named
+// 'test_db'.) Each DB folder contains /schema and /atom. DBServer reads DB
+// file and initialize all the DB schemas to memory.
+//
+// TODO(weiren): We shouldn't need to read everything into memory (though
+// chances are we can keep schema in memory.) Use RocksDB to make it better.
+//
+// TODO(weiren): Replace boost::filesystem with dmlc IO.
 class DBServer {
 public:
   DBServer(const DBServerConfig& config);
@@ -19,6 +28,11 @@ public:
   void Start();
 
 private:
+  void Init();
+
+  // Get DB stored under db_dir_.
+  void GetDBs();
+
   void CreateDirectory(const boost::filesystem::path& dir);
 
   // Send a string reply.

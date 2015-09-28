@@ -3,7 +3,6 @@
 #include <ctime>
 #include <chrono>
 #include <memory>
-#include <glog/logging.h>
 #include <boost/noncopyable.hpp>
 #include "db/proto/db.pb.h"
 #include "util/proto/warp_msg.pb.h"
@@ -29,33 +28,31 @@ private:
 
 class DB : private boost::noncopyable {
 public:
-  DB(const DBConfig& config) : schema_(config.schema_config()) {
-    auto db_config = meta_data_.mutable_db_config();
-    *db_config = config;
-    auto unix_timestamp = std::chrono::seconds(std::time(nullptr)).count();
-    meta_data_.set_creation_time(unix_timestamp);
-    std::time_t read_timestamp = meta_data_.creation_time();
-    LOG(INFO) << "Creating DB " << config.db_name() << ". Creation time: "
-      << std::ctime(&read_timestamp);
-  }
+  // Initialize DB from db_path/DBFile which contains serialized DBProto.
+  DB(const std::string& db_path);
+
+  DB(const DBConfig& config);
 
   // Initialize/augment schema accordingly. Return a message.
   std::string ReadFile(const ReadFileReq& req);
 
-  void CreateSession(const SessionOptionsProto& session_options) {
-    // TODO(wdai)
-  }
+  void CreateSession(const SessionOptionsProto& session_options);
+
+  // Write all the states of DB to /DB file.
+  void CommitDB();
+
+  DBProto GetProto() const;
 
 private:
   DBMetaData meta_data_;
 
   // TODO(wdai): Allows multiple schemas (schema evolution).
-  Schema schema_;
+  std::unique_ptr<Schema> schema_;
 
-  std::vector<Epoch> epochs_;
+  //std::vector<Epoch> epochs_;
 
   // stats_ does not have 1:1 relation with epochs_.
-  std::vector<Stats> stats_;
+  //std::vector<Stats> stats_;
 };
 
 }  // namespace mldb

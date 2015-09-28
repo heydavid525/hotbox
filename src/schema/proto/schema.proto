@@ -81,15 +81,15 @@ message DatumProtoOffset {
 
 // Current max proto sequence: 5.
 message FeatureFamilyProto {
-  // Index lookup on family (e.g., "mobile:0" will find the first entry in
-  // features).
-  //repeated Feature features = 1;
+  string family_name = 1;
 
   // Map from feature name (string) to index on features, used in
   // "mobile:num_clicks" type of lookup (name = "num_clicks").
   map<string, uint32> name_to_family_idx = 2;
 
-  //DatumProtoOffset offset = 4;
+  // Index lookup on family (e.g., "mobile:0" will find the first entry in
+  // features).
+  repeated Feature features = 3;
 }
 
 // Message to construct default Schema.
@@ -123,5 +123,5 @@ message SchemaProto {
   // Comemnt: 'dim' can belong to DB level if we assume static schema.
   //uint64 dim = 4;
 
-  DatumProtoOffset offset = 5;
+  DatumProtoOffset append_offset = 5;
 }

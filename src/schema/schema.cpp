@@ -121,4 +121,32 @@ void Schema::UpdateOffset(Feature* new_feature) {
   new_feature->mutable_loc()->set_offset(offset);
 }
 
+SchemaProto Schema::GetProto() const {
+  SchemaProto proto;
+  auto families = proto.mutable_families();
+  for (const auto& p : families_) {
+    (*families)[p.first] = p.second.GetProto();
+  }
+  (*families)[kInternalFamily] = internal_family_.GetProto();
+  *(proto.mutable_append_offset()) = append_offset_;
+  return proto;
+}
+
+Schema::Schema(const SchemaProto& proto) :
+internal_family_(proto.families().at(kInternalFamily)) {
+  for (const auto& p : proto.families()) {
+    if (p.first == kInternalFamily) {
+      internal_family_ = p.second;
+    }
+  }
+  append_offset_ = proto.append_offset();
+}
+
+std::string Schema::Serialize() const {
+  auto proto = GetProto();
+  std::string data;
+  proto.SerializeToString(&data);
+  return data;
+}
+
 }  // namespace mldb

@@ -1,9 +1,7 @@
 #pragma once
-#include "util/warp_client.hpp"
-#include "util/global_config.hpp"
+#include "util/all.hpp"
 #include "client/proto/client.pb.h"
 #include "util/proto/warp_msg.pb.h"
-#include "io.dmlc/util.hpp"
 #include <google/protobuf/text_format.h>
 #include <glog/logging.h>
 #include <string>
@@ -60,11 +58,8 @@ public:
     proto.set_session_id(session_id);
 
     // Validate transform file.
-    //std::string config_str = dmlc_util::ReadFile(transform_config_path);
-    io::ifstream is(transform_config_path);
-    std::stringstream buffer;
-    buffer << is.rdbuf();
-    std::string config_str = buffer.str();
+    std::string config_str = ReadCompressedFile(transform_config_path,
+        Compressor::NO_COMPRESS);
     TransformConfigList configs;
     CHECK(google::protobuf::TextFormat::ParseFromString(config_str, &configs))
       << "Error in parsing " << transform_config_path;

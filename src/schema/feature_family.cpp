@@ -100,4 +100,28 @@ void FeatureFamily::CheckFeatureExist(int family_idx) const {
   }
 }
 
+FeatureFamilyProto FeatureFamily::GetProto() const {
+  FeatureFamilyProto proto;
+  proto.set_family_name(family_name_);
+  auto idx = proto.mutable_name_to_family_idx();
+  for (const auto& p : name_to_family_idx_) {
+    (*idx)[p.first] = p.second;
+  }
+  proto.mutable_features()->Reserve(features_.size());
+  for (int i = 0; i < features_.size(); ++i) {
+    *(proto.mutable_features(i)) = features_[i];
+  }
+  return proto;
+}
+
+FeatureFamily::FeatureFamily(const FeatureFamilyProto& proto) :
+family_name_(proto.family_name()),
+  name_to_family_idx_(proto.name_to_family_idx().begin(),
+      proto.name_to_family_idx().end()) {
+    features_.resize(proto.features_size());
+    for (int i = 0; i < features_.size(); ++i) {
+      features_[i] = proto.features(i);
+    }
+}
+
 }  // namespace mldb

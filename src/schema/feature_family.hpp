@@ -13,6 +13,8 @@ class FeatureFamily {
 public:
   FeatureFamily(const std::string& family_name);
 
+  FeatureFamily(const FeatureFamilyProto& proto);
+
   bool HasFeature(int32_t family_idx) const;
 
   void DeleteFeature(int32_t family_idx);
@@ -32,6 +34,8 @@ public:
   // Get max feature id in this family. MaxFeatureId + 1 == NumFeatures iff
   // there are uninitialized features.
   int GetMaxFeatureId() const;
+
+  FeatureFamilyProto GetProto() const;
 
 private:
   // Allow Schema to access AddFeature.

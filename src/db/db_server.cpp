@@ -1,14 +1,21 @@
 #include <glog/logging.h>
 #include "db/db_server.hpp"
-#include "util/util.hpp"
+#include "util/all.hpp"
+#include <string>
 
 namespace mldb {
+
+namespace {
+
+// DBfile relative to db_dir_. Each DB is a line in the file.
+const std::string kDBFile = "/DB";
+
+}  // anonymous namespace
 
 DBServer::DBServer(const DBServerConfig& config) : db_dir_(config.db_dir()) { }
 
 void DBServer::Start() {
-  CreateDirectory(db_dir_);
-  RegisterParsers();
+  Init();
   LOG(INFO) << "DBServer running. DB path is " << db_dir_;
 
   while (true) {
@@ -34,6 +41,25 @@ void DBServer::Start() {
       LOG(ERROR) << "Unrecognized client msg case: "
         << client_msg.msg_case();
     }
+  }
+}
+
+void DBServer::Init() {
+  CreateDirectory(db_dir_);
+  RegisterParsers();
+  RegisterCompressors();
+  GetDBs();
+}
+
+void DBServer::GetDBs() {
+  auto db_file_path = db_dir_.string() + kDBFile;
+  auto db_root_file = ReadCompressedFile(db_file_path, Compressor::NO_COMPRESS);
+  DBRootFile db_root;
+  db_root.ParseFromString(db_root_file);
+  for (int i = 0; i < db_root.db_names_size(); ++i) {
+    std::string db_name = db_root.db_names(i);
+    std::string db_path = db_dir_.string() + "/" + db_name;
+    dbs_[db_name] = make_unique<DB>(db_path);
   }
 }
 

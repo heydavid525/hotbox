@@ -15,6 +15,8 @@ class Schema {
 public:
   Schema(const SchemaConfig& config);
 
+  Schema(const SchemaProto& proto);
+
   // new_feature needs to have loc().store_type and type set, but not offset. 
   // 'new_feature' will have offset set correctly after the call.
   //
@@ -46,6 +48,10 @@ public:
 
   // Get # of features (not including label/weight) in this schema.
   int GetNumFeatures() const;
+
+  SchemaProto GetProto() const;
+
+  std::string Serialize() const;
 
 private:
   // Increment the appropriate append_offset_ and assign the offset to
