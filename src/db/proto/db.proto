@@ -2,7 +2,6 @@ syntax = "proto3";
 
 import "util/proto/util.proto";
 import "schema/proto/schema.proto";
-import "util/proto/util.proto";
 
 package mldb;
 
