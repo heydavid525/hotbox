@@ -11,7 +11,7 @@ namespace mldb {
 
 namespace {
 
-const std::string kContent{"Hello World!"};
+const std::string kContent{"Hello World!\n"};
 std::string kTestPath = GetTestBedDir() + "/stream_test_file";
 std::string kTestPath_ = "/home/yu";
 std::string kTestPath2 = GetTestBedDir() + "/helloworld";
@@ -28,7 +28,18 @@ TEST(StreamTest, SmokeTest) {
     // *** hence for the file to be read.
     delete os;
   }
-  { // Use this method to stream a file.
+  { // Use this method to list directory.   
+    dmlc::io::URI path(kTestPath_.c_str());
+    dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
+    std::vector<dmlc::io::FileInfo> info;
+    fs->ListDirectory(path, &info);
+    for (size_t i = 0; i < info.size(); ++i) {
+      fprintf(stdout, "%s\t%lu\tis_dir=%d\n", info[i].path.name.c_str(), info[i].size,
+             info[i].type == dmlc::io::kDirectory);
+    }
+    fflush(stdout);
+  }
+  { // Use this method to stream a file with a small buffer.
     // Test 1: Read Hello world from fresh files.
     dmlc::Stream *src = dmlc::Stream::Create(kTestPath.c_str(), "r");
     char buffer[32];
@@ -41,41 +52,23 @@ TEST(StreamTest, SmokeTest) {
     delete src; 
     EXPECT_EQ(kContent, std::string(buffer, kContent.size()));
   }
-  { // Use this method to list directory.    
-    dmlc::io::URI path(kTestPath_.c_str());
-    dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
-    std::vector<dmlc::io::FileInfo> info;
-    fs->ListDirectory(path, &info);
-    for (size_t i = 0; i < info.size(); ++i) {
-      fprintf(stdout, "%s\t%lu\tis_dir=%d\n", info[i].path.name.c_str(), info[i].size,
-             info[i].type == dmlc::io::kDirectory);
-    }
-    fflush(stdout);
-  }
-  { // Currently Unavailable.
-    /*
-    // Use this method to read the full file.
+  { // Use this method to read the full file.
     dmlc::io::URI path(kTestPath2.c_str());
     dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
+    dmlc::io::FileInfo info = fs->GetPathInfo(path);
     dmlc::SeekStream *fp = fs->OpenForRead(path);
-    size_t size = fp->Tell();
+    size_t pos = fp->Tell(); // This is to tell the current offset of the file reading.
+    size_t size = info.size;
     LOG(INFO) << "TestPath: " << path.name;    
     LOG(INFO) << "PROTOCOL:" << path.protocol;
     LOG(INFO) << "File size: " << size;
     std::string buf(size, ' ');
-    //fp->Seek(0);
-    while (true) {
-      size_t nread = fp->Read(&buf[0], size);
-      if (nread == 0) {
-        LOG(INFO) << "nread is " << nread;
-        break;
-      }
-      fprintf(stdout, "%s \n", std::string(buf, nread).c_str());
-    }
+    size_t nread = fp->Read(&buf[0], size);
+    LOG(INFO) << "nread is " << nread;
+    fprintf(stdout, "%s \n", std::string(buf, nread).c_str());
     fflush(stdout);
     delete fp;
     EXPECT_EQ(kContent, buf);
-    */
   }
   
   LOG(INFO) << "stream test passed";
@@ -87,3 +80,23 @@ int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
+
+/*
+  {    
+    dmlc::io::URI path(kTestPath2.c_str());
+    dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
+    dmlc::SeekStream *fp = fs->OpenForRead(path);
+    size_t size = fp->Tell();
+    LOG(INFO) << "File Position is " << size;
+    LOG(INFO) << "Path name is " << path.name;
+    char buf[32] = {0};
+    while (true) {
+      size_t nread = fp->Read(buf, 32);
+      if (nread == 0) break;
+      fprintf(stdout, "%s", std::string(buf, nread).c_str());
+    }
+    fflush(stdout);
+    delete fp;
+    EXPECT_EQ(kContent, buf);
+  }
+  */

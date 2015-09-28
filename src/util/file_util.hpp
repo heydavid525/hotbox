@@ -1,6 +1,6 @@
 #pragma once
 
-//#include "util/proto/util.pb.h"
+#include "util/proto/util.pb.h"
 #include <string>
 #include "db/proto/db.pb.h"
 

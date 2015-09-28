@@ -2,16 +2,16 @@ syntax = "proto3";
 
 package mldb;
 
-//enum Compressor {
-//  NO_COMPRESS = 0;
-  //SNAPPY = 1;
-//  ZIP = 2;
-//  RLE = 3;
-//}
+enum Compressor {
+  NO_COMPRESS = 0;
+  SNAPPY = 1;
+  ZIP = 2;
+  RLE = 3;
+}
 
-//enum FileFormat {
-//  UNKNOWN_FILE_FORMAT = 0;  // so that default FileFormat results in error.
-//  LIBSVM = 1;
-//  CSV = 2;
-//  FAMILY = 3;
-//}
+enum FileFormat {
+  UNKNOWN_FILE_FORMAT = 0;  // so that default FileFormat results in error.
+  LIBSVM = 1;
+  CSV = 2;
+  FAMILY = 3;
+}

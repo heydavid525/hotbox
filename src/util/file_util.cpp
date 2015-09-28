@@ -29,18 +29,18 @@ std::string ReadCompressedFile(const std::string& file_path,
   // (https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.io.zero_copy_stream?hl=en)
 
   // Read  
-  dmlc::Stream *src = dmlc::Stream::Create(file_path.c_str(), "r");
-  if (!src) {
+
+  dmlc::io::URI path(file_path.c_str());
+  dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
+  dmlc::io::FileInfo info = fs->GetPathInfo(path);
+  dmlc::SeekStream *fp = fs->OpenForRead(path);
+  if (!fp) {
     throw FailedFileOperationException("Failed to open " + file_path
         + " for read.");
   }
-  // TODO(Weiren): Tell (size) still doesn't work. This Should be improved.
-  char buf[40960];
-  size_t nread;
-  std::stringstream buffer;
-  while ((nread = src->Read(buf, 40960)) != 0) {
-    buffer << buf;
-  }
+  size_t size = info.size;
+  string buffer(size, ' ');
+  size_t nread = fp->Read(&buffer[0], size);
   delete src; 
 /*
   io::ifstream is(file_path);
