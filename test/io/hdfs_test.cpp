@@ -3,6 +3,7 @@
 #include <dmlc/logging.h>
 #include <dmlc/io.h>
 #include "io.dmlc/filesys.h"
+#include <memory>
 
 int main(int argc, char *argv[]) {
   if (argc < 3) {
@@ -28,8 +29,10 @@ int main(int argc, char *argv[]) {
   }
   if (!strcmp(argv[1], "cat")) {
     URI path(argv[2]);
+    // We don't own the FileSystem pointer.
     FileSystem *fs = FileSystem::GetInstance(path.protocol);
-    dmlc::SeekStream *fp = fs->OpenForRead(path);
+    // We do own the SeekStream reading pointer.
+    std::unique_ptr<dmlc::SeekStream> fp(fs->OpenForRead(path));
     size_t size = fp->Tell();
     LOG(INFO) << "File Size is " << size;
     char buf[32];
@@ -39,19 +42,18 @@ int main(int argc, char *argv[]) {
       fprintf(stdout, "%s", std::string(buf, nread).c_str());
     }
     fflush(stdout);
-    delete fp;
     return 0;
   }
   if (!strcmp(argv[1], "cp")) {
     CHECK(argc >= 4) << "cp requres source and dest";
-    Stream *src = Stream::Create(argv[2], "r");
-    Stream *dst = Stream::Create(argv[3], "w");
+    // We own the following two pointers.
+    std::unique_ptr<Stream> src(Stream::Create(argv[2], "r"));
+    std::unique_ptr<Stream> dst(Stream::Create(argv[3], "w"));
     char buf[32];
     size_t nread;
     while ((nread = src->Read(buf, 32)) != 0) {
       dst->Write(buf, nread);
     }
-    delete src; delete dst;
     printf("copy %s to %s finished\n", argv[2], argv[3]);
     return 0;
   }

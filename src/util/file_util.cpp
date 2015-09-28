@@ -31,17 +31,18 @@ std::string ReadCompressedFile(const std::string& file_path,
   // Read  
 
   dmlc::io::URI path(file_path.c_str());
+  // We don't own the FileSystem pointer.
   dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
   dmlc::io::FileInfo info = fs->GetPathInfo(path);
-  dmlc::SeekStream *fp = fs->OpenForRead(path);
+  // We do own the file system pointer.
+  std::unique_ptr<dmlc::SeekStream> fp(fs->OpenForRead(path));
   if (!fp) {
     throw FailedFileOperationException("Failed to open " + file_path
         + " for read.");
   }
   size_t size = info.size;
-  string buffer(size, ' ');
+  std::string buffer(size, ' ');
   size_t nread = fp->Read(&buffer[0], size);
-  delete src; 
 /*
   io::ifstream is(file_path);
   if (!is) {
@@ -53,13 +54,13 @@ std::string ReadCompressedFile(const std::string& file_path,
 */
   // Uncompress
   if (compressor == Compressor::NO_COMPRESS) {
-    return buffer.str();
+    return buffer;
   }
   auto& registry = ClassRegistry<CompressorIf>::GetRegistry();
   std::unique_ptr<CompressorIf> compressor_if =
     registry.CreateObject(compressor);
   try {
-    return compressor_if->Uncompress(buffer.str());
+    return compressor_if->Uncompress(buffer);
   } catch (const FailedToUncompressException& e) {
     throw FailedFileOperationException("Failed to uncompress " + file_path
         + "\n" + e.what());
@@ -77,7 +78,8 @@ size_t WriteCompressedFile(const std::string& file_path,
         + " for write.");
   }
 */  
-  dmlc::Stream *os = dmlc::Stream::Create(file_path.c_str(), "w");
+  // We do own this pointer.
+  std::unique_ptr<dmlc::Stream> os(dmlc::Stream::Create(file_path.c_str(), "w"));
   if (!os) {
     throw FailedFileOperationException("Failed to open " + file_path
         + " for write.");
@@ -89,11 +91,9 @@ size_t WriteCompressedFile(const std::string& file_path,
       registry.CreateObject(compressor);
     std::string compressed = compressor_if->Compress(data);
     os->Write(compressed.c_str(), compressed.size());
-    delete os;
     return compressed.size();
   }
   os->Write(data.c_str(), data.size());
-  delete os;
   return data.size();
 }
 

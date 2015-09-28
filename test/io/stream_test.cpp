@@ -13,7 +13,6 @@ namespace {
 
 const std::string kContent{"Hello World!\n"};
 std::string kTestPath = GetTestBedDir() + "/stream_test_file";
-std::string kTestPath_ = "/home/yu";
 std::string kTestPath2 = GetTestBedDir() + "/helloworld";
 
 }  // anonymous namespace
@@ -21,15 +20,15 @@ std::string kTestPath2 = GetTestBedDir() + "/helloworld";
 TEST(StreamTest, SmokeTest) {
   // We do not own fs.
 
-  { // Use this method to write to a file.   
-    dmlc::Stream *os = dmlc::Stream::Create(kTestPath.c_str(), "w");
+  { // Use this method to write to a file. 
+    // We do own the Stream pointer.  
+    // *** Only After deletion will the file be written to hence for the file to be read.
+    std::unique_ptr<dmlc::Stream> os(dmlc::Stream::Create(kTestPath.c_str(), "w"));
     os->Write(kContent.c_str(), kContent.size());
-    // *** Pay attention to this pointer. Only After deletion will the file be read. 
-    // *** hence for the file to be read.
-    delete os;
   }
   { // Use this method to list directory.   
-    dmlc::io::URI path(kTestPath_.c_str());
+    dmlc::io::URI path(GetTestBedDir().c_str());
+    // We do not own the FileSystem object.
     dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
     std::vector<dmlc::io::FileInfo> info;
     fs->ListDirectory(path, &info);
@@ -39,9 +38,29 @@ TEST(StreamTest, SmokeTest) {
     }
     fflush(stdout);
   }
-  { // Use this method to stream a file with a small buffer.
+  { // Use this method to read the full file, once.
+    dmlc::io::URI path(kTestPath2.c_str());
+    // We do not own the FileSystem pointer.
+    dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
+    dmlc::io::FileInfo info = fs->GetPathInfo(path);
+    // We do own the SeekStream reading pointer.
+    std::unique_ptr<dmlc::SeekStream> fp(fs->OpenForRead(path));
+    // size_t pos_rd_offset = fp->Tell(); 
+    size_t size = info.size;
+    std::string buf(size, ' ');
+    size_t nread = fp->Read(&buf[0], size);
+    fprintf(stdout, "%s \n", std::string(buf, nread).c_str());
+    fflush(stdout);
+    LOG(INFO) << "TestPath: " << path.name;    
+    LOG(INFO) << "PROTOCOL:" << path.protocol;
+    LOG(INFO) << "File size: " << size;
+    LOG(INFO) << "nread is " << nread;
+    EXPECT_EQ(kContent, buf);
+  }
+  { // Use this method to stream a file with a small buffer, incrementally.
     // Test 1: Read Hello world from fresh files.
-    dmlc::Stream *src = dmlc::Stream::Create(kTestPath.c_str(), "r");
+    // We do own the read Stream pointer.
+    std::unique_ptr<dmlc::Stream> src(dmlc::Stream::Create(kTestPath.c_str(), "r"));
     char buffer[32];
     size_t nread;
     while ((nread = src->Read(buffer, 32)) != 0) {
@@ -49,28 +68,8 @@ TEST(StreamTest, SmokeTest) {
       fprintf(stdout, "%s \n", std::string(buffer, nread).c_str());
     }
     fflush(stdout);
-    delete src; 
     EXPECT_EQ(kContent, std::string(buffer, kContent.size()));
   }
-  { // Use this method to read the full file.
-    dmlc::io::URI path(kTestPath2.c_str());
-    dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
-    dmlc::io::FileInfo info = fs->GetPathInfo(path);
-    dmlc::SeekStream *fp = fs->OpenForRead(path);
-    size_t pos = fp->Tell(); // This is to tell the current offset of the file reading.
-    size_t size = info.size;
-    LOG(INFO) << "TestPath: " << path.name;    
-    LOG(INFO) << "PROTOCOL:" << path.protocol;
-    LOG(INFO) << "File size: " << size;
-    std::string buf(size, ' ');
-    size_t nread = fp->Read(&buf[0], size);
-    LOG(INFO) << "nread is " << nread;
-    fprintf(stdout, "%s \n", std::string(buf, nread).c_str());
-    fflush(stdout);
-    delete fp;
-    EXPECT_EQ(kContent, buf);
-  }
-  
   LOG(INFO) << "stream test passed";
 }
 

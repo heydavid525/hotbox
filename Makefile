@@ -84,6 +84,7 @@ build/%.o: src/%.cpp $(MLDB_HEADERS) $(MLDB_PROTO_HEADERS)
 		$(HDFS_LDFLAGS) -c $< -o $@
 
 %.pb.cc %.pb.h: %.proto path
+	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
 	$(THIRD_PARTY_BIN)/protoc --cpp_out=$(BUILD) --python_out=$(BUILD) \
 		--proto_path=src $<
 
