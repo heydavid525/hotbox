@@ -5,8 +5,8 @@ package mldb;
 enum Compressor {
   NO_COMPRESS = 0;
   SNAPPY = 1;
-  ZIP = 2;
-  RLE = 3;
+  //ZIP = 2;
+  //RLE = 3;
 }
 
 enum FileFormat {

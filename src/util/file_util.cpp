@@ -68,7 +68,7 @@ std::string ReadCompressedFile(const std::string& file_path,
   return "";
 }
 
-size_t WriteCompressedToFile(const std::string& file_path,
+size_t WriteCompressedFile(const std::string& file_path,
     const std::string& data, Compressor compressor) {
 /*  
   io::ofstream out(file_path, std::ios::out | std::ios::binary);

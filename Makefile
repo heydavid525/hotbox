@@ -39,8 +39,8 @@ THIRD_PARTY_INCLUDE = $(THIRD_PARTY)/include
 THIRD_PARTY_LIB = $(THIRD_PARTY)/lib
 THIRD_PARTY_BIN = $(THIRD_PARTY)/bin
 
-INCFLAGS =  -Isrc/ -I$(THIRD_PARTY_INCLUDE) 
-INCFLAGS += -Ibuild/ # include generated *pb.h 
+INCFLAGS =  -Isrc/ -I$(THIRD_PARTY_INCLUDE)
+INCFLAGS += -Ibuild/ # include generated *pb.h
 INCFLAGS += -I$(JAVA_HOME)/include # include java for HDFS/DMLC access
 
 LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
@@ -59,8 +59,8 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
 					-lpthread \
 					-lyaml-cpp \
 					-lsnappy \
-                                        -ldmlc \
-                                        -lhdfs 
+          -ldmlc \
+          -lhdfs
 
 MLDB_SRC = $(shell find src -type f -name "*.cpp")
 MLDB_PROTO = $(shell find src -type f -name "*.proto")
