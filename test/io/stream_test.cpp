@@ -13,7 +13,6 @@ namespace {
 
 const std::string kContent{"Hello World!\n"};
 std::string kTestPath = GetTestBedDir() + "/stream_test_file";
-std::string kTestPath2 = GetTestBedDir() + "/helloworld";
 
 }  // anonymous namespace
 
@@ -39,7 +38,8 @@ TEST(StreamTest, SmokeTest) {
     fflush(stdout);
   }
   { // Use this method to read the full file, once.
-    dmlc::io::URI path(kTestPath2.c_str());
+    dmlc::io::URI path(kTestPath.c_str());
+
     // We do not own the FileSystem pointer.
     dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
     dmlc::io::FileInfo info = fs->GetPathInfo(path);
@@ -79,23 +79,3 @@ int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-
-/*
-  {    
-    dmlc::io::URI path(kTestPath2.c_str());
-    dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
-    dmlc::SeekStream *fp = fs->OpenForRead(path);
-    size_t size = fp->Tell();
-    LOG(INFO) << "File Position is " << size;
-    LOG(INFO) << "Path name is " << path.name;
-    char buf[32] = {0};
-    while (true) {
-      size_t nread = fp->Read(buf, 32);
-      if (nread == 0) break;
-      fprintf(stdout, "%s", std::string(buf, nread).c_str());
-    }
-    fflush(stdout);
-    delete fp;
-    EXPECT_EQ(kContent, buf);
-  }
-  */
