@@ -1,6 +1,7 @@
 #include <glog/logging.h>
 #include <cstdint>
 #include <sstream>
+#include "util/all.hpp"
 #include "schema/schema.hpp"
 #include "schema/constants.hpp"
 #include "schema/schema_util.hpp"
@@ -144,9 +145,7 @@ internal_family_(proto.families().at(kInternalFamily)) {
 
 std::string Schema::Serialize() const {
   auto proto = GetProto();
-  std::string data;
-  proto.SerializeToString(&data);
-  return data;
+  return SerializeProto(proto);
 }
 
 }  // namespace mldb

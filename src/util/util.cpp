@@ -20,4 +20,10 @@ std::string SizeToReadableString(size_t size) {
   return std::string(buf);
 }
 
+std::string SerializeProto(const google::protobuf::Message& msg) {
+  std::string data;
+  msg.SerializeToString(&data);
+  return data;
+}
+
 }  // namespace mldb

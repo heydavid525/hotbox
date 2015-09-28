@@ -58,8 +58,7 @@ std::string DB::ReadFile(const ReadFileReq& req) {
 
   // TODO(weiren): Use various compression library. Need to have some
   // interface like parser_if.hpp.
-  std::string serialized_atom;
-  atom.SerializeToString(&serialized_atom);
+  std::string serialized_atom = SerializeProto(atom);
 
   std::string output_file = meta_data_.db_config().db_dir() + "/atom";
   auto compressed_size = WriteCompressedFile(output_file, serialized_atom);
@@ -93,10 +92,10 @@ DBProto DB::GetProto() const {
 }
 
 void DB::CommitDB() {
+  LOG(INFO) << "Committing DB " << meta_data_.db_config().db_name();
   std::string db_file = meta_data_.db_config().db_dir() + kDBFile;
   auto db_proto = GetProto();
-  std::string serialized_db;
-  db_proto.SerializeToString(&serialized_db);
+  std::string serialized_db = SerializeProto(db_proto);
   auto compressed_size = WriteCompressedFile(db_file, serialized_db);
   float db_compression_ratio = static_cast<float>(compressed_size)
     / serialized_db.size();

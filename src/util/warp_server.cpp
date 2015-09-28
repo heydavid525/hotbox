@@ -1,6 +1,7 @@
 #include "util/warp_server.hpp"
 #include "util/global_config.hpp"
 #include "util/proto/warp_msg.pb.h"
+#include "util/util.hpp"
 #include <string>
 #include <glog/logging.h>
 
@@ -36,9 +37,7 @@ bool WarpServer::Send(int client_id, const std::string& data) {
 }
 
 bool WarpServer::Send(int client_id, const ServerMsg& msg) {
-  std::string data;
-  msg.SerializeToString(&data);
-  return Send(client_id, data);
+  return Send(client_id, SerializeProto(msg));
 }
 
 ClientMsg WarpServer::Recv(int* client_id) {

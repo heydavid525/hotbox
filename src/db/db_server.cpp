@@ -8,7 +8,7 @@ namespace mldb {
 namespace {
 
 // DBfile relative to db_dir_. Each DB is a line in the file.
-const std::string kDBFile = "/DB";
+const std::string kDBRootFile = "/DB_root_file";
 
 }  // anonymous namespace
 
@@ -48,12 +48,18 @@ void DBServer::Init() {
   CreateDirectory(db_dir_);
   RegisterParsers();
   RegisterCompressors();
-  GetDBs();
+  InitFromDBRootFile();
 }
 
-void DBServer::GetDBs() {
-  auto db_file_path = db_dir_.string() + kDBFile;
-  auto db_root_file = ReadCompressedFile(db_file_path, Compressor::NO_COMPRESS);
+void DBServer::InitFromDBRootFile() {
+  auto db_root_file_path = db_dir_.string() + kDBRootFile;
+
+  if (!boost::filesystem::exists(db_root_file_path)) {
+    LOG(INFO) << "DB File doesn't exist yet. This must be a new DB";
+    return;
+  }
+  auto db_root_file = ReadCompressedFile(db_root_file_path,
+      Compressor::NO_COMPRESS);
   DBRootFile db_root;
   db_root.ParseFromString(db_root_file);
   for (int i = 0; i < db_root.db_names_size(); ++i) {
@@ -61,6 +67,16 @@ void DBServer::GetDBs() {
     std::string db_path = db_dir_.string() + "/" + db_name;
     dbs_[db_name] = make_unique<DB>(db_path);
   }
+}
+
+void DBServer::CommitToDBRootFile() const {
+  auto db_root_file_path = db_dir_.string() + kDBRootFile;
+  DBRootFile db_root;
+  for (const auto& p : dbs_) {
+    db_root.add_db_names(p.first);
+  }
+  WriteCompressedFile(db_root_file_path, SerializeProto(db_root),
+      Compressor::NO_COMPRESS);
 }
 
 void DBServer::CreateDirectory(const boost::filesystem::path& dir) {
@@ -86,6 +102,7 @@ void DBServer::CreateDBReqHandler(int client_id, const CreateDBReq& req) {
   db_config.set_db_dir(db_path.string());
   dbs_[db_config.db_name()] = make_unique<DB>(db_config);
   SendGenericReply(client_id, "Done creating DB");
+  CommitToDBRootFile();
 }
 
 void DBServer::ReadFileReqHandler(int client_id, const ReadFileReq& req) {
@@ -96,7 +113,6 @@ void DBServer::ReadFileReqHandler(int client_id, const ReadFileReq& req) {
   std::string reply_msg = it->second->ReadFile(req);
   SendGenericReply(client_id, reply_msg);
 }
-
 
 void DBServer::CreateSessionHandler(int client_id, const CreateSessionReq& req) {
   auto session_options = req.session_options();

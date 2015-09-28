@@ -29,7 +29,6 @@ std::string ReadCompressedFile(const std::string& file_path,
   // (https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.io.zero_copy_stream?hl=en)
 
   // Read  
-
   dmlc::io::URI path(file_path.c_str());
   // We don't own the FileSystem pointer.
   dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);

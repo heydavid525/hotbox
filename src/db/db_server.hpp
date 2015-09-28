@@ -31,7 +31,10 @@ private:
   void Init();
 
   // Get DB stored under db_dir_.
-  void GetDBs();
+  void InitFromDBRootFile();
+
+  // Write DB info to disk.
+  void CommitToDBRootFile() const;
 
   void CreateDirectory(const boost::filesystem::path& dir);
 

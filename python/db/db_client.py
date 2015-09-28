@@ -14,8 +14,7 @@ sys.path.append(join(project_dir, 'build'))
 sys.path.append(join(project_dir, 'third_party', 'include'))
 
 import util.proto.warp_msg_pb2 as warp_msg_pb
-from util.proto.warp_config_pb2 import WarpClientConfig
-import db.proto.db_pb2 as db_pb
+import util.proto.util_pb2 as util_pb
 
 class WarpClient:
   def __init__(self):
@@ -118,9 +117,9 @@ class DB:
     # TODO(wdai): This is easy to break when adding new file format. Find way
     # to automatically generate this based on proto definition.
     msg.read_file_req.file_format = {
-        'csv': db_pb.CSV,
-        'libsvm': db_pb.LIBSVM,
-        'family': db_pb.FAMILY,
+        'csv': util_pb.CSV,
+        'libsvm': util_pb.LIBSVM,
+        'family': util_pb.FAMILY,
         }.get(file_format, 0)
     msg.read_file_req.header = header
     reply = self.warp_client.SendRecv(msg)

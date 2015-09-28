@@ -9,7 +9,7 @@ int main(int argc, char *argv[]) {
   google::InitGoogleLogging(argv[0]);
 
   mldb::DBServerConfig server_config;
-  std::string db_test_bed_dir = mldb::GetTestBedDir();
+  std::string db_test_bed_dir = mldb::GetTestBedDir() + "/test_db_root";
   server_config.set_db_dir(db_test_bed_dir);
 
   mldb::DBServer db_server(server_config);

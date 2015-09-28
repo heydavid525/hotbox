@@ -1,6 +1,7 @@
 #include "util/warp_client.hpp"
 #include "util/global_config.hpp"
 #include "util/proto/warp_msg.pb.h"
+#include "util/util.hpp"
 #include <glog/logging.h>
 #include <chrono>
 #include <thread>
@@ -35,9 +36,7 @@ bool WarpClient::Send(const std::string& data) {
 }
 
 bool WarpClient::Send(const ClientMsg& msg) {
-  std::string data;
-  msg.SerializeToString(&data);
-  return Send(data);
+  return Send(SerializeProto(msg));
 }
 
 ServerMsg WarpClient::Recv() {
@@ -64,8 +63,7 @@ void WarpClient::HandshakeWithServer() {
   ClientMsg client_msg;
   // Don't need to set anything in the returned handshake_msg.
   client_msg.mutable_handshake_msg();
-  std::string data;
-  client_msg.SerializeToString(&data);
+  std::string data = SerializeProto(client_msg);
   bool success = false;
   do {
     success = zmq_util::ZMQSend(sock_.get(), kServerId, data);
