@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-//import "util/proto/warp_config.proto";
+import "util/proto/util.proto";
 import "schema/proto/schema.proto";
 
 package mldb;
@@ -45,12 +45,6 @@ message EpochProto {
   uint32 file_map_id= 7;
 }
 
-enum Compressor {
-  RAW = 0;
-  ZIP = 1;
-  RLE = 2;
-}
-
 // File is assumed to be stored in file chunks of a user defined fixed size (e.g. HDFS).
 // Each file contains a number of data records.
 // (The record would start with a length descriptor (4 bytes) used to segment each compressed record.
@@ -83,13 +77,6 @@ message FileMap {
 enum StorageType {
   NFS = 0;
   HDFS = 1;
-}
-
-enum FileFormat {
-  UNKNOWN_FILE_FORMAT = 0;  // so that default FileFormat results in error.
-  LIBSVM = 1;
-  CSV = 2;
-  FAMILY = 3;
 }
 
 message DBServerConfig {
@@ -128,6 +115,19 @@ message DBMetaData {
 message DBAtom {
   // Store serialized DatumProe
   repeated string datum_protos = 1;
+}
+
+message DBProto {
+  DBMetaData meta_data = 1;
+  SchemaProto schema_proto = 2;
+}
+
+// This file is saved at the root of a db_dir for finding all the DB under a
+// DBServer.
+//
+// Comment(wdai): DB in MLDB is more like Table in SQL.
+message DBRootFile {
+  repeated string db_names = 1;
 }
 
 // TODO(wdai): Define TSchema (TransformedSchema) that contains stats about
