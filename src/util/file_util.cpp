@@ -6,6 +6,7 @@
 #include <glog/logging.h>
 #include <sstream>
 #include <memory>
+#include "io.dmlc/filesys.h"
 
 namespace mldb {
 
@@ -27,7 +28,21 @@ std::string ReadCompressedFile(const std::string& file_path,
   // zero_copy_stream.h
   // (https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.io.zero_copy_stream?hl=en)
 
-  // Read
+  // Read  
+  dmlc::Stream *src = dmlc::Stream::Create(file_path.c_str(), "r");
+  if (!src) {
+    throw FailedFileOperationException("Failed to open " + file_path
+        + " for read.");
+  }
+  // TODO(Weiren): Tell (size) still doesn't work. This Should be improved.
+  char buf[40960];
+  size_t nread;
+  std::stringstream buffer;
+  while ((nread = src->Read(buf, 40960)) != 0) {
+    buffer << buf;
+  }
+  delete src; 
+/*
   io::ifstream is(file_path);
   if (!is) {
     throw FailedFileOperationException("Failed to open " + file_path
@@ -35,7 +50,7 @@ std::string ReadCompressedFile(const std::string& file_path,
   }
   std::stringstream buffer;
   buffer << is.rdbuf();
-
+*/
   // Uncompress
   if (compressor == Compressor::NO_COMPRESS) {
     return buffer.str();
@@ -55,22 +70,30 @@ std::string ReadCompressedFile(const std::string& file_path,
 
 size_t WriteCompressedToFile(const std::string& file_path,
     const std::string& data, Compressor compressor) {
+/*  
   io::ofstream out(file_path, std::ios::out | std::ios::binary);
   if (!out) {
     throw FailedFileOperationException("Failed to open " + file_path
         + " for write.");
   }
-
+*/  
+  dmlc::Stream *os = dmlc::Stream::Create(file_path.c_str(), "w");
+  if (!os) {
+    throw FailedFileOperationException("Failed to open " + file_path
+        + " for write.");
+  }
   if (compressor != Compressor::NO_COMPRESS) {
     // Compress always succeed.
     auto& registry = ClassRegistry<CompressorIf>::GetRegistry();
     std::unique_ptr<CompressorIf> compressor_if =
       registry.CreateObject(compressor);
     std::string compressed = compressor_if->Compress(data);
-    out.write(compressed.c_str(), compressed.size());
+    os->Write(compressed.c_str(), compressed.size());
+    delete os;
     return compressed.size();
   }
-  out.write(data.c_str(), data.size());
+  os->Write(data.c_str(), data.size());
+  delete os;
   return data.size();
 }
 

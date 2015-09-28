@@ -46,9 +46,10 @@ message EpochProto {
 }
 
 enum Compressor {
-  RAW = 0;
-  ZIP = 1;
-  RLE = 2;
+  NO_COMPRESS = 0;
+  SNAPPY = 1;
+  ZIP = 2;
+  RLE = 3;
 }
 
 // File is assumed to be stored in file chunks of a user defined fixed size (e.g. HDFS).

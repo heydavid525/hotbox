@@ -3,7 +3,7 @@
 #include "util/global_config.hpp"
 #include "client/proto/client.pb.h"
 #include "util/proto/warp_msg.pb.h"
-#include "io.dmlc/util.hpp"
+//#include "io.dmlc/util.hpp"
 #include <google/protobuf/text_format.h>
 #include <glog/logging.h>
 #include <string>

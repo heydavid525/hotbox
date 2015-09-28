@@ -29,7 +29,9 @@ int main(int argc, char *argv[]) {
   if (!strcmp(argv[1], "cat")) {
     URI path(argv[2]);
     FileSystem *fs = FileSystem::GetInstance(path.protocol);
-    dmlc::Stream *fp = fs->OpenForRead(path);
+    dmlc::SeekStream *fp = fs->OpenForRead(path);
+    size_t size = fp->Tell();
+    LOG(INFO) << "File Size is " << size;
     char buf[32];
     while (true) {
       size_t nread = fp->Read(buf, 32);
