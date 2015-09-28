@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+import "util/proto/util.proto";
 import "db/proto/db.proto";
 import "parse/proto/parser_config.proto";
 import "client/proto/client.proto";

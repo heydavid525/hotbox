@@ -14,7 +14,7 @@ const char* MLDBException::what() const throw() {
 
 // ParseException
 
-ParseException::ParseException(const std::string msg) : MLDBException(msg) { }
+ParseException::ParseException(const std::string& msg) : MLDBException(msg) { }
 
 // FamilyNotFoundException
 
@@ -48,5 +48,15 @@ const std::vector<TypedFeatureFinder>&
 TypedFeaturesNotFoundException::GetNotFoundTypedFeatures() const {
   return not_found_features_;
 }
+
+// FailedToUncompressException
+
+FailedToUncompressException::FailedToUncompressException(
+    const std::string& msg) : MLDBException(msg) { }
+
+// FailedFileOperationException
+
+FailedFileOperationException::FailedFileOperationException(
+    const std::string& msg) : MLDBException(msg) { }
 
 }  // namespace mldb

@@ -19,7 +19,7 @@ private:
 
 class ParseException: public MLDBException {
 public:
-  ParseException(const std::string msg);
+  ParseException(const std::string& msg);
 };
 
 
@@ -54,6 +54,16 @@ public:
 
 private:
   std::vector<TypedFeatureFinder> not_found_features_;
+};
+
+class FailedToUncompressException : public MLDBException {
+public:
+  FailedToUncompressException(const std::string& msg);
+};
+
+class FailedFileOperationException : public MLDBException {
+public:
+  FailedFileOperationException(const std::string& msg);
 };
 
 }  // namespace mldb
