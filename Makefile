@@ -5,7 +5,6 @@ include $(PROJECT)/config.mk
 
 BUILD = $(PROJECT)/build
 LIB = $(BUILD)/lib
-export LD_LIBRARY_PATH=$(THIRD_PARTY_LIB):LD_LIBRARY_PATH
 
 NEED_MKDIR = $(BUILD) $(LIB)
 
