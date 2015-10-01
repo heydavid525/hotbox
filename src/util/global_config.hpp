@@ -3,14 +3,22 @@
 #include <yaml-cpp/yaml.h>
 #include <glog/logging.h>
 #include <string>
-#include <boost/filesystem.hpp>
+//#include <boost/filesystem.hpp>
+#include "io.dmlc/filesys.h"
 
 namespace mldb {
 
 namespace {
 
-const std::string kConfigPath = boost::filesystem::path(__FILE__)
+const std::string kConfigPath = 
+  dmlc::io::FileSystem::parent_path(
+    dmlc::io::FileSystem::parent_path(
+      dmlc::io::FileSystem::path(__FILE__)))
+      .append("/config.yaml");
+/*
+boost::filesystem::path(__FILE__)
   .parent_path().parent_path().parent_path().append("config.yaml").string();
+  */
 
 }  // anonymous namespace
 

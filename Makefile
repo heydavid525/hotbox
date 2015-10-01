@@ -59,7 +59,8 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
 					-lyaml-cpp \
 					-lsnappy \
           -ldmlc \
-          -lhdfs
+          -lhdfs \
+          -lrocksdb 
 
 MLDB_SRC = $(shell find src -type f -name "*.cpp")
 MLDB_PROTO = $(shell find src -type f -name "*.proto")

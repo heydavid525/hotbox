@@ -17,4 +17,7 @@ std::string ReadCompressedFile(const std::string& file_path,
 size_t WriteCompressedFile(const std::string& file_path,
     const std::string& data, Compressor compressor = Compressor::SNAPPY);
 
+// Read normal data file and return the string
+std::string ReadFile(const std::string& file_path);
+
 }  // namespace mldb

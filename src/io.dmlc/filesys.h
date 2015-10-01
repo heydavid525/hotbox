@@ -82,6 +82,11 @@ class FileSystem {
    *         we cannot find a matching system
    */
   static FileSystem *GetInstance(const std::string &protocol);
+  static std::string path(std::string file_name);
+  static std::string parent_path(std::string file_path);
+  static bool exist(std::string file_name);
+  static bool is_directory(std::string file_name);
+
   /*! \brief virtual destructor */
   virtual ~FileSystem() {}
   /*!

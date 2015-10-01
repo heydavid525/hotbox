@@ -1,4 +1,4 @@
-#include "io/fstream.hpp"
+//#include "io/fstream.hpp"
 #include "util/file_util.hpp"
 #include "util/mldb_exceptions.hpp"
 #include "util/class_registry.hpp"
@@ -95,5 +95,31 @@ size_t WriteCompressedFile(const std::string& file_path,
   os->Write(data.c_str(), data.size());
   return data.size();
 }
+
+
+std::string ReadFile(const std::string& file_path) {
+
+  // Comment(wdai): There's a lot of copying. Optimize it! Check out 
+  // zero_copy_stream.h
+  // (https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.io.zero_copy_stream?hl=en)
+
+  // Read  
+  dmlc::io::URI path(file_path.c_str());
+  // We don't own the FileSystem pointer.
+  dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
+  dmlc::io::FileInfo info = fs->GetPathInfo(path);
+  // We do own the file system pointer.
+  std::unique_ptr<dmlc::SeekStream> fp(fs->OpenForRead(path));
+  if (!fp) {
+    throw FailedFileOperationException("Failed to open " + file_path
+        + " for read.");
+  }
+  size_t size = info.size;
+  std::string buffer(size, ' ');
+  size_t nread = fp->Read(&buffer[0], size);
+  return buffer;
+}
+
+
 
 }  // namespace mldb

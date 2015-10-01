@@ -52,7 +52,7 @@ void DBServer::Init() {
 }
 
 void DBServer::InitFromDBRootFile() {
-  auto db_root_file_path = db_dir_.string() + kDBRootFile;
+  auto db_root_file_path = db_dir_ + kDBRootFile;
 
   if (!boost::filesystem::exists(db_root_file_path)) {
     LOG(INFO) << "DB File doesn't exist yet. This must be a new DB";
@@ -64,13 +64,13 @@ void DBServer::InitFromDBRootFile() {
   db_root.ParseFromString(db_root_file);
   for (int i = 0; i < db_root.db_names_size(); ++i) {
     std::string db_name = db_root.db_names(i);
-    std::string db_path = db_dir_.string() + "/" + db_name;
+    std::string db_path = db_dir_ + "/" + db_name;
     dbs_[db_name] = make_unique<DB>(db_path);
   }
 }
 
 void DBServer::CommitToDBRootFile() const {
-  auto db_root_file_path = db_dir_.string() + kDBRootFile;
+  auto db_root_file_path = db_dir_ + kDBRootFile;
   DBRootFile db_root;
   for (const auto& p : dbs_) {
     db_root.add_db_names(p.first);
@@ -80,12 +80,20 @@ void DBServer::CommitToDBRootFile() const {
 }
 
 void DBServer::CreateDirectory(const boost::filesystem::path& dir) {
-  // Create directory if necessary.
+  // Create directory if necessary. 
+  // Comment(weiren): this is necessary. as we would need to a separate store 
+  // for different users/sessions.
+
+  // use dmlc::io::FileSystem::exist(dir);
   if (boost::filesystem::exists(dir)) {
+  // use dmlc::io::FileSystem::is_directory(dir);
     CHECK(boost::filesystem::is_directory(dir));
   } else {
+  // create_directory would need implementation and testing within dmlc.
     CHECK(boost::filesystem::create_directory(dir));
   }
+  // **** This is the last but 1 place with boost io left.
+  // The last one is to be able to readline().
 }
 
 void DBServer::SendGenericReply(int client_id, const std::string& msg) {
@@ -97,9 +105,10 @@ void DBServer::SendGenericReply(int client_id, const std::string& msg) {
 void DBServer::CreateDBReqHandler(int client_id, const CreateDBReq& req) {
   // Append db name to db_dir_.
   auto db_config = req.db_config();
-  auto db_path = db_dir_ / db_config.db_name();
+  // Comment(Weiren): is this right?
+  auto db_path = db_dir_ + "/" + db_config.db_name();
   CreateDirectory(db_path);
-  db_config.set_db_dir(db_path.string());
+  db_config.set_db_dir(db_path);
   dbs_[db_config.db_name()] = make_unique<DB>(db_config);
   SendGenericReply(client_id, "Done creating DB");
   CommitToDBRootFile();

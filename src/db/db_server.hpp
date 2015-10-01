@@ -36,6 +36,8 @@ private:
   // Write DB info to disk.
   void CommitToDBRootFile() const;
 
+  //TODO(weiren): this will require hdfs support and implementation within dmlc.
+  // dmlc does not provide function to create directories.
   void CreateDirectory(const boost::filesystem::path& dir);
 
   // Send a string reply.
@@ -48,7 +50,8 @@ private:
   void CreateSessionHandler(int client_id, const CreateSessionReq& req);
 
 private:
-  boost::filesystem::path db_dir_;
+  //boost::filesystem::path db_dir_;
+  std::string db_dir_;
 
   WarpServer server_;
 

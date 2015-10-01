@@ -6,6 +6,7 @@
 //#include <sstream>
 #include "io.dmlc/filesys.h"
 #include "test/facility/test_facility.hpp"
+#include <memory>
 
 namespace mldb {
 

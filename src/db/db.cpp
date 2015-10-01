@@ -6,6 +6,7 @@
 #include "parse/parser_if.hpp"
 #include "util/class_registry.hpp"
 #include "util/file_util.hpp"
+#include "io.dmlc/filesys.h"
 #include <snappy.h>
 #include <cstdint>
 #include <sstream>
@@ -49,6 +50,8 @@ std::string DB::ReadFile(const ReadFileReq& req) {
     parser->SetConfig(req.parser_config());
     // TODO(weiren): Store datum to disk properly, e.g., limit each atom file
     // to 64MB.
+    // TODO(weiren): read file with dmlc io and be able to readline from any filesystem.
+    // TODO(weiren): write file would also need more delecate control.
     while (std::getline(in, line)) {
       DatumBase datum = parser->ParseAndUpdateSchema(line, schema_.get());
       atom.add_datum_protos(datum.Serialize());

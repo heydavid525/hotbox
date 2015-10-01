@@ -7,7 +7,8 @@
 #include <string>
 #include <cstdint>
 #include <sstream>
-#include "io/fstream.hpp"
+//#include "io/fstream.hpp"
+#include "io.dmlc/filesys.h"
 
 namespace mldb {
 

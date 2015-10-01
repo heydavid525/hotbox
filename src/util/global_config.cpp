@@ -1,6 +1,8 @@
 
 #include "util/global_config.hpp"
-#include "io/fstream.hpp"
+#include "util/file_util.hpp"
+//#include "io/fstream.hpp"
+#include "io.dmlc/filesys.h"
 #include <yaml-cpp/yaml.h>
 #include <string>
 #include <sstream>
@@ -13,12 +15,9 @@ GlobalConfig& GlobalConfig::GetInstance() {
 }
 
 GlobalConfig::GlobalConfig() {
-  io::ifstream fin(kConfigPath);
-  CHECK(fin) << "Can't open " << kConfigPath;
-  std::stringstream buffer;
-  buffer << fin.rdbuf();
+  std::string buffer = ReadFile(kConfigPath);
   try {
-    config_ = YAML::Load(buffer.str());
+    config_ = YAML::Load(buffer);
   } catch(YAML::ParserException& e) {
     LOG(ERROR) << e.what();
   }
