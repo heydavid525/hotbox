@@ -54,7 +54,7 @@ void DBServer::Init() {
 void DBServer::InitFromDBRootFile() {
   auto db_root_file_path = db_dir_ + kDBRootFile;
 
-  if (!boost::filesystem::exists(db_root_file_path)) {
+  if (!Exists(db_root_file_path)) {
     LOG(INFO) << "DB File doesn't exist yet. This must be a new DB";
     return;
   }
@@ -79,21 +79,15 @@ void DBServer::CommitToDBRootFile() const {
       Compressor::NO_COMPRESS);
 }
 
-void DBServer::CreateDirectory(const boost::filesystem::path& dir) {
-  // Create directory if necessary. 
-  // Comment(weiren): this is necessary. as we would need to a separate store 
+void DBServer::CreateDirectory(const std::string& dir) {
+  // Create directory if necessary. as we would need to a separate store 
   // for different users/sessions.
-
-  // use dmlc::io::FileSystem::exist(dir);
-  if (boost::filesystem::exists(dir)) {
-  // use dmlc::io::FileSystem::is_directory(dir);
-    CHECK(boost::filesystem::is_directory(dir));
+  if (Exists(dir)) {
+    CHECK(Is_Directory(dir));
   } else {
   // create_directory would need implementation and testing within dmlc.
-    CHECK(boost::filesystem::create_directory(dir));
+    CHECK(Create_Directory(dir) == 0);
   }
-  // **** This is the last but 1 place with boost io left.
-  // The last one is to be able to readline().
 }
 
 void DBServer::SendGenericReply(int client_id, const std::string& msg) {

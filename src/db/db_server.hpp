@@ -9,6 +9,7 @@
 #include <string>
 #include <set>
 #include <map>
+#include "io.dmlc/filesys.h"
 
 namespace mldb {
 
@@ -38,7 +39,7 @@ private:
 
   //TODO(weiren): this will require hdfs support and implementation within dmlc.
   // dmlc does not provide function to create directories.
-  void CreateDirectory(const boost::filesystem::path& dir);
+  void CreateDirectory(const std::string& dir);
 
   // Send a string reply.
   void SendGenericReply(int client_id, const std::string& msg);

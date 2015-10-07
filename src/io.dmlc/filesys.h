@@ -95,6 +95,18 @@ class FileSystem {
    * \return the information about the file
    */
   virtual FileInfo GetPathInfo(const URI &path) = 0;
+  /*
+   * \brief create directory using the current path
+   * \param path the path to the directory
+   * \return true if succeeded; false if existed or something.
+   */
+   virtual int CreateDirectory(const URI &path) = 0;
+  /*
+   * \brief remove directory and its recursive contents using the current path
+   * \param path the path to the directory
+   * \return true if succeeded; false if existed or something.
+   */
+   virtual int DeleteDirectory(const URI &path) = 0;
   /*!
    * \brief list files in a directory
    * \param path to the file

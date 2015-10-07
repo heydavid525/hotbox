@@ -7,6 +7,7 @@
 #include "util/class_registry.hpp"
 #include "util/file_util.hpp"
 #include "io.dmlc/filesys.h"
+#include <dmlc/io.h>
 #include <snappy.h>
 #include <cstdint>
 #include <sstream>
@@ -41,7 +42,14 @@ std::string DB::ReadFile(const ReadFileReq& req) {
   DBAtom atom;
   int num_features_before = schema_->GetNumFeatures();
   {
-    io::ifstream in(req.file_path());
+    //io::ifstream in(req.file_path());
+
+    dmlc::io::URI path(req.file_path().c_str());
+    // We don't own the FileSystem pointer.
+    dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
+    // We do own the file system pointer.
+    std::unique_ptr<dmlc::SeekStream> fp(fs->OpenForRead(path));
+    dmlc::istream in(fp.get());
     std::string line;
     auto& registry = ClassRegistry<ParserIf>::GetRegistry();
     std::unique_ptr<ParserIf> parser = registry.CreateObject(req.file_format());
@@ -50,7 +58,6 @@ std::string DB::ReadFile(const ReadFileReq& req) {
     parser->SetConfig(req.parser_config());
     // TODO(weiren): Store datum to disk properly, e.g., limit each atom file
     // to 64MB.
-    // TODO(weiren): read file with dmlc io and be able to readline from any filesystem.
     // TODO(weiren): write file would also need more delecate control.
     while (std::getline(in, line)) {
       DatumBase datum = parser->ParseAndUpdateSchema(line, schema_.get());

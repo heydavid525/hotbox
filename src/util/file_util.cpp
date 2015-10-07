@@ -120,6 +120,19 @@ std::string ReadFile(const std::string& file_path) {
   return buffer;
 }
 
+bool Exists(const std::string& file_path) {
+  return dmlc::io::FileSystem::exist(file_path);
+}
 
+bool Is_Directory(const std::string& file_path) {
+  return dmlc::io::FileSystem::is_directory(file_path);
+}
+
+int Create_Directory(const std::string& file_path) {
+  dmlc::io::URI path(file_path.c_str());
+  // We don't own the FileSystem pointer.
+  dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
+  return fs->CreateDirectory(path);
+}
 
 }  // namespace mldb
