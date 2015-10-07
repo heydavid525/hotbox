@@ -1,29 +1,34 @@
 #include <string>
 #include <glog/logging.h>
 #include "db/db.hpp"
-#include "io/fstream.hpp"
 #include "db/proto/db.pb.h"
 #include "parse/parser_if.hpp"
-#include "util/class_registry.hpp"
-#include "util/file_util.hpp"
 #include "io.dmlc/filesys.h"
+//#include "io/fstream.hpp"
 #include <dmlc/io.h>
 #include <snappy.h>
 #include <cstdint>
 #include <sstream>
+#include "util/class_registry.hpp"
+#include "util/file_util.hpp"
+#include "util/rocksdb_util.hpp"
 
 namespace mldb {
 
 namespace {
 
 const std::string kDBFile = "/DBFile";
+const std::string kDBProto = "DBProto";
 
 }  // anonymous namespace
 
 DB::DB(const std::string& db_path) {
-  std::string db_str = ReadCompressedFile(db_path + kDBFile);
+  std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_path + kDBFile));
+  std::string db_str;
+  rocksdb::Status s = db->Get(rocksdb::ReadOptions(), kDBProto, &db_str);
+  assert(s.ok());
   DBProto proto;
-  proto.ParseFromString(db_str);
+  proto.ParseFromString(ReadCompressedString(db_str));
   meta_data_ = proto.meta_data();
   schema_ = make_unique<Schema>(proto.schema_proto());
 }
@@ -43,7 +48,6 @@ std::string DB::ReadFile(const ReadFileReq& req) {
   int num_features_before = schema_->GetNumFeatures();
   {
     //io::ifstream in(req.file_path());
-
     dmlc::io::URI path(req.file_path().c_str());
     // We don't own the FileSystem pointer.
     dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
@@ -58,7 +62,7 @@ std::string DB::ReadFile(const ReadFileReq& req) {
     parser->SetConfig(req.parser_config());
     // TODO(weiren): Store datum to disk properly, e.g., limit each atom file
     // to 64MB.
-    // TODO(weiren): write file would also need more delecate control.
+    // TODO(weiren): write file would also need more delicate control.
     while (std::getline(in, line)) {
       DatumBase datum = parser->ParseAndUpdateSchema(line, schema_.get());
       atom.add_datum_protos(datum.Serialize());
@@ -104,11 +108,16 @@ DBProto DB::GetProto() const {
 void DB::CommitDB() {
   LOG(INFO) << "Committing DB " << meta_data_.db_config().db_name();
   std::string db_file = meta_data_.db_config().db_dir() + kDBFile;
+  std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_file));
   auto db_proto = GetProto();
-  std::string serialized_db = SerializeProto(db_proto);
-  auto compressed_size = WriteCompressedFile(db_file, serialized_db);
+  std::string serialized_db = SerializeProto(GetProto());
+  auto original_size = serialized_db.size();
+  // auto compressed_size = WriteCompressedFile(db_file, serialized_db);
+  auto compressed_size = WriteCompressedString(serialized_db);
+  rocksdb::Status s = db->Put(rocksdb::WriteOptions(), kDBProto, serialized_db);
+  assert(s.ok());
   float db_compression_ratio = static_cast<float>(compressed_size)
-    / serialized_db.size();
+    / original_size;
   LOG(INFO) << "Written DBfile: "
     << SizeToReadableString(compressed_size) << " ("
     << std::to_string(db_compression_ratio) << " of uncompressed size)\n";

@@ -3,6 +3,10 @@
 #include <string>
 #include <algorithm>
 
+#include "util/class_registry.hpp"
+#include "util/compressor/all.hpp"
+#include "util/file_util.hpp"
+#include "util/mldb_exceptions.hpp"
 namespace mldb {
 
 std::string SizeToReadableString(size_t size) {
@@ -24,6 +28,37 @@ std::string SerializeProto(const google::protobuf::Message& msg) {
   std::string data;
   msg.SerializeToString(&data);
   return data;
+}
+
+
+std::string ReadCompressedString(std::string input,
+    Compressor compressor) {
+  // Uncompress
+  if (compressor == Compressor::NO_COMPRESS) {
+    return input;
+  }
+  auto& registry = ClassRegistry<CompressorIf>::GetRegistry();
+  std::unique_ptr<CompressorIf> compressor_if =
+    registry.CreateObject(compressor);
+  try {
+    return compressor_if->Uncompress(input);
+  } catch (const FailedToUncompressException& e) {
+    throw FailedFileOperationException("Failed to uncompress " + input
+        + "\n" + e.what());
+  }
+  // Should never get here.
+  return "";
+}
+size_t WriteCompressedString(std::string& input,
+    Compressor compressor) {
+  if (compressor != Compressor::NO_COMPRESS) {
+    // Compress always succeed.
+    auto& registry = ClassRegistry<CompressorIf>::GetRegistry();
+    std::unique_ptr<CompressorIf> compressor_if =
+      registry.CreateObject(compressor);
+    input = compressor_if->Compress(input);
+  }
+  return input.size();
 }
 
 }  // namespace mldb

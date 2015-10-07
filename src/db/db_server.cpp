@@ -1,7 +1,9 @@
 #include <glog/logging.h>
+#include <string>
 #include "db/db_server.hpp"
 #include "util/all.hpp"
-#include <string>
+#include "util/rocksdb_util.hpp"
+
 
 namespace mldb {
 
@@ -58,8 +60,21 @@ void DBServer::InitFromDBRootFile() {
     LOG(INFO) << "DB File doesn't exist yet. This must be a new DB";
     return;
   }
-  auto db_root_file = ReadCompressedFile(db_root_file_path,
-      Compressor::NO_COMPRESS);
+  //auto db_root_file = ReadCompressedFile(db_root_file_path,
+  //    Compressor::NO_COMPRESS);
+  // DBRootFile db_root;
+  // db_root.ParseFromString(db_root_file);
+  // for (int i = 0; i < db_root.db_names_size(); ++i) {
+  //   std::string db_name = db_root.db_names(i);
+  //   std::string db_path = db_dir_ + "/" + db_name;
+  //   dbs_[db_name] = make_unique<DB>(db_path);
+  // }
+
+  // **** RocksDB Persistency. **********
+  std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_root_file_path));
+  std::string db_root_file;
+  rocksdb::Status s = db->Get(rocksdb::ReadOptions(), kDBRootFile, &db_root_file);
+  assert(s.ok());
   DBRootFile db_root;
   db_root.ParseFromString(db_root_file);
   for (int i = 0; i < db_root.db_names_size(); ++i) {
@@ -75,8 +90,14 @@ void DBServer::CommitToDBRootFile() const {
   for (const auto& p : dbs_) {
     db_root.add_db_names(p.first);
   }
-  WriteCompressedFile(db_root_file_path, SerializeProto(db_root),
-      Compressor::NO_COMPRESS);
+  // WriteCompressedFile(db_root_file_path, SerializeProto(db_root),
+  //    Compressor::NO_COMPRESS);
+
+  // **** RocksDB Persistency. **********
+  std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_root_file_path));
+  // Put key(kDBRootFile)-value(SerializeProto(db_root)).
+  rocksdb::Status s = db->Put(rocksdb::WriteOptions(), kDBRootFile, SerializeProto(db_root));
+  assert(s.ok());
 }
 
 void DBServer::CreateDirectory(const std::string& dir) {
@@ -85,7 +106,6 @@ void DBServer::CreateDirectory(const std::string& dir) {
   if (Exists(dir)) {
     CHECK(Is_Directory(dir));
   } else {
-  // create_directory would need implementation and testing within dmlc.
     CHECK(Create_Directory(dir) == 0);
   }
 }
@@ -99,7 +119,6 @@ void DBServer::SendGenericReply(int client_id, const std::string& msg) {
 void DBServer::CreateDBReqHandler(int client_id, const CreateDBReq& req) {
   // Append db name to db_dir_.
   auto db_config = req.db_config();
-  // Comment(Weiren): is this right?
   auto db_path = db_dir_ + "/" + db_config.db_name();
   CreateDirectory(db_path);
   db_config.set_db_dir(db_path);

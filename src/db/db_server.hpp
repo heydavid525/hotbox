@@ -1,15 +1,17 @@
 #pragma once
+//#include <boost/filesystem.hpp>
+#include <string>
+#include <set>
+#include <map>
 
 #include "db/db.hpp"
 #include "db/proto/db.pb.h"
 #include "db/util.hpp"
 #include "util/warp_server.hpp"
 #include "util/proto/warp_msg.pb.h"
-#include <boost/filesystem.hpp>
-#include <string>
-#include <set>
-#include <map>
 #include "io.dmlc/filesys.h"
+
+
 
 namespace mldb {
 
@@ -37,8 +39,6 @@ private:
   // Write DB info to disk.
   void CommitToDBRootFile() const;
 
-  //TODO(weiren): this will require hdfs support and implementation within dmlc.
-  // dmlc does not provide function to create directories.
   void CreateDirectory(const std::string& dir);
 
   // Send a string reply.

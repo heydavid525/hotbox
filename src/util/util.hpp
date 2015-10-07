@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <google/protobuf/message.h>
+#include "db/proto/db.pb.h"
 
 namespace mldb {
 
@@ -15,5 +16,10 @@ std::unique_ptr<T> make_unique(Args&&... args) {
 std::string SizeToReadableString(size_t size);
 
 std::string SerializeProto(const google::protobuf::Message& msg);
+
+std::string ReadCompressedString(std::string input,
+    Compressor compressor = Compressor::SNAPPY);
+size_t WriteCompressedString(std::string& input,
+    Compressor compressor = Compressor::SNAPPY);
 
 }   // namespace mldb
