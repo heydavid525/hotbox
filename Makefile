@@ -80,6 +80,7 @@ PROTOC = $(THIRD_PARTY_BIN)/protoc
 
 $(PROTO_HDRS): $(BUILD)/%.pb.h: $(SRC_DIR)/%.proto
 	@mkdir -p $(@D)
+	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
 	$(PROTOC) --cpp_out=$(BUILD) --python_out=$(BUILD) --proto_path=src $<
 	
 $(MLDB_LIB): $(PROTO_OBJS) $(MLDB_OBJS)
