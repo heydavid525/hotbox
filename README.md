@@ -5,3 +5,9 @@ git clone https://github.com/daiwei89/third_party
 cd third_party
 make -j4
 ```
+
+To build MLDB, do
+```
+make proto
+make -j4
+```
