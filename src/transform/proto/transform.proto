@@ -21,6 +21,7 @@ message TransformConfig {
     BucketizeTransformConfig bucketize_transform = 3;
     NgramTransformConfig ngram_transform = 4;
     LogitTransformConfig logit_transform = 5;
+    ConstantTransformConfig constant_transform = 6;
   }
 }
 
@@ -81,6 +82,11 @@ message BucketizeTransformConfig {
 
 // Only need BaseTransformConfig.
 message OneHotTransformConfig {
+}
+
+// Add a constant feature as offset (usually a constant of 1).
+message ConstantTransformConfig {
+  float constant = 1;
 }
 
 // Take cartesian products between input_feature_list[0],
