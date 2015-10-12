@@ -130,5 +130,5 @@ if __name__ == "__main__":
   server_ip = "localhost"
   db_client = DBClient(server_ip)
   test_db = db_client.CreateDB('test_db')
-  test_db.ReadFile('/nfs/nas-0-16/wdai/datasets/class/binary/a1a/a1a.toy',
+  test_db.ReadFile('test/resource/dataset/a1a.toy',
       file_format='libsvm')

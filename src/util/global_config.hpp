@@ -10,7 +10,7 @@ namespace mldb {
 
 namespace {
 
-const std::string kConfigPath = "/home/wdai/mldb/config.yaml";
+const std::string kConfigPath = "/home/wdai/hotbox/config.yaml";
 /*
 const std::string kConfigPath =
   dmlc::io::FileSystem::parent_path(
