@@ -4,21 +4,19 @@
 #include <glog/logging.h>
 #include <string>
 //#include <boost/filesystem.hpp>
-#include "io.dmlc/filesys.h"
+#include "io/filesys.hpp"
 
 namespace hotbox {
 
 namespace {
 
-const std::string kConfigPath = "/home/wdai/hotbox/config.yaml";
-/*
+//const std::string kConfigPath = "/home/yu/github/mldb/config.yaml";
+
 const std::string kConfigPath =
-  dmlc::io::FileSystem::parent_path(
       dmlc::io::FileSystem::parent_path(
         dmlc::io::FileSystem::parent_path(
-          dmlc::io::FileSystem::path(__FILE__))))
-  .append("/config.yaml");
-  */
+          dmlc::io::FileSystem::path(__FILE__)))
+            .append("/config.yaml");
 
 /*
    boost::filesystem::path(__FILE__)

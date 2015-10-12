@@ -4,7 +4,7 @@
 #include <iostream>
 #include <dmlc/io.h>
 //#include <sstream>
-#include "io.dmlc/filesys.h"
+#include "io/filesys.hpp"
 #include "test/facility/test_facility.hpp"
 #include <memory>
 

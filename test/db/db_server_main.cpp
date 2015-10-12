@@ -1,14 +1,21 @@
 #include "db/db_server.hpp"
 #include <glog/logging.h>
 #include <gflags/gflags.h>
+#include <iostream>
 #include "db/proto/db.pb.h"
 #include "test/facility/test_facility.hpp"
+#include "io/filesys.hpp"
 
 int main(int argc, char *argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
   LOG(INFO) << "__FILE__: " << __FILE__;
+  dmlc::io::URI path(__FILE__);
+  // We don't own the FileSystem pointer.
+  dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
+  dmlc::io::FileInfo info = fs->GetPathInfo(path);
+
   hotbox::DBServerConfig server_config;
   std::string db_test_bed_dir = hotbox::GetTestBedDir() + "/test_db_root";
   LOG(INFO) << "db_test_bed_dir: "  << db_test_bed_dir;

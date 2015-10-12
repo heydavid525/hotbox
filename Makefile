@@ -6,7 +6,7 @@ include $(PROJECT)/config.mk
 #BUILD := $(PROJECT)/build
 BUILD :=build
 
-SRC_DIR:=src
+SRC_DIR:=$(PROJECT)/src
 
 LIB = $(BUILD)/lib
 
@@ -42,7 +42,8 @@ THIRD_PARTY_INCLUDE = $(THIRD_PARTY)/include
 THIRD_PARTY_LIB = $(THIRD_PARTY)/lib
 THIRD_PARTY_BIN = $(THIRD_PARTY)/bin
 
-INCFLAGS =  -Isrc/ -I$(THIRD_PARTY_INCLUDE)
+#INCFLAGS =  -Isrc/ -I$(THIRD_PARTY_INCLUDE)
+INCFLAGS =  -I$(SRC_DIR) -I$(THIRD_PARTY_INCLUDE)
 INCFLAGS += -Ibuild/ # include generated *pb.h
 INCFLAGS += -I$(JAVA_HOME)/include # include java for HDFS/DMLC access
 INCFLAGS += $(HDFS_INCFLAGS)
@@ -81,7 +82,7 @@ PROTOC = $(THIRD_PARTY_BIN)/protoc
 $(PROTO_HDRS): $(BUILD)/%.pb.h: $(SRC_DIR)/%.proto
 	@mkdir -p $(@D)
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
-	$(PROTOC) --cpp_out=$(BUILD) --python_out=$(BUILD) --proto_path=src $<
+	$(PROTOC) --cpp_out=$(BUILD) --python_out=$(BUILD) --proto_path=$(SRC_DIR) $<
 	
 $(HB_LIB): $(PROTO_OBJS) $(HB_OBJS)
 	@echo HB_LIB_

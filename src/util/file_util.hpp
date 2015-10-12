@@ -3,6 +3,7 @@
 //#include "util/proto/util.pb.h"
 #include <string>
 #include "db/proto/db.pb.h"
+#include "io/filesys.hpp"
 
 namespace hotbox {
 

@@ -3,9 +3,8 @@
 #include "db/db.hpp"
 #include "db/proto/db.pb.h"
 #include "parse/parser_if.hpp"
-//#include "io.dmlc/filesys.h"
+//#include "io/filesys.h"
 #include "io/fstream.hpp"
-//#include <dmlc/io.h>
 #include <snappy.h>
 #include <cstdint>
 #include <sstream>

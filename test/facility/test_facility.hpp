@@ -1,7 +1,7 @@
 // This file contains facilities for testing.
 //#include <boost/filesystem.hpp>
 #include <string>
-#include "io.dmlc/filesys.h"
+#include "io/filesys.hpp"
 
 namespace hotbox {
 

@@ -121,7 +121,7 @@ class FileSystem {
    * \param allow_null whether NULL can be returned, or directly report error
    * \return the created stream, can be NULL when allow_null == true and file do not exist
    */
-  virtual Stream *Open(const URI &path,
+  virtual dmlc::Stream *Open(const URI &path,
                        const char* const flag,
                        bool allow_null = false) = 0;
   /*!
@@ -130,7 +130,7 @@ class FileSystem {
    * \param allow_null whether NULL can be returned, or directly report error
    * \return the created stream, can be NULL when allow_null == true and file do not exist
    */
-  virtual SeekStream *OpenForRead(const URI &path,
+  virtual dmlc::SeekStream *OpenForRead(const URI &path,
                                   bool allow_null = false) = 0;
 };
 }  // namespace io

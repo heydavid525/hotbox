@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <dmlc/logging.h>
 #include <dmlc/io.h>
-#include "io.dmlc/filesys.h"
+#include "io/filesys.hpp"
 #include <memory>
 
 int main(int argc, char *argv[]) {
