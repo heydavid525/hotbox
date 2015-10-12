@@ -9,36 +9,62 @@
 namespace mldb {
 
 Schema::Schema(const SchemaConfig& config) : internal_family_(kInternalFamily) {
+  append_offset_.mutable_offsets()->Resize(FeatureStoreType::NUM_STORE_TYPES, 0);
   // Add label.
-  auto type = config.int_label() ? FeatureType::CATEGORICAL :
-    FeatureType::NUMERICAL;
-  auto store_type = FeatureStoreType::DENSE;
-  Feature label = CreateFeature(type, store_type, kLabelFeatureName);
-  int internal_family_idx = 0;
-  AddFeature(kInternalFamily, internal_family_idx++, &label);
+  auto store_type = config.int_label() ? FeatureStoreType::DENSE_CAT :
+    FeatureStoreType::DENSE_NUM;
+  Feature label = CreateFeature(store_type, kLabelFeatureName);
+  AddFeature(kInternalFamily, &label, kLabelFamilyIdx);
 
   // Add weight
-  type = FeatureType::NUMERICAL;
-  store_type = config.use_dense_weight() ? FeatureStoreType::DENSE
-    : FeatureStoreType::SPARSE;
-  Feature weight = CreateFeature(type, store_type, kWeightFeatureName);
-  AddFeature(kInternalFamily, internal_family_idx, &weight);
+  store_type = config.use_dense_weight() ? FeatureStoreType::DENSE_NUM
+    : FeatureStoreType::SPARSE_NUM;
+  Feature weight = CreateFeature(store_type, kWeightFeatureName);
+  AddFeature(kInternalFamily, &weight, kWeightFamilyIdx);
 }
 
-void Schema::AddFeature(const std::string& family_name, int32_t family_idx,
-    Feature* new_feature) {
+Schema::Schema(const SchemaProto& proto) :
+internal_family_(proto.families().at(kInternalFamily)) {
+  for (const auto& p : proto.families()) {
+    LOG(INFO) << "Initializing schema, family: " << p.first;
+    if (p.first == kInternalFamily) {
+      internal_family_ = p.second;
+    }
+    families_.emplace(std::make_pair(p.first, p.second));
+  }
+  output_families_.resize(proto.output_families_size());
+  for (int i = 0; i < proto.output_families_size(); ++i) {
+    output_families_[i] = proto.output_families(i);
+  }
+  append_offset_ = proto.append_offset();
+}
+
+void Schema::AddFeature(const std::string& family_name,
+    Feature* new_feature, BigInt family_idx) {
+  //LOG(INFO) << "Adding feature " << new_feature->name() << " to family " << family_name;
   UpdateOffset(new_feature);
-  GetOrCreateFamily(family_name).AddFeature(*new_feature, family_idx);
+  GetOrCreateMutableFamily(family_name).AddFeature(*new_feature, family_idx);
+}
+
+void Schema::AddFeature(FeatureFamily* family, Feature* new_feature,
+    BigInt family_idx) {
+  //LOG(INFO) << "Adding feature " << new_feature->name() << " to family " << family->GetFamilyName();
+  UpdateOffset(new_feature);
+  family->AddFeature(*new_feature, family_idx);
 }
 
 const Feature& Schema::GetFeature(const std::string& family_name,
-    int32_t family_idx) const {
+    BigInt family_idx) const {
   return GetOrCreateFamily(family_name).GetFeature(family_idx);
 }
 
+const DatumProtoOffset& Schema::GetAppendOffset() const {
+  return append_offset_;
+}
+
 Feature& Schema::GetMutableFeature(const std::string& family_name,
-    int32_t family_idx) {
-  return GetOrCreateFamily(family_name).GetMutableFeature(family_idx);
+    BigInt family_idx) {
+  return GetOrCreateMutableFamily(family_name).GetMutableFeature(family_idx);
 }
 
 const Feature& Schema::GetFeature(const FeatureFinder& finder) const {
@@ -48,13 +74,16 @@ const Feature& Schema::GetFeature(const FeatureFinder& finder) const {
 }
 
 Feature& Schema::GetMutableFeature(const FeatureFinder& finder) {
-  auto& family = GetOrCreateFamily(finder.family_name);
+  auto& family = GetOrCreateMutableFamily(finder.family_name);
   return finder.feature_name.empty() ?
     family.GetMutableFeature(finder.family_idx) :
     family.GetMutableFeature(finder.feature_name);
 }
 
 const FeatureFamily& Schema::GetFamily(const std::string& family_name) const {
+  if (family_name == kInternalFamily) {
+    return internal_family_;
+  }
   auto it = families_.find(family_name);
   if (it == families_.cend()) {
     throw FamilyNotFoundException(family_name);
@@ -62,64 +91,96 @@ const FeatureFamily& Schema::GetFamily(const std::string& family_name) const {
   return it->second;
 }
 
-FeatureFamily& Schema::GetOrCreateFamily(const std::string& family_name)
-  const {
+// Comment(wdai): GetOrCreateFamily has identical implementation as
+// GetOrCreateMutableFamily.
+const FeatureFamily& Schema::GetOrCreateFamily(const std::string& family_name,
+    bool output_family) const {
   if (family_name == kInternalFamily) {
     return internal_family_;
   }
   auto it = families_.find(family_name);
   if (it == families_.cend()) {
+    LOG(INFO) << "Insert family" << family_name << " to families_";
     auto inserted = families_.emplace(
         std::make_pair(family_name, FeatureFamily(family_name)));
     it = inserted.first;
+    if (output_family) {
+      output_families_.push_back(family_name);
+    }
   }
   return it->second;
 }
 
-const DatumProtoOffset& Schema::GetDatumProtoOffset() const {
-  return append_offset_;
+FeatureFamily& Schema::GetOrCreateMutableFamily(const std::string& family_name,
+    bool output_family) {
+  if (family_name == kInternalFamily) {
+    return internal_family_;
+  }
+  auto it = families_.find(family_name);
+  if (it == families_.cend()) {
+    LOG(INFO) << "Insert family " << family_name << " to families_";
+    auto inserted = families_.emplace(
+        std::make_pair(family_name, FeatureFamily(family_name)));
+    it = inserted.first;
+    if (output_family) {
+      LOG(INFO) << "Adding " << family_name << " to output_families_";
+      output_families_.push_back(family_name);
+    }
+  }
+  return it->second;
 }
 
 const std::map<std::string, FeatureFamily>& Schema::GetFamilies() const {
   return families_;
 }
 
-int Schema::GetNumFeatures() const {
-  int num_features = 0;
+BigInt Schema::GetNumFeatures() const {
+  BigInt num_features = 0;
   for (const auto& p : families_) {
+    LOG(INFO) << "Schema::GetNumFeatures " << p.first << " has # features: " << p.second.GetNumFeatures();
     num_features += p.second.GetNumFeatures();
   }
   return num_features;
 }
 
 void Schema::UpdateOffset(Feature* new_feature) {
-  int32_t offset;
-  if (IsCategorical(*new_feature)) {
-    if (IsDense(*new_feature)) {
-      offset = append_offset_.dense_cat_store();
-      append_offset_.set_dense_cat_store(offset + 1);
-    } else {
-      offset = append_offset_.sparse_cat_store();
-      append_offset_.set_sparse_cat_store(offset + 1);
-    }
-  } else if (IsNumerical(*new_feature)) {
-    if (IsDense(*new_feature)) {
-      offset = append_offset_.dense_num_store();
-      append_offset_.set_dense_num_store(offset + 1);
-    } else {
-      offset = append_offset_.sparse_num_store();
-      append_offset_.set_sparse_num_store(offset + 1);
-    }
-  } else {
-    if (IsDense(*new_feature)) {
-      offset = append_offset_.dense_bytes_store();
-      append_offset_.set_dense_bytes_store(offset + 1);
-    } else {
-      offset = append_offset_.sparse_bytes_store();
-      append_offset_.set_sparse_bytes_store(offset + 1);
+  FeatureStoreType store_type = new_feature->store_type();
+  auto curr_offset = append_offset_.offsets(store_type);
+  new_feature->set_offset(curr_offset);
+  append_offset_.set_offsets(store_type, curr_offset + 1);
+}
+
+OSchemaProto Schema::GetOSchemaProto() const {
+  BigInt output_feature_dim = append_offset_.offsets(FeatureStoreType::OUTPUT);
+
+  OSchemaProto proto;
+  proto.mutable_feature_names()->Reserve(output_feature_dim);
+  proto.mutable_family_names()->Reserve(output_families_.size());
+  proto.mutable_family_offsets()->Resize(output_families_.size(), 0);
+
+  BigInt curr_feature_id = 0;
+  for (int i = 0; i < output_families_.size(); ++i) {
+    const FeatureFamily& family = GetFamily(output_families_[i]);
+    const auto& features = family.GetFeatures();
+    CHECK_GT(features.size(), 0);
+
+    // We assume output feature family's features are added in ascending
+    // order, so the offset of first feature is the family offset.
+    BigInt family_offset = features[0].offset();
+    proto.add_family_names(family.GetFamilyName());
+    proto.set_family_offsets(i, family_offset);
+    CHECK_EQ(curr_feature_id, family_offset);
+    for (int j = 0; j < features.size(); ++j) {
+      const auto& f = features[j];
+      proto.add_feature_names(f.name());
+
+      // Verify that feature offset matches the location of the feature's name
+      // in OSchemaProto feature_names.  OUTPUT features in each family
+      // should be added in exactly this order.
+      CHECK_EQ(f.offset(), curr_feature_id++) << f.name();
     }
   }
-  new_feature->mutable_loc()->set_offset(offset);
+  return proto;
 }
 
 SchemaProto Schema::GetProto() const {
@@ -130,17 +191,11 @@ SchemaProto Schema::GetProto() const {
   }
   (*families)[kInternalFamily] = internal_family_.GetProto();
   *(proto.mutable_append_offset()) = append_offset_;
-  return proto;
-}
-
-Schema::Schema(const SchemaProto& proto) :
-internal_family_(proto.families().at(kInternalFamily)) {
-  for (const auto& p : proto.families()) {
-    if (p.first == kInternalFamily) {
-      internal_family_ = p.second;
-    }
+  proto.mutable_output_families()->Reserve(output_families_.size());
+  for (int i = 0; i < output_families_.size(); ++i) {
+    *(proto.add_output_families()) = output_families_[i];
   }
-  append_offset_ = proto.append_offset();
+  return proto;
 }
 
 std::string Schema::Serialize() const {

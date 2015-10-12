@@ -1,6 +1,7 @@
 #pragma once
 
 #include "schema/proto/schema.pb.h"
+#include "schema/constants.hpp"
 
 namespace mldb {
 
@@ -13,7 +14,7 @@ struct FeatureFinder {
 
   // At most one of the following should be set.
   std::string feature_name;
-  int family_idx = -1;
+  BigInt family_idx = -1;
 };
 
 struct TypedFeatureFinder : public FeatureFinder {

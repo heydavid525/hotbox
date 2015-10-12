@@ -10,13 +10,10 @@
 
 namespace mldb {
 
-Feature CreateFeature(const FeatureType& type, const FeatureStoreType& store_type,
-    const std::string& name) {
+Feature CreateFeature(FeatureStoreType store_type, const std::string& name) {
   Feature f;
   f.set_name(name);
-  FeatureLocator* loc = f.mutable_loc();
-  loc->set_type(type);
-  loc->set_store_type(store_type);
+  f.set_store_type(store_type);
   return f;
 }
 
@@ -71,46 +68,63 @@ std::vector<FeatureFinder> ParseFeatureDesc(const std::string& feature_desc) {
   return finders;
 }
 
-bool IsNumeral(const Feature& f) {
-  return (f.loc().type() == FeatureType::CATEGORICAL) ||
-    (f.loc().type() == FeatureType::NUMERICAL);
-}
-
-bool IsNumeral(const FeatureLocator& loc) {
-  return (loc.type() == FeatureType::CATEGORICAL) ||
-    (loc.type() == FeatureType::NUMERICAL);
+bool IsNumber(const Feature& f) {
+  switch (f.store_type()) {
+    case FeatureStoreType::DENSE_CAT:
+    case FeatureStoreType::DENSE_NUM:
+    case FeatureStoreType::SPARSE_CAT:
+    case FeatureStoreType::SPARSE_NUM:
+      return true;
+    default:
+      return false;
+  }
+  return false;
 }
 
 bool IsCategorical(const Feature& f) {
-  return f.loc().type() == FeatureType::CATEGORICAL;
+  switch (f.store_type()) {
+    case FeatureStoreType::DENSE_CAT:
+    case FeatureStoreType::SPARSE_CAT:
+      return true;
+    default:
+      return false;
+  }
+  return false;
 }
 
 bool IsNumerical(const Feature& f) {
-  return f.loc().type() == FeatureType::NUMERICAL;
+  switch (f.store_type()) {
+    case FeatureStoreType::DENSE_NUM:
+    case FeatureStoreType::SPARSE_NUM:
+      return true;
+    default:
+      return false;
+  }
+  return false;
 }
 
 bool IsDense(const Feature& f) {
-  return f.loc().store_type() == FeatureStoreType::DENSE;
+  switch (f.store_type()) {
+    case FeatureStoreType::DENSE_CAT:
+    case FeatureStoreType::DENSE_NUM:
+    case FeatureStoreType::DENSE_BYTES:
+      return true;
+    default:
+      return false;
+  }
+  return false;
 }
 
 bool IsSparse(const Feature& f) {
-  return f.loc().store_type() == FeatureStoreType::SPARSE;
+  switch (f.store_type()) {
+    case FeatureStoreType::SPARSE_CAT:
+    case FeatureStoreType::SPARSE_NUM:
+    case FeatureStoreType::SPARSE_BYTES:
+      return true;
+    default:
+      return false;
+  }
+  return false;
 }
-
-/*
-DatumProtoOffset operator+(const DatumProtoOffset& o1,
-    const DatumProtoOffset& o2) {
-  DatumProtoOffset offset;
-  offset.set_dense_cat_store(o1.dense_cat_store() + o2.dense_cat_store());
-  offset.set_dense_num_store(o1.dense_num_store() + o2.dense_num_store());
-  offset.set_dense_bytes_store(o1.dense_bytes_store() + o2.dense_bytes_store());
-
-  offset.set_sparse_cat_store(o1.sparse_cat_store() + o2.sparse_cat_store());
-  offset.set_sparse_num_store(o1.sparse_num_store() + o2.sparse_num_store());
-  offset.set_sparse_bytes_store(o1.sparse_bytes_store() + o2.sparse_bytes_store());
-
-  return offset;
-}
-*/
 
 }  // namespace mldb

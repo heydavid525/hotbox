@@ -13,3 +13,4 @@
 #include "util/compressor/all.hpp"
 #include "util/proto/util.pb.h"
 #include "util/proto/warp_msg.pb.h"
+#include "util/register.hpp"

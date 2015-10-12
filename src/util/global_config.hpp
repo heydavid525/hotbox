@@ -10,15 +10,20 @@ namespace mldb {
 
 namespace {
 
-const std::string kConfigPath = 
-  dmlc::io::FileSystem::parent_path(
-    dmlc::io::FileSystem::parent_path(
-      dmlc::io::FileSystem::path(__FILE__)))
-      .append("/config.yaml");
+const std::string kConfigPath = "/home/wdai/mldb/config.yaml";
 /*
-boost::filesystem::path(__FILE__)
-  .parent_path().parent_path().parent_path().append("config.yaml").string();
+const std::string kConfigPath =
+  dmlc::io::FileSystem::parent_path(
+      dmlc::io::FileSystem::parent_path(
+        dmlc::io::FileSystem::parent_path(
+          dmlc::io::FileSystem::path(__FILE__))))
+  .append("/config.yaml");
   */
+
+/*
+   boost::filesystem::path(__FILE__)
+   .parent_path().parent_path().parent_path().append("config.yaml").string();
+   */
 
 }  // anonymous namespace
 

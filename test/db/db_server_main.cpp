@@ -8,8 +8,10 @@ int main(int argc, char *argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
 
+  LOG(INFO) << "__FILE__: " << __FILE__;
   mldb::DBServerConfig server_config;
   std::string db_test_bed_dir = mldb::GetTestBedDir() + "/test_db_root";
+  LOG(INFO) << "db_test_bed_dir: "  << db_test_bed_dir;
   server_config.set_db_dir(db_test_bed_dir);
 
   mldb::DBServer db_server(server_config);

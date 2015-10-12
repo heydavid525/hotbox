@@ -22,6 +22,6 @@ std::string ReadFile(const std::string& file_path);
 
 bool Exists(const std::string& path);
 bool Is_Directory(const std::string &path);
-int  Create_Directory(const std::string &path);
+int Create_Directory(const std::string &path);
 
 }  // namespace mldb

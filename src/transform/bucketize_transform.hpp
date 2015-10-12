@@ -5,7 +5,7 @@
 namespace mldb {
 
 // By default we do not generate the last bucket.
-class OneHotTransform : public TransformIf {
+class BucketizeTransform : public TransformIf {
 public:
   void TransformSchema(const TransformParam& param,
       TransformWriter* writer) const override;
@@ -15,3 +15,4 @@ public:
 };
 
 }  // namespace mldb
+

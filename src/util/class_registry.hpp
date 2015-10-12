@@ -52,7 +52,11 @@ public:
   std::unique_ptr<BaseClass> CreateObject(int key) {
     const auto& it = creator_map_.find(key);
     if (it == creator_map_.cend()) {
-      LOG(FATAL) << "Unrecognized key in class registry: " << key;
+      // TODO(wdai): typeid() gives mangled class name. See
+      // http://stackoverflow.com/questions/3649278/how-can-i-get-the-class-name-from-a-c-object
+      // to demangle.
+      LOG(FATAL) << "Unrecognized key in '" << typeid(BaseClass).name()
+        << "' class registry: " << key;
       return std::unique_ptr<BaseClass>(nullptr);
     }
     CreateFunc creator = it->second;

@@ -6,10 +6,9 @@
 
 #include "db/db.hpp"
 #include "db/proto/db.pb.h"
-#include "db/util.hpp"
 #include "util/warp_server.hpp"
 #include "util/proto/warp_msg.pb.h"
-#include "io.dmlc/filesys.h"
+//#include "io.dmlc/filesys.h"
 
 
 
@@ -50,6 +49,8 @@ private:
 
   void CreateSessionHandler(int client_id, const CreateSessionReq& req);
 
+  void CloseSessionHandler(int client_id, const CloseSessionReq& req);
+
 private:
   //boost::filesystem::path db_dir_;
   std::string db_dir_;
@@ -58,7 +59,10 @@ private:
 
   std::map<std::string, std::unique_ptr<DB>> dbs_;
 
-  std::set<std::string> curr_sessions_;
+  std::map<std::string, SessionProto> curr_sessions_;
+
+  // Maintain a list of client_id for each session.
+  std::map<std::string, std::vector<int>> session_clients_;
 };
 
 }  // namespace

@@ -12,7 +12,7 @@ LIB = $(BUILD)/lib
 
 NEED_MKDIR = $(BUILD) $(LIB)
 
-all: mldb_lib test
+all: proto mldb_lib test
 
 path: $(NEED_MKDIR)
 
@@ -103,6 +103,6 @@ $(MLDB_OBJS): $(BUILD)/%.o: $(SRC_DIR)/%.cpp
 
 proto:$(PROTO_HDRS)
 
-mldb_lib: path $(MLDB_LIB)
+mldb_lib: path proto $(MLDB_LIB)
 
 include $(PROJECT)/test/test.mk

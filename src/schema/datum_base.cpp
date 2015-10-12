@@ -17,17 +17,16 @@ DatumProto* DatumBase::Release() {
   return proto_.release();
 }
 
-float DatumBase::GetLabel(const Schema& schema) const {
-  const auto& family = schema.GetFamily(kInternalFamily);
-  return GetFeatureVal(family.GetFeature(kLabelFamilyIdx).loc());
+float DatumBase::GetLabel(const FeatureFamily& internal_family) const {
+  return GetFeatureVal(internal_family.GetFeature(kLabelFamilyIdx));
 }
 
-float DatumBase::GetWeight(const Schema& schema) const {
-  const auto& family = schema.GetFamily(kInternalFamily);
-  float weight = GetFeatureVal(family.GetFeature(kWeightFamilyIdx).loc());
+float DatumBase::GetWeight(const FeatureFamily& internal_family) const {
+  float weight = GetFeatureVal(internal_family.GetFeature(kWeightFamilyIdx));
   return weight == 0 ? 1 : weight;
 }
 
+/*
 float DatumBase::GetFeatureVal(const Schema& schema,
     const std::string& feature_desc) const {
   auto finders = ParseFeatureDesc(feature_desc);
@@ -43,72 +42,78 @@ float DatumBase::GetFeatureVal(const Schema& schema,
   }
   return GetFeatureVal(loc);
 }
+*/
 
-float DatumBase::GetFeatureVal(const Feature& feature) const {
-  return GetFeatureVal(feature.loc());
-}
-
-float DatumBase::GetFeatureVal(const FeatureLocator& loc) const {
+float DatumBase::GetFeatureVal(const Feature& f) const {
   CHECK_NOTNULL(proto_.get());
-  CHECK(IsNumeral(loc));
-  bool is_cat = loc.type() == FeatureType::CATEGORICAL;
-  bool is_dense = loc.store_type() == FeatureStoreType::DENSE;
-  int32_t offset = loc.offset();
-  if (is_cat && is_dense) {
-    return static_cast<float>(proto_->dense_cat_store(offset));
-  } else if (!is_cat && is_dense) {
-    return proto_->dense_num_store(offset);
-  } else if (is_cat && !is_dense) {
-    const auto& it = proto_->sparse_cat_store().find(offset);
-    if (it != proto_->sparse_cat_store().cend()) {
-      return static_cast<float>(it->second);
-    }
-    return 0.;
-  } else {
-    const auto& it = proto_->sparse_num_store().find(offset);
-    if (it != proto_->sparse_num_store().cend()) {
-      return it->second;
-    }
-    return 0.;
+  CHECK(IsNumber(f));
+  BigInt offset = f.offset();
+  switch (f.store_type()) {
+    case FeatureStoreType::DENSE_CAT:
+      return static_cast<float>(proto_->dense_cat_store(offset));
+    case FeatureStoreType::DENSE_NUM:
+      return proto_->dense_num_store(offset);
+    case FeatureStoreType::SPARSE_CAT:
+      {
+        const auto& it = proto_->sparse_cat_store().find(offset);
+        if (it != proto_->sparse_cat_store().cend()) {
+          return static_cast<float>(it->second);
+        }
+        return 0.;
+      }
+    case FeatureStoreType::SPARSE_NUM:
+      {
+        const auto& it = proto_->sparse_num_store().find(offset);
+        if (it != proto_->sparse_num_store().cend()) {
+          return it->second;
+        }
+        return 0.;
+      }
+    default:
+      LOG(FATAL) << "Unrecognized store_type: " << f.store_type();
   }
 }
 
-void DatumBase::SetFeatureVal(const FeatureLocator& loc, float val) {
+void DatumBase::SetFeatureVal(const Feature& f, float val) {
   CHECK_NOTNULL(proto_.get());
-  CHECK(IsNumeral(loc));
-  bool is_cat = loc.type() == FeatureType::CATEGORICAL;
-  bool is_dense = loc.store_type() == FeatureStoreType::DENSE;
-  int32_t offset = loc.offset();
-  if (is_cat && is_dense) {
-    // Check that the dense store is pre-allocated (before any transform).
-    SetDenseCatFeatureVal(offset, static_cast<int32_t>(val));
-  } else if (!is_cat && is_dense) {
-    SetDenseNumFeatureVal(offset, val);
-  } else if (is_cat && !is_dense) {
-    SetSparseCatFeatureVal(offset, static_cast<int32_t>(val));
-  } else {
-    SetSparseNumFeatureVal(offset, val);
+  CHECK(IsNumber(f));
+  BigInt offset = f.offset();
+  switch (f.store_type()) {
+    case FeatureStoreType::DENSE_CAT:
+      SetDenseCatFeatureVal(offset, static_cast<int32_t>(val));
+      return;
+    case FeatureStoreType::DENSE_NUM:
+      SetDenseNumFeatureVal(offset, val);
+      return;
+    case FeatureStoreType::SPARSE_CAT:
+      SetSparseCatFeatureVal(offset, static_cast<int32_t>(val));
+      return;
+    case FeatureStoreType::SPARSE_NUM:
+      SetSparseNumFeatureVal(offset, val);
+      return;
+    default:
+      LOG(FATAL) << "Unrecognized store_type: " << f.store_type();
   }
 }
 
-void DatumBase::SetDenseCatFeatureVal(int offset, int val) {
+void DatumBase::SetDenseCatFeatureVal(BigInt offset, int val) {
   CHECK_LT(offset, proto_->dense_cat_store_size());
   proto_->set_dense_cat_store(offset, val);
 }
 
 // Directly set in sparse_cat_store()
-void DatumBase::SetSparseCatFeatureVal(int offset, int val) {
+void DatumBase::SetSparseCatFeatureVal(BigInt offset, int val) {
   (*(proto_->mutable_sparse_cat_store()))[offset] = val;
 }
 
 // Directly set in dense_num_store()
-void DatumBase::SetDenseNumFeatureVal(int offset, float val) {
+void DatumBase::SetDenseNumFeatureVal(BigInt offset, float val) {
   CHECK_LT(offset, proto_->dense_num_store_size());
   proto_->set_dense_num_store(offset, val);
 }
 
 // Directly set in sparse_num_store()
-void DatumBase::SetSparseNumFeatureVal(int offset, float val) {
+void DatumBase::SetSparseNumFeatureVal(BigInt offset, float val) {
   (*(proto_->mutable_sparse_num_store()))[offset] = val;
 }
 
@@ -146,8 +151,8 @@ std::string DatumBase::ToString(const Schema& schema) const {
   CHECK_NOTNULL(proto_.get());
   std::stringstream ss;
   const auto& families = schema.GetFamilies();
-  ss << GetLabel(schema);
-  float weight = GetWeight(schema);
+  ss << GetLabel(schema.GetFamily(kInternalFamily));
+  float weight = GetWeight(schema.GetFamily(kInternalFamily));
   if (weight != 1) {
     ss << " " << weight;
   }
@@ -161,10 +166,14 @@ std::string DatumBase::ToString(const Schema& schema) const {
       }
       std::string feature_name = (features[i].name().empty() ?
           std::to_string(i) : features[i].name());
-      ss << " " << feature_name << ":" << GetFeatureVal(features[i].loc());
+      ss << " " << feature_name << ":" << GetFeatureVal(features[i]);
     }
   }
   return ss.str();
+}
+
+DatumProto* DatumBase::ReleaseProto() {
+  return proto_.release();
 }
 
 std::string DatumBase::Serialize() const {

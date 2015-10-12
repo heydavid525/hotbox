@@ -4,6 +4,8 @@
 #include <string>
 #include <google/protobuf/message.h>
 #include "db/proto/db.pb.h"
+#include <sstream>
+#include <iomanip>
 
 namespace mldb {
 
@@ -19,7 +21,17 @@ std::string SerializeProto(const google::protobuf::Message& msg);
 
 std::string ReadCompressedString(std::string input,
     Compressor compressor = Compressor::SNAPPY);
+
 size_t WriteCompressedString(std::string& input,
     Compressor compressor = Compressor::SNAPPY);
+
+// Convert float/double to limited precision string.
+// Comment(wdai): The impl isn't very efficient.
+template <typename T>
+std::string ToString(T val, int num_decimals = 2) {
+  std::ostringstream out;
+  out << std::setprecision(num_decimals) << val;
+  return out.str();
+}
 
 }   // namespace mldb

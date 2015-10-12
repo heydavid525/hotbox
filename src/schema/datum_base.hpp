@@ -7,6 +7,9 @@
 namespace mldb {
 
 // A zero-copy wrapper class around DatumProto. Not copyable.
+//
+// TODO(wdai): Use multiple dense_*_store() to store dimension larger
+// than range of int32_t
 class DatumBase {
 public:
   // DatumBase takes the ownership of proto.
@@ -16,39 +19,40 @@ public:
 
   DatumProto* Release();
 
-  float GetLabel(const Schema& schema) const;
+  float GetLabel(const FeatureFamily& internal_family) const;
 
   // Weight cannot be 0 since it can be stored sparsely and 0 means default 1.
-  float GetWeight(const Schema& schema) const;
+  float GetWeight(const FeatureFamily& internal_family) const;
 
   // feature_desc (feature descriptor) can only result in 1 feature.
-  float GetFeatureVal(const Schema& schema,
-      const std::string& feature_desc) const;
+  //float GetFeatureVal(const Schema& schema,
+  //    const std::string& feature_desc) const;
 
-  // Get numeral feature value (CATEGORICAL or NUMERIC). Error otherwise.
+  // Get number feature value (CATEGORICAL or NUMERIC). Error otherwise.
   // TODO(wdai): Return flexitype in the future.
   float GetFeatureVal(const Feature& feature) const;
-  float GetFeatureVal(const FeatureLocator& loc) const;
 
   // Assumes the dense feature stores are resized already.
-  void SetFeatureVal(const FeatureLocator& loc, float val);
+  void SetFeatureVal(const Feature& f, float val);
 
   // Directly set in dense_cat_store()
-  void SetDenseCatFeatureVal(int offset, int val);
+  void SetDenseCatFeatureVal(BigInt offset, int val);
 
   // Directly set in sparse_cat_store()
-  void SetSparseCatFeatureVal(int offset, int val);
+  void SetSparseCatFeatureVal(BigInt offset, int val);
 
   // Directly set in dense_num_store()
-  void SetDenseNumFeatureVal(int offset, float val);
+  void SetDenseNumFeatureVal(BigInt offset, float val);
 
   // Directly set in sparse_num_store()
-  void SetSparseNumFeatureVal(int offset, float val);
+  void SetSparseNumFeatureVal(BigInt offset, float val);
 
   std::string ToString() const;
 
   // Print with schema info. Only print numeral features (no bytes).
   std::string ToString(const Schema& schema) const;
+
+  DatumProto* ReleaseProto();
 
   // Return the serialized bytes from proto_.
   std::string Serialize() const;

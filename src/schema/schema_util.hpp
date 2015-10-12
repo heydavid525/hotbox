@@ -6,7 +6,7 @@
 
 namespace mldb {
 
-Feature CreateFeature(const FeatureType& type, const FeatureStoreType& store_type,
+Feature CreateFeature(FeatureStoreType store_type,
     const std::string& name = "");
 
 // Parse feature descriptor (e.g., "mobile:ctr,num_views"). Return finders
@@ -23,16 +23,12 @@ Feature CreateFeature(const FeatureType& type, const FeatureStoreType& store_typ
 // duplicated selection.
 std::vector<FeatureFinder> ParseFeatureDesc(const std::string& feature_desc);
 
-// Categorical and Numerical features are considered numeral and can be
-// transformed.
-bool IsNumeral(const Feature& f);
-bool IsNumeral(const FeatureLocator& loc);
+// Categorical and Numerical features are considered numbers and can be
+// transformed. OUTPUT FeatureStoreType is untyped and will fail all the below.
+bool IsNumber(const Feature& f);
 bool IsCategorical(const Feature& f);
 bool IsNumerical(const Feature& f);
 bool IsDense(const Feature& f);
 bool IsSparse(const Feature& f);
-
-//DatumProtoOffset operator+(const DatumProtoOffset& o1,
-//    const DatumProtoOffset& o2);
 
 }  // namespace mldb

@@ -46,7 +46,7 @@ char* FamilyParser::ReadFamily(const std::string& line, char* ptr, Schema* schem
       //&loc_str));
       //LOG(INFO) << "setting " << family_name << " family_idx: "
       //<< family_idx << " val: " << val << " feature loc: " << loc_str;
-      datum->SetFeatureVal(feature.loc(), val);
+      datum->SetFeatureVal(feature, val);
     } catch (const FeatureNotFoundException& e) {
       TypedFeatureFinder typed_finder(e.GetNotFoundFeature(), InferType(val));
       // TODO(wdai): Remove these checks.

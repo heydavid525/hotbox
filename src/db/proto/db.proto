@@ -2,6 +2,7 @@ syntax = "proto3";
 
 import "util/proto/util.proto";
 import "schema/proto/schema.proto";
+import "transform/proto/transform.proto";
 
 package mldb;
 
@@ -16,6 +17,7 @@ message FeatureStatProto {
 }
 
 
+/*
 message EpochProto {
   // Comment (yuwr:) This should be a schema index? We might have many
   // schemas, each schema could have many versions.  Each epoch would
@@ -78,6 +80,7 @@ enum StorageType {
   NFS = 0;
   HDFS = 1;
 }
+*/
 
 message DBServerConfig {
   string db_dir = 1;
@@ -91,9 +94,25 @@ message DBConfig {
   //StorageType storage_type = 3;
   SchemaConfig schema_config = 3;
 
+  // All DB atom files are compressed by this compression mode. Default to
+  // Compressr::SNAPPY.
+  Compressor compressor = 5;
+
   // All DB info will be stored under this directory. This parameter should be
   // set by DBServer, which knows the DB root dir.
   string db_dir = 4;
+}
+
+// FileMap maps datum_id to file (atom_id). This is indepedent from the epoch
+// mapping (epoch maps from epoch to datum_id).
+message FileMap {
+  // Full path is atom_path + atom_id.
+  string atom_path = 3;
+
+  // atom file i stores [datum_id(i), datum_id(i+1)) datum range. The
+  // last one (N-1) has range [datum_id(N-1), num_data).
+  repeated int64 datum_ids = 1;
+  int64 num_data = 2;
 }
 
 message DBMetaData {
@@ -105,16 +124,19 @@ message DBMetaData {
   // Database Creation Timestamp (linux time stamp).
   uint64 creation_time = 8;
 
-  // There should be a view of epochs in the current DB.
-  //repeated uint32 epoch_id = 1;
-  // There should also be a view of schemas in the current DB
-  //repeated uint32 schema_id = 2;
+  // We'll perform runtime check to ensure that 64-bit indexed DB is not read
+  // by 32-bit index system.
+  FeatureIndexType feature_index_type = 2;
+
+
+  // Mapping datum to atom file.
+  FileMap file_map = 6;
 }
 
 // Each atom file is a DBAtom message. Kind of like page in DB.
 message DBAtom {
   // Store serialized DatumProe
-  repeated string datum_protos = 1;
+  repeated DatumProto datum_protos = 1;
 }
 
 message DBProto {
@@ -129,6 +151,56 @@ message DBProto {
 message DBRootFile {
   repeated string db_names = 1;
 }
+
+message TransformOutputRange {
+  // Transform writes to [offset_begin, offset_end) on store_type.
+  int64 offset_begin = 1;
+  int64 offset_end = 2;
+  FeatureStoreType store_type = 3;
+}
+
+message SessionOptionsProto {
+  string db_name = 1;
+  string session_id = 2;
+
+  TransformConfigList transform_config_list = 3;
+
+  OutputStoreType output_store_type = 4;
+
+  // TODO(wdai)
+  //int64 max_examples = 3;
+  //double subsample_rate = 4;
+}
+
+// ServerSession generally stores bookkeepping data from schema transforms
+// so that new client's request to join the same session doesn't need to incur
+// another schema transform.
+message SessionProto {
+  string session_id = 1;
+  repeated TransformParamProto trans_params = 6;
+
+  repeated TransformOutputRange transform_output_ranges = 2;
+  OSchemaProto o_schema = 3;
+  // Need internal family to access label and weight.
+  FeatureFamilyProto internal_family_proto = 7;
+
+  // All DB atom files are compressed by this compression mode. Default to
+  // Compressr::SNAPPY.
+  Compressor compressor = 4;
+
+  // Mapping datum to atom file.
+  FileMap file_map = 5;
+
+  OutputStoreType output_store_type = 8;
+
+  int64 output_dim = 9;
+}
+
+/*
+message SessionProto {
+  repeated TransformParamProto transform_params = 2;
+}
+*/
 
 // TODO(wdai): Define TSchema (TransformedSchema) that contains stats about
 // each transformed column (e.g., estimated # of nonzeros, storage type,

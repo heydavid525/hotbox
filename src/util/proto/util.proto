@@ -3,8 +3,8 @@ syntax = "proto3";
 package mldb;
 
 enum Compressor {
-  NO_COMPRESS = 0;
-  SNAPPY = 1;
+  SNAPPY = 0;   // This is the default.
+  NO_COMPRESS = 1;
   //ZIP = 2;
   //RLE = 3;
 }
@@ -14,4 +14,10 @@ enum FileFormat {
   LIBSVM = 1;
   CSV = 2;
   FAMILY = 3;
+}
+
+// Comment(wdai): Remember to update Status in C++ when updating StatusCode.
+enum StatusCode {
+  OK = 0;
+  DB_NOT_FOUND = 1;
 }

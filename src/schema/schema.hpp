@@ -17,37 +17,50 @@ public:
 
   Schema(const SchemaProto& proto);
 
-  // new_feature needs to have loc().store_type and type set, but not offset. 
-  // 'new_feature' will have offset set correctly after the call.
-  //
-  // TODO(wdai): Currently this is the only means to add feature and involves
-  // map lookup. Consider optimizing this.
-  void AddFeature(const std::string& family_name, int32_t family_idx,
-      Feature* new_feature);
+  // new_feature needs to have FeatureStoreType set, but not offset.
+  // 'new_feature' will have offset set correctly after the call. This call
+  // invokes map-lookup for family based on family_name. Use another
+  // AddFeature to avoid map-lookup. 'family_idx' = -1 to append feature at
+  // the end of the family.
+  void AddFeature(const std::string& family_name, Feature* new_feature,
+      BigInt family_idx = -1);
 
-  const Feature& GetFeature(const std::string& family_name, int32_t family_idx)
+  // Similar to AddFeature() above, but avoids map lookup for FeatureFamily.
+  // 'family' must be a family obtained from this Schema.
+  void AddFeature(FeatureFamily* family, Feature* new_feature,
+      BigInt family_idx = -1);
+
+  const Feature& GetFeature(const std::string& family_name, BigInt family_idx)
     const;
-
   Feature& GetMutableFeature(const std::string& family_name,
-      int32_t family_idx);
+      BigInt family_idx);
 
   const Feature& GetFeature(const FeatureFinder& finder) const;
-
   Feature& GetMutableFeature(const FeatureFinder& finder);
 
   // Can throws FamilyNotFoundException.
   const FeatureFamily& GetFamily(const std::string& family_name) const;
 
-  // Try to get a family. If it doesn't exist, create it.
-  FeatureFamily& GetOrCreateFamily(const std::string& family_name) const;
+  // Try to get a family. If it doesn't exist, create it. 'output_family' ==
+  // true if the family is stored in FeatureStoreType::OUTPUT. This helps
+  // generate a OSchema to send to client.
+  const FeatureFamily& GetOrCreateFamily(const std::string& family_name,
+      bool output_family = false) const;
+  FeatureFamily& GetOrCreateMutableFamily(const std::string& family_name,
+      bool output_family = false);
 
-  const DatumProtoOffset& GetDatumProtoOffset() const;
+  // Return append_offset_.
+  const DatumProtoOffset& GetAppendOffset() const;
 
   // Not including kInternalFamily.
   const std::map<std::string, FeatureFamily>& GetFamilies() const;
 
-  // Get # of features (not including label/weight) in this schema.
-  int GetNumFeatures() const;
+  // Get # of features (not including label/weight or anything in the
+  // kInternalFamily) in this schema.
+  BigInt GetNumFeatures() const;
+
+  // Generate OSchema (output schema) based on just output_families_.
+  OSchemaProto GetOSchemaProto() const;
 
   SchemaProto GetProto() const;
 
@@ -59,20 +72,22 @@ private:
   void UpdateOffset(Feature* new_feature);
 
 private:
-  // Comment(wdai): declare it mutable so we can create FeatureFamily in const
-  // functions.
+  // Comment(wdai): Needs to make it mutable so we can add family while
+  // accessing Schema object as const.
   mutable std::map<std::string, FeatureFamily> families_;
 
-  // Internal family is treated specially.
-  mutable FeatureFamily internal_family_;
+  // Keep an ordered list of output families to construct OSchema to
+  // send to client.
+  // Comment(wdai): Make it mutable for the same reason as families_.
+  mutable std::vector<std::string> output_families_;
+
+  // Internal family stores label, weight, and is treated specially so that
+  // when returning families_ for DatumBase to iterate over we don't show
+  // internal_family_.
+  FeatureFamily internal_family_;
 
   // Tracks the insert point of the next feature.
   DatumProtoOffset append_offset_;
-
-  // TODO(wdai): Add inverse lookup  from feature to family. Needed for
-  // feature deletion.
-  // std::vector<std::map<std::string, FeatureFamily>::const_iterator>
-  // inverse_lookup;
 };
 
 }  // namespace mldb

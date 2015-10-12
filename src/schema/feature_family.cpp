@@ -2,18 +2,19 @@
 #include <cstdint>
 #include <map>
 #include "schema/feature_family.hpp"
+#include "schema/constants.hpp"
 
 namespace mldb {
 
 FeatureFamily::FeatureFamily(const std::string& family_name) :
   family_name_(family_name) { }
 
-bool FeatureFamily::HasFeature(int32_t family_idx) const {
+bool FeatureFamily::HasFeature(int64_t family_idx) const {
   return features_.size() > family_idx && features_[family_idx].initialized();
 }
 
 // TODO(wdai): compact the offsets in DatumProto (can be expensive).
-void FeatureFamily::DeleteFeature(int32_t family_idx) {
+void FeatureFamily::DeleteFeature(int64_t family_idx) {
   features_[family_idx].set_initialized(false);
 }
 
@@ -40,12 +41,12 @@ Feature& FeatureFamily::GetMutableFeature(const std::string& feature_name) {
   return GetMutableFeature(it->second);
 }
 
-const Feature& FeatureFamily::GetFeature(int32_t family_idx) const {
+const Feature& FeatureFamily::GetFeature(int64_t family_idx) const {
   CheckFeatureExist(family_idx);
   return features_[family_idx];
 }
 
-Feature& FeatureFamily::GetMutableFeature(int32_t family_idx) {
+Feature& FeatureFamily::GetMutableFeature(int64_t family_idx) {
   CheckFeatureExist(family_idx);
   return features_[family_idx];
 }
@@ -54,9 +55,9 @@ const std::vector<Feature>& FeatureFamily::GetFeatures() const {
   return features_;
 }
 
-int FeatureFamily::GetNumFeatures() const {
-  int num_features = 0;
-  for (int i = 0; i < features_.size(); ++i) {
+BigInt FeatureFamily::GetNumFeatures() const {
+  BigInt num_features = 0;
+  for (BigInt i = 0; i < features_.size(); ++i) {
     if (features_[i].initialized()) {
       num_features++;
     }
@@ -64,17 +65,20 @@ int FeatureFamily::GetNumFeatures() const {
   return num_features;
 }
 
-int FeatureFamily::GetMaxFeatureId() const {
-  for (int i = features_.size() - 1; i >= 0; --i) {
+BigInt FeatureFamily::GetMaxFeatureId() const {
+  for (BigInt i = features_.size() - 1; i >= 0; --i) {
     if (features_[i].initialized()) {
       return i;
     }
   }
-  return 0;
+  return -1;
 }
 
 void FeatureFamily::AddFeature(const Feature& new_feature,
-    int32_t family_idx) {
+    int64_t family_idx) {
+  if (family_idx == -1) {
+    family_idx = GetMaxFeatureId() + 1;
+  }
   if (family_idx >= features_.size()) {
     features_.resize(family_idx + 1);
   }
@@ -91,7 +95,11 @@ void FeatureFamily::AddFeature(const Feature& new_feature,
   }
 }
 
-void FeatureFamily::CheckFeatureExist(int family_idx) const {
+std::string FeatureFamily::GetFamilyName() const {
+  return family_name_;
+}
+
+void FeatureFamily::CheckFeatureExist(BigInt family_idx) const {
   if (!HasFeature(family_idx)) {
     FeatureFinder not_found_feature;
     not_found_feature.family_name = family_name_;
@@ -108,8 +116,8 @@ FeatureFamilyProto FeatureFamily::GetProto() const {
     (*idx)[p.first] = p.second;
   }
   proto.mutable_features()->Reserve(features_.size());
-  for (int i = 0; i < features_.size(); ++i) {
-    *(proto.mutable_features(i)) = features_[i];
+  for (BigInt i = 0; i < features_.size(); ++i) {
+    *(proto.add_features()) = features_[i];
   }
   return proto;
 }
@@ -119,7 +127,7 @@ family_name_(proto.family_name()),
   name_to_family_idx_(proto.name_to_family_idx().begin(),
       proto.name_to_family_idx().end()) {
     features_.resize(proto.features_size());
-    for (int i = 0; i < features_.size(); ++i) {
+    for (BigInt i = 0; i < features_.size(); ++i) {
       features_[i] = proto.features(i);
     }
 }

@@ -16,6 +16,8 @@ void LibSVMParser::SetConfig(const ParserConfig& config) {
     feature_one_based_ = libsvm_config.feature_one_based();
     label_one_based_ = libsvm_config.label_one_based();
   }
+  LOG(INFO) << "feature_one_based_: " << feature_one_based_;
+  LOG(INFO) << "label_one_based_: " << label_one_based_;
 }
 
 void LibSVMParser::Parse(const std::string& line, Schema* schema,
@@ -45,7 +47,7 @@ void LibSVMParser::Parse(const std::string& line, Schema* schema,
     ptr = endptr;
     try {
       const Feature& feature = family.GetFeature(feature_id);
-      datum->SetFeatureVal(feature.loc(), val);
+      datum->SetFeatureVal(feature, val);
     } catch (const FeatureNotFoundException& e) {
       TypedFeatureFinder typed_finder(e.GetNotFoundFeature(),
           this->InferType(val));

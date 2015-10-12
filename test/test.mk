@@ -16,13 +16,21 @@ $(TEST_DIR)/%: test/%.cpp $(MLDB_LIB) test/facility/test_facility.hpp
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
 		$< test/facility/test_facility.hpp -lgtest $(MLDB_LIB) $(LDFLAGS) -o $@
 
-test: $(TEST_BIN) class_registry_test stream_test #schema_util_test one_hot_transform_test
+db_server_main: test/db/db_server_main.cpp $(MLDB_LIB) \
+	test/facility/test_facility.hpp
+	mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
+		$< test/facility/test_facility.hpp -lgtest $(MLDB_LIB) $(LDFLAGS) -o \
+		$(TEST_DIR)/db/db_server_main
 
-#schema_util_test: $(TEST_BIN)
-#	$(TEST_DIR)/transform/schema_util_test
+hotbox_client_main: test/client/hotbox_client_main.cpp $(MLDB_LIB) \
+	test/facility/test_facility.hpp
+	mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
+		$< test/facility/test_facility.hpp -lgtest $(MLDB_LIB) $(LDFLAGS) -o \
+		$(TEST_DIR)/client/hotbox_client_main
 
-#one_hot_transform_test: $(TEST_BIN)
-#	$(TEST_DIR)/transform/one_hot_transform_test
+test: $(TEST_BIN) class_registry_test stream_test db_server_main
 
 class_registry_test: $(TEST_BIN)
 	$(TEST_DIR)/util/class_registry_test

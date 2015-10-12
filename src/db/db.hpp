@@ -6,11 +6,11 @@
 #include <boost/noncopyable.hpp>
 #include "db/proto/db.pb.h"
 #include "util/proto/warp_msg.pb.h"
-#include "schema/schema.hpp"
-#include "schema/proto/schema.pb.h"
+#include "schema/all.hpp"
 
 namespace mldb {
 
+/*
 class Epoch {
 public:
 private:
@@ -25,6 +25,7 @@ class Stats {
 public:
 private:
 };
+*/
 
 class DB : private boost::noncopyable {
 public:
@@ -36,12 +37,16 @@ public:
   // Initialize/augment schema accordingly. Return a message.
   std::string ReadFile(const ReadFileReq& req);
 
-  void CreateSession(const SessionOptionsProto& session_options);
+  // Return a server session containing transformed schema etc for next
+  // client to use directly.
+  SessionProto CreateSession(const SessionOptionsProto& session_options);
 
   // Write all the states of DB to /DB file.
   void CommitDB();
 
   DBProto GetProto() const;
+
+  std::string PrintMetaData() const;
 
 private:
   DBMetaData meta_data_;

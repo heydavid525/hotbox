@@ -1,4 +1,4 @@
-//#include "io/fstream.hpp"
+#include "io/fstream.hpp"
 #include "util/file_util.hpp"
 #include "util/mldb_exceptions.hpp"
 #include "util/class_registry.hpp"
@@ -6,7 +6,8 @@
 #include <glog/logging.h>
 #include <sstream>
 #include <memory>
-#include "io.dmlc/filesys.h"
+//#include "io.dmlc/filesys.h"
+#include <boost/filesystem.hpp>
 
 namespace mldb {
 
@@ -29,6 +30,7 @@ std::string ReadCompressedFile(const std::string& file_path,
   // (https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.io.zero_copy_stream?hl=en)
 
   // Read  
+  /*
   dmlc::io::URI path(file_path.c_str());
   // We don't own the FileSystem pointer.
   dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
@@ -42,7 +44,7 @@ std::string ReadCompressedFile(const std::string& file_path,
   size_t size = info.size;
   std::string buffer(size, ' ');
   size_t nread = fp->Read(&buffer[0], size);
-/*
+  */
   io::ifstream is(file_path);
   if (!is) {
     throw FailedFileOperationException("Failed to open " + file_path
@@ -50,16 +52,15 @@ std::string ReadCompressedFile(const std::string& file_path,
   }
   std::stringstream buffer;
   buffer << is.rdbuf();
-*/
   // Uncompress
   if (compressor == Compressor::NO_COMPRESS) {
-    return buffer;
+    return buffer.str();
   }
   auto& registry = ClassRegistry<CompressorIf>::GetRegistry();
   std::unique_ptr<CompressorIf> compressor_if =
     registry.CreateObject(compressor);
   try {
-    return compressor_if->Uncompress(buffer);
+    return compressor_if->Uncompress(buffer.str());
   } catch (const FailedToUncompressException& e) {
     throw FailedFileOperationException("Failed to uncompress " + file_path
         + "\n" + e.what());
@@ -68,15 +69,14 @@ std::string ReadCompressedFile(const std::string& file_path,
   return "";
 }
 
+/*  
 size_t WriteCompressedFile(const std::string& file_path,
     const std::string& data, Compressor compressor) {
-/*  
   io::ofstream out(file_path, std::ios::out | std::ios::binary);
   if (!out) {
     throw FailedFileOperationException("Failed to open " + file_path
         + " for write.");
   }
-*/  
   // We do own this pointer.
   std::unique_ptr<dmlc::Stream> os(dmlc::Stream::Create(file_path.c_str(), "w"));
   if (!os) {
@@ -84,6 +84,8 @@ size_t WriteCompressedFile(const std::string& file_path,
         + " for write.");
   }
   if (compressor != Compressor::NO_COMPRESS) {
+    LOG(INFO) << "Writing to " << file_path << " using compressor "
+      << compressor;
     // Compress always succeed.
     auto& registry = ClassRegistry<CompressorIf>::GetRegistry();
     std::unique_ptr<CompressorIf> compressor_if =
@@ -95,44 +97,38 @@ size_t WriteCompressedFile(const std::string& file_path,
   os->Write(data.c_str(), data.size());
   return data.size();
 }
+*/  
+size_t WriteCompressedFile(const std::string& file_path,
+    const std::string& data, Compressor compressor) {
+  io::ofstream out(file_path, std::ios::out | std::ios::binary);
+  if (!out) {
+    throw FailedFileOperationException("Failed to open " + file_path
+        + " for write.");
+  }
 
+  if (compressor != Compressor::NO_COMPRESS) {
+    // Compress always succeed.
+    auto& registry = ClassRegistry<CompressorIf>::GetRegistry();
+    std::unique_ptr<CompressorIf> compressor_if =
+      registry.CreateObject(compressor);
+    std::string compressed = compressor_if->Compress(data);
+    out.write(compressed.c_str(), compressed.size());
+    return compressed.size();
+  }
+  out.write(data.c_str(), data.size());
+  return data.size();
+}
 
 std::string ReadFile(const std::string& file_path) {
-
-  // Comment(wdai): There's a lot of copying. Optimize it! Check out 
-  // zero_copy_stream.h
-  // (https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.io.zero_copy_stream?hl=en)
-
-  // Read  
-  dmlc::io::URI path(file_path.c_str());
-  // We don't own the FileSystem pointer.
-  dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
-  dmlc::io::FileInfo info = fs->GetPathInfo(path);
-  // We do own the file system pointer.
-  std::unique_ptr<dmlc::SeekStream> fp(fs->OpenForRead(path));
-  if (!fp) {
-    throw FailedFileOperationException("Failed to open " + file_path
-        + " for read.");
-  }
-  size_t size = info.size;
-  std::string buffer(size, ' ');
-  size_t nread = fp->Read(&buffer[0], size);
-  return buffer;
+  return ReadCompressedFile(file_path, Compressor::NO_COMPRESS);
 }
 
-bool Exists(const std::string& file_path) {
-  return dmlc::io::FileSystem::exist(file_path);
+bool Exists(const std::string& path) {
+  return boost::filesystem::exists(path);
 }
-
-bool Is_Directory(const std::string& file_path) {
-  return dmlc::io::FileSystem::is_directory(file_path);
-}
-
-int Create_Directory(const std::string& file_path) {
-  dmlc::io::URI path(file_path.c_str());
-  // We don't own the FileSystem pointer.
-  dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
-  return fs->CreateDirectory(path);
-}
+/*
+bool Is_Directory(const std::string &path);
+int Create_Directory(const std::string &path);
+*/
 
 }  // namespace mldb

@@ -6,7 +6,7 @@
 namespace mldb {
 
 // Path to mldb/db_testbed.
-std::string GetTestBedDir() {	
+std::string GetTestBedDir() {
 	return dmlc::io::FileSystem::parent_path(
   			dmlc::io::FileSystem::parent_path(
     			dmlc::io::FileSystem::path(__FILE__)))
