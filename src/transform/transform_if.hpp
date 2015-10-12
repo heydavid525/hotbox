@@ -10,23 +10,21 @@
 
 namespace hotbox {
 
-// TransformIf is an interface (If) for two static functions (thus it has no
-// constructor).
+// TransformIf is an interface (If) to implement transforms on schema and
+// data.
 class TransformIf {
 public:
-  //TransformIf() = delete;
-
   virtual ~TransformIf() { }
 
-  // Change the schema (e.g., add a feature family, make some feature
-  // in_final) based on TransformParams, which includes transform-specific
-  // configuration, input features, input feature stat. This is run on the
-  // server.
+  // Change the schema (e.g., add a feature family) based on TransformParams,
+  // which includes transform-specific configuration, input features, input
+  // feature stat. This is run on the server and does not see any real data
+  // yet.
   virtual void TransformSchema(const TransformParam& param,
       TransformWriter* writer) const = 0;
 
-  // Generate transform to be applied to each DatumBase. The generated
-  // transform is performed on each client.
+  // Generate transform to be applied to each datum (TransDatum). The
+  // generated transform is performed on each query datum on each client.
   virtual std::function<void(TransDatum*)> GenerateTransform(
       const TransformParam& param) const = 0;
 };
