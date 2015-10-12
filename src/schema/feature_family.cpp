@@ -4,7 +4,7 @@
 #include "schema/feature_family.hpp"
 #include "schema/constants.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 FeatureFamily::FeatureFamily(const std::string& family_name) :
   family_name_(family_name) { }
@@ -132,4 +132,4 @@ family_name_(proto.family_name()),
     }
 }
 
-}  // namespace mldb
+}  // namespace hotbox

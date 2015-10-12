@@ -8,7 +8,7 @@
 #include "transform/transform_param.hpp"
 #include "transform/transform_writer.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 // TransformIf is an interface (If) for two static functions (thus it has no
 // constructor).
@@ -31,4 +31,4 @@ public:
       const TransformParam& param) const = 0;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

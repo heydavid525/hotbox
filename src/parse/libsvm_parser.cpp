@@ -6,7 +6,7 @@
 #include "parse/libsvm_parser.hpp"
 #include "schema/constants.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 void LibSVMParser::SetConfig(const ParserConfig& config) {
   // Default is to not change feature nor label (feature_one_based_ and
@@ -64,4 +64,4 @@ void LibSVMParser::Parse(const std::string& line, Schema* schema,
     throw e;
   }
 }
-}  // namespace mldb
+}  // namespace hotbox

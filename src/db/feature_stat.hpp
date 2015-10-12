@@ -4,7 +4,7 @@
 #include <memory>
 #include <algorithm>
 
-namespace mldb {
+namespace hotbox {
 
 // Wrapper around FeatureStatProto
 class FeatureStat {
@@ -33,4 +33,4 @@ private:
   std::unique_ptr<FeatureStatProto> proto_;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

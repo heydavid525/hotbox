@@ -1,7 +1,7 @@
 #include "warp_server.hpp"
 #include <glog/logging.h>
 
-namespace mldb {
+namespace hotbox {
 
 WarpServer::WarpServer() {
   zmq_ctx_.reset(zmq_util::CreateZmqContext());
@@ -168,7 +168,7 @@ int WarpServer::GetClientId(std::string id_str) {
   return it->second;
 }
 
-}  // namespace mldb
+}  // namespace hotbox
 
 
 /*

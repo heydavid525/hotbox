@@ -1,20 +1,20 @@
-#include "util/mldb_exceptions.hpp"
+#include "util/hotbox_exceptions.hpp"
 
-namespace mldb {
+namespace hotbox {
 
-// MLDBException
+// HotboxException
 
-MLDBException::MLDBException() { }
+HotboxException::HotboxException() { }
 
-MLDBException::MLDBException(const std::string& msg) : msg_(msg) { }
+HotboxException::HotboxException(const std::string& msg) : msg_(msg) { }
 
-const char* MLDBException::what() const throw() {
-  return msg_.empty() ? "Unspecified MLDB Exception." : msg_.c_str();
+const char* HotboxException::what() const throw() {
+  return msg_.empty() ? "Unspecified Hotbox Exception." : msg_.c_str();
 }
 
 // ParseException
 
-ParseException::ParseException(const std::string& msg) : MLDBException(msg) { }
+ParseException::ParseException(const std::string& msg) : HotboxException(msg) { }
 
 // FamilyNotFoundException
 
@@ -52,11 +52,11 @@ TypedFeaturesNotFoundException::GetNotFoundTypedFeatures() const {
 // FailedToUncompressException
 
 FailedToUncompressException::FailedToUncompressException(
-    const std::string& msg) : MLDBException(msg) { }
+    const std::string& msg) : HotboxException(msg) { }
 
 // FailedFileOperationException
 
 FailedFileOperationException::FailedFileOperationException(
-    const std::string& msg) : MLDBException(msg) { }
+    const std::string& msg) : HotboxException(msg) { }
 
-}  // namespace mldb
+}  // namespace hotbox

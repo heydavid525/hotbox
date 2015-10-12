@@ -7,7 +7,7 @@
 #include <utility>
 #include <cmath>
 
-namespace mldb {
+namespace hotbox {
 
 // Store datum in either dense or sparse representation.
 class FlexiDatum {
@@ -53,4 +53,4 @@ private:
   std::vector<float> dense_vals_;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

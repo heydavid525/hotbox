@@ -9,7 +9,7 @@
 #include <string>
 #include <cstdint>
 
-namespace mldb {
+namespace hotbox {
 
 class WarpClient {
 public:
@@ -47,4 +47,4 @@ private:
   int client_id_{-1};
 };
 
-}  // namespace mldb
+}  // namespace hotbox

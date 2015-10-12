@@ -2,7 +2,7 @@
 #include <glog/logging.h>
 #include <sstream>
 
-namespace mldb {
+namespace hotbox {
 
 FlexiDatum::FlexiDatum() :
   store_type_(OutputStoreType::SPARSE) { }
@@ -92,4 +92,4 @@ std::string FlexiDatum::ToString() const {
   return ss.str();
 }
 
-}  // namespace mldb
+}  // namespace hotbox

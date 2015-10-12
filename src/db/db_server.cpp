@@ -8,7 +8,7 @@
 #include <boost/filesystem.hpp>
 //#include <io.dmlc/filesys.h>
 
-namespace mldb {
+namespace hotbox {
 
 namespace {
 
@@ -261,4 +261,4 @@ void DBServer::CloseSessionHandler(int client_id, const CloseSessionReq& req) {
   }
 }
 
-}  // namespace mldb
+}  // namespace hotbox

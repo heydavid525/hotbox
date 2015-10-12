@@ -3,7 +3,7 @@
 #include <string>
 #include "util/class_registry.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 namespace {
 
@@ -61,7 +61,7 @@ TEST(ClassRegisteryTest, SmokeTest) {
   EXPECT_EQ("DerivedX2", registryX.CreateObject(1)->GetClassName());
 }
 
-}  // namespace mldb
+}  // namespace hotbox
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

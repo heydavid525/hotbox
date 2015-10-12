@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package mldb;
+package hotbox;
 
 // We check all numerical fields in the raw feature and check against
 // respective quantiles.

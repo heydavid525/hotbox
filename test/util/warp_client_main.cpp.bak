@@ -8,12 +8,12 @@ DEFINE_string(server_ip, "", "server ip.");
 int main(int argc, char *argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
-  mldb::WarpClientConfig warp_config;
+  hotbox::WarpClientConfig warp_config;
   warp_config.server_ip = FLAGS_server_ip;
-  mldb::WarpClient client(warp_config);
+  hotbox::WarpClient client(warp_config);
   //int client_id;
   for (auto i=0; i < 10; i++) {
-    mldb::ClientMsg req_msg;
+    hotbox::ClientMsg req_msg;
     auto dummy_req = req_msg.mutable_dummy_req();
     dummy_req->set_req("hello world");
     std::string data;

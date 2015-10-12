@@ -4,7 +4,7 @@
 #include <string>
 #include "db/proto/db.pb.h"
 
-namespace mldb {
+namespace hotbox {
 
 // Read full file and uncompress to string. Throws FailedToReadFileException.
 //
@@ -24,4 +24,4 @@ bool Exists(const std::string& path);
 bool Is_Directory(const std::string &path);
 int Create_Directory(const std::string &path);
 
-}  // namespace mldb
+}  // namespace hotbox

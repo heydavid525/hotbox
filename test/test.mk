@@ -11,23 +11,23 @@ TEST_INCFLAGS = -I$(PROJECT)
 #	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
 #		 $(LDFLAGS) -c $< -o $@
 
-$(TEST_DIR)/%: test/%.cpp $(MLDB_LIB) test/facility/test_facility.hpp
+$(TEST_DIR)/%: test/%.cpp $(HB_LIB) test/facility/test_facility.hpp
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
-		$< test/facility/test_facility.hpp -lgtest $(MLDB_LIB) $(LDFLAGS) -o $@
+		$< test/facility/test_facility.hpp -lgtest $(HB_LIB) $(LDFLAGS) -o $@
 
-db_server_main: test/db/db_server_main.cpp $(MLDB_LIB) \
+db_server_main: test/db/db_server_main.cpp $(HB_LIB) \
 	test/facility/test_facility.hpp
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
-		$< test/facility/test_facility.hpp -lgtest $(MLDB_LIB) $(LDFLAGS) -o \
+		$< test/facility/test_facility.hpp -lgtest $(HB_LIB) $(LDFLAGS) -o \
 		$(TEST_DIR)/db/db_server_main
 
-hotbox_client_main: test/client/hotbox_client_main.cpp $(MLDB_LIB) \
+hotbox_client_main: test/client/hotbox_client_main.cpp $(HB_LIB) \
 	test/facility/test_facility.hpp
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
-		$< test/facility/test_facility.hpp -lgtest $(MLDB_LIB) $(LDFLAGS) -o \
+		$< test/facility/test_facility.hpp -lgtest $(HB_LIB) $(LDFLAGS) -o \
 		$(TEST_DIR)/client/hotbox_client_main
 
 test: $(TEST_BIN) class_registry_test stream_test db_server_main

@@ -3,7 +3,7 @@
 #include <string>
 #include "parse/parser_if.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 // Parse string in the family format:
 //
@@ -28,4 +28,4 @@ private:
 
 };
 
-}  // namespace mldb
+}  // namespace hotbox

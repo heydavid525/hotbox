@@ -4,7 +4,7 @@
 #include "parse/proto/parser_config.pb.h"
 #include "schema/datum_base.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 class LibSVMParser : public ParserIf {
 public:
@@ -19,4 +19,4 @@ private:
   bool label_one_based_{false};
 };
 
-}  // namespace mldb
+}  // namespace hotbox

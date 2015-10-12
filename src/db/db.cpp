@@ -21,7 +21,7 @@
 #include <boost/filesystem.hpp>
 #include "schema/all.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 namespace {
 
@@ -209,4 +209,4 @@ std::string DB::PrintMetaData() const {
   return ss.str();
 }
 
-}  // namespace mldb
+}  // namespace hotbox

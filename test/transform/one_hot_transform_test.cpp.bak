@@ -9,7 +9,7 @@
 #include "transform/proto/transforms.pb.h"
 #include "test/schema/test_util.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 const int kNumCatFeatures = 5;
 const int kNumNumFeatures = 5;
@@ -55,7 +55,7 @@ TEST(OneHotTransformTest, SmokeTest) {
   EXPECT_EQ(0, datum1.GetFeatureVal(schema, "onehot_magic:9"));
 }
 
-}  // namespace mldb
+}  // namespace hotbox
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

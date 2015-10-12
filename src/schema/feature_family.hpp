@@ -1,12 +1,12 @@
 #pragma once
 
-#include "util/mldb_exceptions.hpp"
+#include "util/hotbox_exceptions.hpp"
 #include "schema/proto/schema.pb.h"
 #include "schema/constants.hpp"
 #include <string>
 #include <map>
 
-namespace mldb {
+namespace hotbox {
 
 class Schema;
 
@@ -62,4 +62,4 @@ private:
   std::vector<Feature> features_;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

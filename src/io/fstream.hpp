@@ -8,7 +8,7 @@
 #include <string>
 #include <tuple>
 
-namespace mldb {
+namespace hotbox {
 namespace io {
 
 // default buffer size is 16MB. you can ajust it for performance
@@ -98,4 +98,4 @@ typedef boost::iostreams::stream<general_source> ifstream;
 typedef boost::iostreams::stream<general_sink>   ofstream;
 
 }   // namespace io
-}   // namespace mldb
+}   // namespace hotbox

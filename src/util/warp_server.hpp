@@ -8,9 +8,9 @@
 #include "zmq_util.hpp"
 #include "util/proto/warp_msg.pb.h"
 
-namespace mldb {
+namespace hotbox {
 
-const std::string kServerId = zmq_util::Convert2ZmqId("mldb_server");
+const std::string kServerId = zmq_util::Convert2ZmqId("hotbox_server");
 
 // WarpServer is globally unique and talks to WarpClients. Server binds to
 // tcp://*:kServerPort.
@@ -41,4 +41,4 @@ private:
   std::map<std::string, int> client_str2id_;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

@@ -5,7 +5,7 @@
 #include "schema/constants.hpp"
 #include "parse/family_parser.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 // Read a family. Return the pointer pointing at | or just after last char
 // of line.
@@ -90,4 +90,4 @@ void FamilyParser::Parse(const std::string& line, Schema* schema,
     }
   }
 
-}  // namespace mldb
+}  // namespace hotbox

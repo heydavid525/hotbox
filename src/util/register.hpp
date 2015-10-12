@@ -1,6 +1,6 @@
 #pragma once
 
-namespace mldb {
+namespace hotbox {
 
 // Use RegisterAll to set up all registeries.
 void RegisterAll();
@@ -11,5 +11,5 @@ void RegisterCompressors();
 
 void RegisterTransforms();
 
-} // namespace mldb
+} // namespace hotbox
 

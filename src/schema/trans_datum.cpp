@@ -2,7 +2,7 @@
 #include <glog/logging.h>
 #include <utility>
 
-namespace mldb {
+namespace hotbox {
 
 TransDatum::TransDatum(DatumBase* base, const FeatureFamily& internal_family,
     OutputStoreType output_store_type, BigInt output_dim) : base_(base),
@@ -79,4 +79,4 @@ FlexiDatum TransDatum::GetFlexiDatum() {
   return FlexiDatum(std::move(dense_vals_), label, weight);
 }
 
-}  // namespace mldb
+}  // namespace hotbox

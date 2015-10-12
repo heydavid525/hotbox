@@ -4,7 +4,7 @@
 #include <glog/logging.h>
 #include <google/protobuf/text_format.h>
 
-namespace mldb {
+namespace hotbox {
 
 class SessionOptions {
 public:
@@ -33,4 +33,4 @@ public:
   }
 };
 
-}  // namespace mldb
+}  // namespace hotbox

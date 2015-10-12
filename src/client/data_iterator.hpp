@@ -2,7 +2,7 @@
 #include "db/proto/db.pb.h"
 #include "schema/all.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 // Iterate over the data returned by a range query on Session. DataIterator
 // can only be created by Session.
@@ -52,4 +52,4 @@ private:
   std::vector<BigInt> datum_ids_;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

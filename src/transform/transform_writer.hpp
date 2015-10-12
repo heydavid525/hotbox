@@ -4,7 +4,7 @@
 #include "glog/logging.h"
 #include "db/proto/db.pb.h"
 
-namespace mldb {
+namespace hotbox {
 
 class TransformWriter {
 public:
@@ -63,4 +63,4 @@ private:
   const FeatureStoreType store_type_;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

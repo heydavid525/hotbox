@@ -7,7 +7,7 @@
 #include "db/proto/db.pb.h"
 #include "schema/flexi_datum.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 // TransDatum is a wrapper class around DatumBase to provide simple interface
 // for transforms to write to DatumBase.
@@ -57,4 +57,4 @@ private:
   std::vector<float> sparse_vals_;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

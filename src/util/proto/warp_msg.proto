@@ -4,7 +4,7 @@ import "util/proto/util.proto";
 import "db/proto/db.proto";
 import "parse/proto/parser_config.proto";
 
-package mldb;
+package hotbox;
 
 // Union of all messages from client to server.
 message ClientMsg {

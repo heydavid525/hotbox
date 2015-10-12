@@ -3,7 +3,7 @@
 #include <sstream>
 #include <string>
 
-namespace mldb {
+namespace hotbox {
 
 std::vector<std::string> SplitString(const std::string& in, char delim) {
   std::stringstream ss(in);
@@ -15,4 +15,4 @@ std::vector<std::string> SplitString(const std::string& in, char delim) {
   return segments;
 }
 
-}  // namespace mldb
+}  // namespace hotbox

@@ -3,7 +3,7 @@
 #include "schema/schema_util.hpp"
 #include "schema/constants.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 ParserIf::~ParserIf() { }
 
@@ -75,4 +75,4 @@ DatumProto* ParserIf::CreateDatumProtoFromOffset(
   return proto;
 }
 
-}   // namespace mldb
+}   // namespace hotbox

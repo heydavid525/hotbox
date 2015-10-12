@@ -6,7 +6,7 @@
 #include <glog/logging.h>
 #include "util/util.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 // Singleton class ClassRegistry implements registration patterns.
 // 
@@ -82,4 +82,4 @@ BaseClass* Creator() {
   return dynamic_cast<BaseClass*>(new ImplClass);
 }
 
-}   // namespace mldb
+}   // namespace hotbox

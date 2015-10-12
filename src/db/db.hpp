@@ -8,7 +8,7 @@
 #include "util/proto/warp_msg.pb.h"
 #include "schema/all.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 /*
 class Epoch {
@@ -60,4 +60,4 @@ private:
   //std::vector<Stats> stats_;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

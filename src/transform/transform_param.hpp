@@ -6,7 +6,7 @@
 #include <glog/logging.h>
 #include <string>
 
-namespace mldb {
+namespace hotbox {
 
 // TODO(wdai): Add stat.
 class TransformParam {
@@ -103,4 +103,4 @@ private:
   std::vector<std::string> input_features_desc_;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

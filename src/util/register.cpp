@@ -7,7 +7,7 @@
 #include "transform/all.hpp"
 #include <glog/logging.h>
 
-namespace mldb {
+namespace hotbox {
 
 void RegisterAll() {
   RegisterParsers();
@@ -34,4 +34,4 @@ void RegisterTransforms() {
       Creator<TransformIf, BucketizeTransform>);
 }
 
-}  // namespace mldb
+}  // namespace hotbox

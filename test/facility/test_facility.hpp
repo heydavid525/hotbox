@@ -3,9 +3,9 @@
 #include <string>
 #include "io.dmlc/filesys.h"
 
-namespace mldb {
+namespace hotbox {
 
-// Path to mldb/db_testbed.
+// Path to hotbox/db_testbed.
 std::string GetTestBedDir() {
 	return dmlc::io::FileSystem::parent_path(
   			dmlc::io::FileSystem::parent_path(
@@ -13,7 +13,7 @@ std::string GetTestBedDir() {
     				.append("/db_testbed");
 }
 
-// Path to mldb/test.
+// Path to hotbox/test.
 std::string GetTestDir() {
 	return dmlc::io::FileSystem::parent_path(
   			dmlc::io::FileSystem::parent_path(
@@ -21,4 +21,4 @@ std::string GetTestDir() {
     				.append("/test");
 }
 
-}  // namespace mldb
+}  // namespace hotbox

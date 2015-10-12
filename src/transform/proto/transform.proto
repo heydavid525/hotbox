@@ -2,7 +2,7 @@ syntax = "proto3";
 
 import "schema/proto/schema.proto";
 
-package mldb;
+package hotbox;
 
 // TransformParamProto contains the member of TransformParam.
 message TransformParamProto {

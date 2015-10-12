@@ -7,7 +7,7 @@
 #include <sstream>
 #include <iomanip>
 
-namespace mldb {
+namespace hotbox {
 
 template<typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args) {
@@ -34,4 +34,4 @@ std::string ToString(T val, int num_decimals = 2) {
   return out.str();
 }
 
-}   // namespace mldb
+}   // namespace hotbox

@@ -2,7 +2,7 @@
 #include <cstdint>
 #include "zmq_util.hpp"
 
-namespace mldb {
+namespace hotbox {
 namespace zmq_util {
 
 zmq::context_t* CreateZmqContext(int num_zmq_threads) {
@@ -177,4 +177,4 @@ zmq::message_t ZMQRecv(zmq::socket_t* sock, std::string* src_id) {
 }
 
 }   // zmq_util
-}   // namespace mldb
+}   // namespace hotbox

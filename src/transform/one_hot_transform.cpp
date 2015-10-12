@@ -3,7 +3,7 @@
 #include "transform/transform_api.hpp"
 #include "transform/one_hot_transform.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 void OneHotTransform::TransformSchema(const TransformParam& param,
     TransformWriter* writer) const {
@@ -63,4 +63,4 @@ std::function<void(TransDatum*)> OneHotTransform::GenerateTransform(
     }};
 }
 
-}  // namespace mldb
+}  // namespace hotbox

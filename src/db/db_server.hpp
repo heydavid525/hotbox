@@ -12,7 +12,7 @@
 
 
 
-namespace mldb {
+namespace hotbox {
 
 // Comment(wdai): Currently list of DB are stored as a DB file under db_dir_,
 // and each DB is stored under a folder (e.g., db_dir_/test_db for DB named

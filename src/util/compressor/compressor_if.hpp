@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace mldb {
+namespace hotbox {
 
 // Interface for compressors.
 class CompressorIf {
@@ -15,4 +15,4 @@ public:
   virtual std::string Uncompress(const std::string& in) const = 0;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

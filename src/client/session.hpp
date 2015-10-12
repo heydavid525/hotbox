@@ -6,7 +6,7 @@
 #include "schema/all.hpp"
 #include "util/all.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 // A client-side session.
 class Session {
@@ -39,4 +39,4 @@ private:
   std::vector<std::function<void(TransDatum*)>> transforms_;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

@@ -3,7 +3,7 @@
 #include "util/class_registry.hpp"
 #include "util/file_util.hpp"
 #include "util/global_config.hpp"
-#include "util/mldb_exceptions.hpp"
+#include "util/hotbox_exceptions.hpp"
 #include "util/string_util.hpp"
 #include "util/util.hpp"
 #include "util/timer.hpp"

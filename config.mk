@@ -7,4 +7,4 @@ ifndef LIBJVM
   LIBJVM=$(JAVA_HOME)/jre/lib/amd64/server
 endif
 
-MLDB_LIB = $(PROJECT)/build/lib/libmldb.a
+HB_LIB = $(PROJECT)/build/lib/libhotbox.a

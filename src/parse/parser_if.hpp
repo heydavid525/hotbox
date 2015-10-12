@@ -5,7 +5,7 @@
 #include "parse/proto/parser_config.pb.h"
 #include <cmath>
 
-namespace mldb {
+namespace hotbox {
 
 // useful for strtol function.
 const int kBase = 10;
@@ -43,4 +43,4 @@ public:
   void SetConfig(const ParserConfig& config) override { }
 };
 
-}  // namespace mldb
+}  // namespace hotbox

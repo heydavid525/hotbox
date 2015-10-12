@@ -4,7 +4,7 @@
 #include <glog/logging.h>
 #include <algorithm>
 
-namespace mldb {
+namespace hotbox {
 
 OSchema::OSchema(const OSchemaProto& proto) : proto_(proto) { }
 
@@ -47,4 +47,4 @@ std::string OSchema::ToString() const {
   return ss.str();
 }
 
-}  // namespace mldb
+}  // namespace hotbox

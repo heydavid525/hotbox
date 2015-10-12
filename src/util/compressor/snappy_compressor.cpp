@@ -1,8 +1,8 @@
 #include "util/compressor/snappy_compressor.hpp"
-#include "util/mldb_exceptions.hpp"
+#include "util/hotbox_exceptions.hpp"
 #include <snappy.h>
 
-namespace mldb {
+namespace hotbox {
 
 std::string SnappyCompressor::Compress(const std::string& in)
   const noexcept {
@@ -19,4 +19,4 @@ std::string SnappyCompressor::Uncompress(const std::string& in) const {
   return uncompressed;
 }
 
-}  // namespace mldb
+}  // namespace hotbox

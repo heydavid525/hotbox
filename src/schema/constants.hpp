@@ -4,7 +4,7 @@
 #include <cstdint>
 #include "schema/proto/schema.pb.h"
 
-namespace mldb {
+namespace hotbox {
 
 const std::string kDefaultFamily = "default";
 const std::string kInternalFamily = "_";
@@ -23,4 +23,4 @@ typedef int32_t BigInt;
 const FeatureIndexType kFeatureIndexType = FeatureIndexType::INT32;
 #endif
 
-}  // namespace mldb
+}  // namespace hotbox

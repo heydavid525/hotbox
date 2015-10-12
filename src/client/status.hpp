@@ -1,7 +1,7 @@
 #pragma once
 #include "util/all.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 // Status uses Status enum from util/proto/warp_msg.proto.
 class Status {
@@ -32,4 +32,4 @@ private:
   StatusCode status_code_;
 };
 
-} // namespace mldb
+} // namespace hotbox

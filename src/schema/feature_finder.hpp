@@ -3,7 +3,7 @@
 #include "schema/proto/schema.pb.h"
 #include "schema/constants.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 // Identify a feature (or a family) in the schema.
 struct FeatureFinder {
@@ -23,4 +23,4 @@ struct TypedFeatureFinder : public FeatureFinder {
   FeatureType type;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

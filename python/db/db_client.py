@@ -57,10 +57,10 @@ class WarpClient:
     server_msg.ParseFromString(data)
     return server_msg
 
-class DBClient:
+class HBClient:
   """
-  DBClient is the python portal to MLDB server.
-  DBClient is considered a singleton class, though python has no way to enforce
+  HBClient is the python portal to Hotbox server.
+  HBClient is considered a singleton class, though python has no way to enforce
   that.
   """
   def __init__(self, server_ip):
@@ -128,7 +128,7 @@ class DB:
 
 if __name__ == "__main__":
   server_ip = "localhost"
-  db_client = DBClient(server_ip)
+  db_client = HBClient(server_ip)
   test_db = db_client.CreateDB('test_db')
   test_db.ReadFile('test/resource/dataset/a1a.toy',
       file_format='libsvm')

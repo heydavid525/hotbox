@@ -3,7 +3,7 @@
 #include "schema/schema.hpp"
 #include "schema/proto/schema.pb.h"
 
-namespace mldb {
+namespace hotbox {
 
 // Add a family with 'family_name' of 'num_cat_features' categorical features
 // (named 'cati', i = [0, num_cat_features)) and 'num_num_features' numerical
@@ -46,4 +46,4 @@ void AddCatNumFamily(const std::string& family_name,
   schema->AddFamily(family_name, family, offset_inc);
 }
 
-}  // namespace mldb
+}  // namespace hotbox

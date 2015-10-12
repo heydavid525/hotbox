@@ -30,7 +30,7 @@
 #include <map>
 #include "hdfs.hpp"
 static std::mutex mutex;
-namespace mldb { namespace io {
+namespace hotbox { namespace io {
 #ifdef HAS_HADOOP
   hdfs& hdfs::get_hdfs() {
     static hdfs fs;
@@ -68,4 +68,4 @@ namespace mldb { namespace io {
     }
 #endif
 }  // namespace io
-}  // namespace mldb
+}  // namespace hotbox

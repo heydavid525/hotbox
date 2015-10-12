@@ -4,7 +4,7 @@
 #include <string>
 #include <utility>
 
-namespace mldb {
+namespace hotbox {
 
 // A zero-copy wrapper around OSchemaProto (OutputSchema).
 class OSchema {
@@ -23,4 +23,4 @@ private:
   const OSchemaProto& proto_;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

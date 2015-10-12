@@ -4,7 +4,7 @@
 #include "schema/proto/schema.pb.h"
 #include "schema/schema.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 // A zero-copy wrapper class around DatumProto. Not copyable.
 //
@@ -60,4 +60,4 @@ public:
 private:
   std::unique_ptr<DatumProto> proto_;
 };
-}  // namespace mldb
+}  // namespace hotbox

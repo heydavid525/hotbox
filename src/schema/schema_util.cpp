@@ -6,9 +6,9 @@
 #include "schema/schema_util.hpp"
 #include "schema/constants.hpp"
 #include "util/string_util.hpp"
-#include "util/mldb_exceptions.hpp"
+#include "util/hotbox_exceptions.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 Feature CreateFeature(FeatureStoreType store_type, const std::string& name) {
   Feature f;
@@ -127,4 +127,4 @@ bool IsSparse(const Feature& f) {
   return false;
 }
 
-}  // namespace mldb
+}  // namespace hotbox

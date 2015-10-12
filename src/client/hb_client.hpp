@@ -12,20 +12,20 @@
 #include "client/session.hpp"
 #include "client/session_options.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 // A read client that performs transform using a pool of threads.
 //
 // TODO(wdai): Close connection in d'tor.
-class Client {
+class HBClient {
 public:
-  Client();
+  HBClient();
 
-  // Create a session. Client must outlive the created Session.
+  // Create a session. HBClient must outlive the created Session.
   Session CreateSession(const SessionOptions& session_options) noexcept;
 
 private:
   WarpClient warp_client_;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

@@ -2,7 +2,7 @@
 
 #include <ctime>
 
-namespace mldb {
+namespace hotbox {
 
 // This is a simpler implementation of timer to replace
 // boost::high_resolution_timer. Code based on
@@ -27,4 +27,4 @@ class Timer {
     struct timespec start_time_;
 };
 
-} // namespace mldb
+} // namespace hotbox

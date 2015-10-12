@@ -8,8 +8,8 @@ DEFINE_string(server_ip, "", "server ip.");
 int main(int argc, char *argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
-  mldb::WarpClient client;
-  mldb::ClientMsg req_msg;
+  hotbox::WarpClient client;
+  hotbox::ClientMsg req_msg;
   auto generic_req = req_msg.mutable_generic_req();
   generic_req->set_req("hello world");
   client.Send(req_msg);

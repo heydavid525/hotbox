@@ -1,8 +1,8 @@
 #include "schema/feature_finder.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 TypedFeatureFinder::TypedFeatureFinder(const FeatureFinder& finder,
     const FeatureType& t) : FeatureFinder(finder), type(t) { }
 
-}  // namespace mldb
+}  // namespace hotbox

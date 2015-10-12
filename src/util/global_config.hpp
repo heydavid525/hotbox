@@ -6,7 +6,7 @@
 //#include <boost/filesystem.hpp>
 #include "io.dmlc/filesys.h"
 
-namespace mldb {
+namespace hotbox {
 
 namespace {
 

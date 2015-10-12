@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <unistd.h>
 
-namespace mldb {
+namespace hotbox {
 namespace zmq_util {
 
 zmq::context_t* CreateZmqContext(int num_zmq_threads = 1);
@@ -30,4 +30,4 @@ bool ZMQSend(zmq::socket_t* sock, const std::string& dst_id,
 zmq::message_t ZMQRecv(zmq::socket_t* sock, std::string* src_id = nullptr);
 
 }   // zmq_util
-}   // namespace mldb
+}   // namespace hotbox

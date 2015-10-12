@@ -5,7 +5,7 @@
 #include <sstream>
 #include "util/util.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 void BucketizeTransform::TransformSchema(const TransformParam& param,
     TransformWriter* writer) const {
@@ -57,4 +57,4 @@ std::function<void(TransDatum*)> BucketizeTransform::GenerateTransform(
     }};
 }
 
-}  // namespace mldb
+}  // namespace hotbox

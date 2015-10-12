@@ -2,7 +2,7 @@
 #include <glog/logging.h>
 #include "schema/schema_util.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 TEST(SchemaUtilTest, SmokeTest) {
   auto finders = ParseFeatureDesc("feat1, feat2,fam1:feat3, feat4,:feat5");
@@ -39,12 +39,12 @@ TEST(SchemaUtilTest, SmokeTest) {
 TEST(SchemaUtilTest, ErrorTest) {
   try {
     auto finders = ParseFeatureDesc(",");
-  } catch (MLDBException& e) {
+  } catch (HotboxException& e) {
     LOG(INFO) << e.what();
   }
 }
 
-}  // namespace mldb
+}  // namespace hotbox
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

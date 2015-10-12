@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package mldb;
+package hotbox;
 
 // FeatureType is used in parsing only.
 enum FeatureType {

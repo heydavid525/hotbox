@@ -8,7 +8,7 @@
 #include "test/facility/test_facility.hpp"
 #include <memory>
 
-namespace mldb {
+namespace hotbox {
 
 namespace {
 
@@ -74,7 +74,7 @@ TEST(StreamTest, SmokeTest) {
   LOG(INFO) << "stream test passed";
 }
 
-}  // namespace mldb
+}  // namespace hotbox
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

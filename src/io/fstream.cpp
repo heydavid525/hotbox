@@ -9,7 +9,7 @@
 #include <tuple>
 #include "hdfs.hpp"
 
-namespace mldb {
+namespace hotbox {
 namespace io {
 
 /*
@@ -172,4 +172,4 @@ bool general_device::open_file(const std::string &url,
 }
 
 }   // namespace io
-}   // namespace mldb
+}   // namespace hotbox

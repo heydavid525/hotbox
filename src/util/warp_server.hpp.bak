@@ -12,10 +12,10 @@
 #include <thread>
 
 
-namespace mldb {
+namespace hotbox {
 
 const int kServerPort = 19856;
-const std::string kServerId = "mldb_server";
+const std::string kServerId = "hotbox_server";
 
 // WarpServer is globally unique and talks to WarpClients. Server binds to
 // tcp://*:kServerPort.
@@ -60,4 +60,4 @@ private:
   std::unordered_map<std::string, int> client_str2id_;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

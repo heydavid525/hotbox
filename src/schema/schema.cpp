@@ -6,7 +6,7 @@
 #include "schema/constants.hpp"
 #include "schema/schema_util.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 Schema::Schema(const SchemaConfig& config) : internal_family_(kInternalFamily) {
   append_offset_.mutable_offsets()->Resize(FeatureStoreType::NUM_STORE_TYPES, 0);
@@ -203,4 +203,4 @@ std::string Schema::Serialize() const {
   return SerializeProto(proto);
 }
 
-}  // namespace mldb
+}  // namespace hotbox

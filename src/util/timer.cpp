@@ -2,7 +2,7 @@
 #include <glog/logging.h>
 #include "util/timer.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 Timer::Timer() : total_time_(0) {
   restart();
@@ -37,4 +37,4 @@ double Timer::elapsed_min() const {
   return 0.0;
 }
 
-}   // namespace mldb
+}   // namespace hotbox

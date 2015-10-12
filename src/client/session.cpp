@@ -2,7 +2,7 @@
 #include "transform/all.hpp"
 #include <glog/logging.h>
 
-namespace mldb {
+namespace hotbox {
 
 Session::Session(WarpClient& warp_client, Status status,
     const SessionProto& session_proto) :
@@ -51,4 +51,4 @@ Status Session::GetStatus() const {
   return status_;
 }
 
-}  // namespace mldb
+}  // namespace hotbox

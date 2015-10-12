@@ -9,7 +9,7 @@
 #include <sstream>
 #include <glog/logging.h>
 
-namespace mldb {
+namespace hotbox {
 
 GlobalConfig& GlobalConfig::GetInstance() {
   static GlobalConfig instance;
@@ -26,4 +26,4 @@ GlobalConfig::GlobalConfig() {
   CHECK(config_.IsMap()) << kConfigPath << " has to be key: value pairs";
 }
 
-}  // namespace mldb
+}  // namespace hotbox

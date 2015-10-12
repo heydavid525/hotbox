@@ -6,7 +6,7 @@
 #include "schema/datum_base.hpp"
 #include "schema/schema_util.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 DatumBase::DatumBase(DatumProto* proto) : proto_(proto) { }
 
@@ -182,4 +182,4 @@ std::string DatumBase::Serialize() const {
   return serialized;
 }
 
-}  // namespace mldb
+}  // namespace hotbox

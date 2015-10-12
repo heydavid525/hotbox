@@ -2,7 +2,7 @@
 
 #include "transform/transform_api.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 // By default we do not generate the last bucket.
 class BucketizeTransform : public TransformIf {
@@ -14,5 +14,5 @@ public:
       const TransformParam& param) const override;
 };
 
-}  // namespace mldb
+}  // namespace hotbox
 

@@ -4,7 +4,7 @@
 #include "schema/proto/schema.pb.h"
 #include "schema/feature_finder.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 Feature CreateFeature(FeatureStoreType store_type,
     const std::string& name = "");
@@ -31,4 +31,4 @@ bool IsNumerical(const Feature& f);
 bool IsDense(const Feature& f);
 bool IsSparse(const Feature& f);
 
-}  // namespace mldb
+}  // namespace hotbox

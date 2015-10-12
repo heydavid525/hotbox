@@ -3,7 +3,7 @@
 #include <glog/logging.h>
 #include <algorithm>
 
-namespace mldb {
+namespace hotbox {
 
 DataIterator::DataIterator(const SessionProto& session_proto,
     std::vector<std::function<void(TransDatum*)>> transforms,
@@ -56,4 +56,4 @@ void DataIterator::ReadAtomAndTransform(int atom_id) {
   }
 }
 
-}  // namespace mldb
+}  // namespace hotbox

@@ -1,7 +1,7 @@
 #pragma once
 #include "util/compressor/compressor_if.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 // Use Google's snappy to compress.
 class SnappyCompressor : public CompressorIf {
@@ -10,4 +10,4 @@ public:
   std::string Uncompress(const std::string& in) const override;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

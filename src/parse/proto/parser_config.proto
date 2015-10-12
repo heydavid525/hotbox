@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package mldb;
+package hotbox;
 
 message ParserConfig {
   oneof config {

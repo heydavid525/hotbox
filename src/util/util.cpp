@@ -6,8 +6,8 @@
 #include "util/class_registry.hpp"
 #include "util/compressor/all.hpp"
 #include "util/file_util.hpp"
-#include "util/mldb_exceptions.hpp"
-namespace mldb {
+#include "util/hotbox_exceptions.hpp"
+namespace hotbox {
 
 std::string SizeToReadableString(size_t size) {
   double s = static_cast<double>(size);
@@ -61,4 +61,4 @@ size_t WriteCompressedString(std::string& input,
   return input.size();
 }
 
-}  // namespace mldb
+}  // namespace hotbox

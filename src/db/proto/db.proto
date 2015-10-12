@@ -4,7 +4,7 @@ import "util/proto/util.proto";
 import "schema/proto/schema.proto";
 import "transform/proto/transform.proto";
 
-package mldb;
+package hotbox;
 
 // Current max proto sequence: 6.
 message FeatureStatProto {
@@ -147,7 +147,7 @@ message DBProto {
 // This file is saved at the root of a db_dir for finding all the DB under a
 // DBServer.
 //
-// Comment(wdai): DB in MLDB is more like Table in SQL.
+// Comment(wdai): DB in Hotbox is more like Table in SQL.
 message DBRootFile {
   repeated string db_names = 1;
 }

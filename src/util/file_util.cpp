@@ -1,6 +1,6 @@
 #include "io/fstream.hpp"
 #include "util/file_util.hpp"
-#include "util/mldb_exceptions.hpp"
+#include "util/hotbox_exceptions.hpp"
 #include "util/class_registry.hpp"
 #include "util/compressor/all.hpp"
 #include <glog/logging.h>
@@ -9,7 +9,7 @@
 //#include "io.dmlc/filesys.h"
 #include <boost/filesystem.hpp>
 
-namespace mldb {
+namespace hotbox {
 
 std::string ReadCompressedFile(const std::string& file_path,
     Compressor compressor) {
@@ -131,4 +131,4 @@ bool Is_Directory(const std::string &path);
 int Create_Directory(const std::string &path);
 */
 
-}  // namespace mldb
+}  // namespace hotbox

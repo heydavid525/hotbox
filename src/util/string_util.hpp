@@ -8,7 +8,7 @@
 #include <cctype>
 #include <locale>
 
-namespace mldb {
+namespace hotbox {
 
 // Example: SplitString("a,bc,d", ',') --> ["a", "bc", "d"].
 std::vector<std::string> SplitString(const std::string& in, char delim);
@@ -26,4 +26,4 @@ inline std::string Trim(const std::string& s,
   return s_trim;
 }
 
-}  // namespace mldb
+}  // namespace hotbox

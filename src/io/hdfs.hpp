@@ -42,7 +42,7 @@ extern "C" {
 #include <vector>
 #include <string>
 
-namespace mldb { namespace io {
+namespace hotbox { namespace io {
 #ifdef HAS_HADOOP
 class hdfs {
  private:
@@ -265,6 +265,6 @@ class hdfs {
 
 #endif
 }  // namespace io
-}  // namespace mldb
+}  // namespace hotbox
 
 #endif

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package mldb;
+package hotbox;
 
 enum Compressor {
   SNAPPY = 0;   // This is the default.

@@ -12,7 +12,7 @@ LIB = $(BUILD)/lib
 
 NEED_MKDIR = $(BUILD) $(LIB)
 
-all: proto mldb_lib test
+all: proto hotbox_lib test
 
 path: $(NEED_MKDIR)
 
@@ -67,14 +67,14 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
           -lhdfs \
           -lrocksdb 
 
-MLDB_SRC = $(shell find src -type f -name "*.cpp")
-MLDB_PROTO = $(shell find src -type f -name "*.proto")
-MLDB_HEADERS = $(shell find src -type f -name "*.hpp")
+HB_SRC = $(shell find src -type f -name "*.cpp")
+HB_PROTO = $(shell find src -type f -name "*.proto")
+HB_HEADERS = $(shell find src -type f -name "*.hpp")
 
 ###
-PROTO_HDRS = $(patsubst src/%.proto, build/%.pb.h, $(MLDB_PROTO))
-PROTO_OBJS = $(patsubst src/%.proto, build/%.pb.o, $(MLDB_PROTO))
-MLDB_OBJS = $(patsubst src/%.cpp, build/%.o, $(MLDB_SRC))
+PROTO_HDRS = $(patsubst src/%.proto, build/%.pb.h, $(HB_PROTO))
+PROTO_OBJS = $(patsubst src/%.proto, build/%.pb.o, $(HB_PROTO))
+HB_OBJS = $(patsubst src/%.cpp, build/%.o, $(HB_SRC))
 
 PROTOC = $(THIRD_PARTY_BIN)/protoc
 
@@ -83,8 +83,8 @@ $(PROTO_HDRS): $(BUILD)/%.pb.h: $(SRC_DIR)/%.proto
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
 	$(PROTOC) --cpp_out=$(BUILD) --python_out=$(BUILD) --proto_path=src $<
 	
-$(MLDB_LIB): $(PROTO_OBJS) $(MLDB_OBJS)
-	@echo MLDB_LIB_
+$(HB_LIB): $(PROTO_OBJS) $(HB_OBJS)
+	@echo HB_LIB_
 	mkdir -p $(@D)
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
 	ar csrv $@ $(filter %.o, $?)
@@ -96,13 +96,13 @@ $(PROTO_OBJS): %.pb.o: %.pb.cc
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c $< -o $@
 
-$(MLDB_OBJS): $(BUILD)/%.o: $(SRC_DIR)/%.cpp
-	@echo MLDB_OBJS_
+$(HB_OBJS): $(BUILD)/%.o: $(SRC_DIR)/%.cpp
+	@echo HB_OBJS_
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c $< -o $@
 
 proto:$(PROTO_HDRS)
 
-mldb_lib: path proto $(MLDB_LIB)
+hotbox_lib: path proto $(HB_LIB)
 
 include $(PROJECT)/test/test.mk

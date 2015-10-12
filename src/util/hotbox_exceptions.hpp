@@ -3,13 +3,13 @@
 #include <string>
 #include "schema/feature_finder.hpp"
 
-namespace mldb {
+namespace hotbox {
 
 // A custom exception with error message.
-class MLDBException: public std::exception {
+class HotboxException: public std::exception {
 public:
-  MLDBException();
-  MLDBException(const std::string& msg);
+  HotboxException();
+  HotboxException(const std::string& msg);
   virtual const char* what() const throw();
 
 private:
@@ -17,13 +17,13 @@ private:
 };
 
 
-class ParseException: public MLDBException {
+class ParseException: public HotboxException {
 public:
   ParseException(const std::string& msg);
 };
 
 
-class FamilyNotFoundException : public MLDBException {
+class FamilyNotFoundException : public HotboxException {
 public:
   FamilyNotFoundException(const std::string& family_name);
 
@@ -34,7 +34,7 @@ private:
 };
 
 
-class FeatureNotFoundException: public MLDBException {
+class FeatureNotFoundException: public HotboxException {
 public:
   FeatureNotFoundException(const FeatureFinder& not_found_feature);
 
@@ -45,7 +45,7 @@ private:
 };
 
 
-class TypedFeaturesNotFoundException: public MLDBException {
+class TypedFeaturesNotFoundException: public HotboxException {
 public:
   void SetNotFoundTypedFeatures(
       std::vector<TypedFeatureFinder>&& not_found_features);
@@ -56,14 +56,14 @@ private:
   std::vector<TypedFeatureFinder> not_found_features_;
 };
 
-class FailedToUncompressException : public MLDBException {
+class FailedToUncompressException : public HotboxException {
 public:
   FailedToUncompressException(const std::string& msg);
 };
 
-class FailedFileOperationException : public MLDBException {
+class FailedFileOperationException : public HotboxException {
 public:
   FailedFileOperationException(const std::string& msg);
 };
 
-}  // namespace mldb
+}  // namespace hotbox

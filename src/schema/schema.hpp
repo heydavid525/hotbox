@@ -1,13 +1,13 @@
 #pragma once
 
-#include "util/mldb_exceptions.hpp"
+#include "util/hotbox_exceptions.hpp"
 #include "schema/proto/schema.pb.h"
 #include "schema/feature_family.hpp"
 #include <cstdint>
 #include <string>
 #include <map>
 
-namespace mldb {
+namespace hotbox {
 
 // Since protobuf msg isn't easy to work with, Schema is a wrapper around
 // SchemaProto.
@@ -90,4 +90,4 @@ private:
   DatumProtoOffset append_offset_;
 };
 
-}  // namespace mldb
+}  // namespace hotbox

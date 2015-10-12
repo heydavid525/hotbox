@@ -8,7 +8,7 @@
 #include <utility>
 #include <string>
 
-namespace mldb {
+namespace hotbox {
 
 WarpClient::WarpClient() {
   zmq_ctx_.reset(zmq_util::CreateZmqContext());
@@ -81,4 +81,4 @@ void WarpClient::HandshakeWithServer() {
     "server_id: " << server_id_;
 }
 
-}  // namespace mldb
+}  // namespace hotbox
