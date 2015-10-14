@@ -15,7 +15,7 @@ GlobalConfig& GlobalConfig::GetInstance() {
 }
 
 GlobalConfig::GlobalConfig() {
-  std::string buffer = ReadFile(kConfigPath);
+  std::string buffer = io::ReadFile(kConfigPath);
   try {
     config_ = YAML::Load(buffer);
   } catch(YAML::ParserException& e) {

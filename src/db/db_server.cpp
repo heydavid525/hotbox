@@ -3,10 +3,9 @@
 #include "db/db_server.hpp"
 #include "util/all.hpp"
 #include "util/rocksdb_util.hpp"
+#include "util/file_util.hpp"
 #include <string>
 #include <algorithm>
-#include <boost/filesystem.hpp>
-//#include <io.dmlc/filesys.h>
 
 namespace hotbox {
 
@@ -21,7 +20,6 @@ DBServer::DBServer(const DBServerConfig& config) : db_dir_(config.db_dir()) { }
 
 void DBServer::Start() {
 
-  LOG(INFO) << "db_server.cpp file: " << dmlc::io::FileSystem::path(__FILE__);
   Init();
   LOG(INFO) << "DBServer running. DB path is " << db_dir_;
 
@@ -63,12 +61,12 @@ void DBServer::Init() {
 void DBServer::InitFromDBRootFile() {
   auto db_root_file_path = db_dir_ + kDBRootFile;
 
-  if (!Exists(db_root_file_path)) {
+  if (!io::Exists(db_root_file_path)) {
     LOG(INFO) << "DB File (" << db_root_file_path << ") doesn't exist yet. "
       "This must be a new DB";
     return;
   }
-  auto db_root_file = ReadCompressedFile(db_root_file_path,
+  auto db_root_file = io::ReadCompressedFile(db_root_file_path,
       Compressor::NO_COMPRESS);
   DBRootFile db_root;
   db_root.ParseFromString(db_root_file);
@@ -108,7 +106,7 @@ void DBServer::CommitToDBRootFile() const {
   }
   LOG(INFO) << "Write to " << db_root_file_path << " with compressor "
     << Compressor::NO_COMPRESS;
-  WriteCompressedFile(db_root_file_path, SerializeProto(db_root),
+  io::WriteCompressedFile(db_root_file_path, SerializeProto(db_root),
       Compressor::NO_COMPRESS);
 
   /*
@@ -123,19 +121,7 @@ void DBServer::CommitToDBRootFile() const {
 void DBServer::CreateDirectory(const std::string& dir) {
   // Create directory if necessary. as we would need to a separate store 
   // for different users/sessions.
-  /*
-  if (Exists(dir)) {
-    CHECK(Is_Directory(dir));
-  } else {
-    CHECK(Create_Directory(dir) == 0);
-  }
-  */
-
-  if (boost::filesystem::exists(dir)) {
-    CHECK(boost::filesystem::is_directory(dir));
-  } else {
-    CHECK(boost::filesystem::create_directory(dir));
-  }
+  CHECK(io::CreateDirectory(dir) == 0);
 }
 
 void DBServer::SendGenericReply(int client_id, const std::string& msg) {

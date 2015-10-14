@@ -22,7 +22,7 @@ public:
     proto.set_output_store_type(output_store_type);
 
     // Validate transform file.
-    std::string config_str = ReadCompressedFile(transform_config_path,
+    std::string config_str = io::ReadCompressedFile(transform_config_path,
         Compressor::NO_COMPRESS);
     TransformConfigList configs;
     CHECK(google::protobuf::TextFormat::ParseFromString(config_str, &configs))

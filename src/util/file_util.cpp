@@ -1,4 +1,3 @@
-#include "io/fstream.hpp"
 #include "util/file_util.hpp"
 #include "util/hotbox_exceptions.hpp"
 #include "util/class_registry.hpp"
@@ -6,31 +5,25 @@
 #include <glog/logging.h>
 #include <sstream>
 #include <memory>
-//#include "io.dmlc/filesys.h"
-#include <boost/filesystem.hpp>
 
 namespace hotbox {
+  namespace io {
+
+dmlc::SeekStream* OpenFileStream(const std::string& file_path){
+  dmlc::io::URI path(file_path.c_str());
+  // We don't own the FileSystem pointer.
+  dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
+  // We do own the file system pointer.
+  return fs->OpenForRead(path);
+}
 
 std::string ReadCompressedFile(const std::string& file_path,
     Compressor compressor) {
-  /*
-  // Comment(wdai): This doesn't work because size becomes very large due to
-  // some corruption.
-  dmlc::istream is(dmlc::Stream::Create(file_path.c_str(), "r"));
-  is.seekg(0, std::ios::end);
-  size_t size = is.tellg();
-  std::string buffer(size, ' ');
-  is.seekg(0);
-  is.read(&buffer[0], size);
-  return buffer;
-  */
-
   // Comment(wdai): There's a lot of copying. Optimize it! Check out 
   // zero_copy_stream.h
   // (https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.io.zero_copy_stream?hl=en)
 
-  // Read  
-  /*
+  // Read    
   dmlc::io::URI path(file_path.c_str());
   // We don't own the FileSystem pointer.
   dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
@@ -44,23 +37,19 @@ std::string ReadCompressedFile(const std::string& file_path,
   size_t size = info.size;
   std::string buffer(size, ' ');
   size_t nread = fp->Read(&buffer[0], size);
-  */
-  io::ifstream is(file_path);
-  if (!is) {
-    throw FailedFileOperationException("Failed to open " + file_path
-        + " for read.");
+  if (nread != size) {
+    throw FailedFileOperationException("Failed to read file: " + file_path
+        + "\n");
   }
-  std::stringstream buffer;
-  buffer << is.rdbuf();
   // Uncompress
   if (compressor == Compressor::NO_COMPRESS) {
-    return buffer.str();
+    return buffer;
   }
   auto& registry = ClassRegistry<CompressorIf>::GetRegistry();
   std::unique_ptr<CompressorIf> compressor_if =
     registry.CreateObject(compressor);
   try {
-    return compressor_if->Uncompress(buffer.str());
+    return compressor_if->Uncompress(buffer);
   } catch (const FailedToUncompressException& e) {
     throw FailedFileOperationException("Failed to uncompress " + file_path
         + "\n" + e.what());
@@ -69,14 +58,9 @@ std::string ReadCompressedFile(const std::string& file_path,
   return "";
 }
 
-/*  
+
 size_t WriteCompressedFile(const std::string& file_path,
     const std::string& data, Compressor compressor) {
-  io::ofstream out(file_path, std::ios::out | std::ios::binary);
-  if (!out) {
-    throw FailedFileOperationException("Failed to open " + file_path
-        + " for write.");
-  }
   // We do own this pointer.
   std::unique_ptr<dmlc::Stream> os(dmlc::Stream::Create(file_path.c_str(), "w"));
   if (!os) {
@@ -97,38 +81,35 @@ size_t WriteCompressedFile(const std::string& file_path,
   os->Write(data.c_str(), data.size());
   return data.size();
 }
-*/  
-size_t WriteCompressedFile(const std::string& file_path,
-    const std::string& data, Compressor compressor) {
-  io::ofstream out(file_path, std::ios::out | std::ios::binary);
-  if (!out) {
-    throw FailedFileOperationException("Failed to open " + file_path
-        + " for write.");
-  }
-
-  if (compressor != Compressor::NO_COMPRESS) {
-    // Compress always succeed.
-    auto& registry = ClassRegistry<CompressorIf>::GetRegistry();
-    std::unique_ptr<CompressorIf> compressor_if =
-      registry.CreateObject(compressor);
-    std::string compressed = compressor_if->Compress(data);
-    out.write(compressed.c_str(), compressed.size());
-    return compressed.size();
-  }
-  out.write(data.c_str(), data.size());
-  return data.size();
-}
 
 std::string ReadFile(const std::string& file_path) {
   return ReadCompressedFile(file_path, Compressor::NO_COMPRESS);
 }
 
 bool Exists(const std::string& path) {
-  return boost::filesystem::exists(path);
+  return dmlc::io::FileSystem::exist(path);
 }
-/*
-bool Is_Directory(const std::string &path);
-int Create_Directory(const std::string &path);
-*/
 
+bool IsDirectory(const std::string& file_path) {
+  return dmlc::io::FileSystem::is_directory(file_path);
+}
+
+int CreateDirectory(const std::string& file_path) {
+  dmlc::io::URI path(file_path.c_str());
+  // We don't own the FileSystem pointer.
+  dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
+  return fs->CreateDirectory(path);
+}
+
+// Return the path of a file or directory
+std::string Path(const std::string& file_path) {
+  return dmlc::io::FileSystem::path(file_path);
+}
+
+// Return the parent path of a given file or directory.
+std::string ParentPath(const std::string& file_path) {
+  return dmlc::io::FileSystem::parent_path(file_path);
+}
+
+}  // namaspace hotbox::io
 }  // namespace hotbox

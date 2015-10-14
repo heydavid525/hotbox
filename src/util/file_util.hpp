@@ -6,6 +6,7 @@
 #include "io/filesys.hpp"
 
 namespace hotbox {
+	namespace io {
 
 // Read full file and uncompress to string. Throws FailedToReadFileException.
 //
@@ -21,8 +22,18 @@ size_t WriteCompressedFile(const std::string& file_path,
 // Read normal data file and return the string
 std::string ReadFile(const std::string& file_path);
 
-bool Exists(const std::string& path);
-bool Is_Directory(const std::string &path);
-int Create_Directory(const std::string &path);
+// Open a file and Return a std::ifstream compatible stream.
+dmlc::SeekStream* OpenFileStream(const std::string& file_path);
 
+// Return the path of a file or directory
+std::string Path(const std::string& file_path);
+
+// Return the parent path of a given file or directory.
+std::string ParentPath(const std::string& file_path);
+
+bool Exists(const std::string& path);
+bool IsDirectory(const std::string &path);
+int  CreateDirectory(const std::string &path);
+
+}
 }  // namespace hotbox

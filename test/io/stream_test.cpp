@@ -13,7 +13,7 @@ namespace hotbox {
 namespace {
 
 const std::string kContent{"Hello World!\n"};
-std::string kTestPath = GetTestBedDir() + "/stream_test_file";
+std::string kTestPath = GetResourceDir() + "/stream_test_file";
 
 }  // anonymous namespace
 
@@ -27,7 +27,7 @@ TEST(StreamTest, SmokeTest) {
     os->Write(kContent.c_str(), kContent.size());
   }
   { // Use this method to list directory.   
-    dmlc::io::URI path(GetTestBedDir().c_str());
+    dmlc::io::URI path(GetResourceDir().c_str());
     // We do not own the FileSystem object.
     dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
     std::vector<dmlc::io::FileInfo> info;

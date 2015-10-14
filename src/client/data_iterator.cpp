@@ -32,7 +32,7 @@ FlexiDatum&& DataIterator::GetDatum() {
 
 void DataIterator::ReadAtomAndTransform(int atom_id) {
   LOG(INFO) << "Reading atom file " << atom_id;
-  std::string content = ReadCompressedFile(
+  std::string content = io::ReadCompressedFile(
       session_proto_.file_map().atom_path() + std::to_string(atom_id),
       session_proto_.compressor());
   DBAtom atom_proto;

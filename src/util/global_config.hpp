@@ -3,25 +3,15 @@
 #include <yaml-cpp/yaml.h>
 #include <glog/logging.h>
 #include <string>
-//#include <boost/filesystem.hpp>
-#include "io/filesys.hpp"
+#include "util/file_util.hpp"
 
 namespace hotbox {
 
 namespace {
 
-//const std::string kConfigPath = "/home/yu/github/mldb/config.yaml";
-
-const std::string kConfigPath =
-      dmlc::io::FileSystem::parent_path(
-        dmlc::io::FileSystem::parent_path(
-          dmlc::io::FileSystem::path(__FILE__)))
-            .append("/config.yaml");
-
-/*
-   boost::filesystem::path(__FILE__)
-   .parent_path().parent_path().parent_path().append("config.yaml").string();
-   */
+const std::string kConfigPath = 
+  io::ParentPath(io::ParentPath(
+      io::Path(__FILE__))).append("/config.yaml");
 
 }  // anonymous namespace
 

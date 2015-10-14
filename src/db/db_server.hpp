@@ -1,5 +1,4 @@
 #pragma once
-//#include <boost/filesystem.hpp>
 #include <string>
 #include <set>
 #include <map>
@@ -51,7 +50,6 @@ private:
   void CloseSessionHandler(int client_id, const CloseSessionReq& req);
 
 private:
-  //boost::filesystem::path db_dir_;
   std::string db_dir_;
 
   WarpServer server_;

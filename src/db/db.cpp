@@ -3,8 +3,6 @@
 #include "db/db.hpp"
 #include "db/proto/db.pb.h"
 #include "parse/parser_if.hpp"
-//#include "io/filesys.h"
-#include "io/fstream.hpp"
 #include <snappy.h>
 #include <cstdint>
 #include <sstream>
@@ -12,12 +10,6 @@
 #include "util/file_util.hpp"
 #include "util/rocksdb_util.hpp"
 #include "transform/all.hpp"
-#include "util/class_registry.hpp"
-#include "util/file_util.hpp"
-#include <snappy.h>
-#include <cstdint>
-#include <sstream>
-#include <boost/filesystem.hpp>
 #include "schema/all.hpp"
 
 namespace hotbox {
@@ -35,8 +27,8 @@ DB::DB(const std::string& db_path) {
   //std::string db_str;
   //rocksdb::Status s = db->Get(rocksdb::ReadOptions(), kDBProto, &db_str);
   //CHECK(s.ok());
-  CHECK(boost::filesystem::exists(db_file_path));
-  std::string db_str = ReadCompressedFile(db_file_path);
+  CHECK(io::Exists(db_file_path));
+  std::string db_str = io::ReadCompressedFile(db_file_path);
   DBProto proto;
   //proto.ParseFromString(ReadCompressedString(db_str));
   proto.ParseFromString(db_str);
@@ -71,13 +63,9 @@ std::string DB::ReadFile(const ReadFileReq& req) {
   DBAtom atom;
   BigInt num_features_before = schema_->GetNumFeatures();
   {
-    io::ifstream in(req.file_path());
-    //dmlc::io::URI path(req.file_path().c_str());
-    // We don't own the FileSystem pointer.
-    //dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
-    // We do own the file system pointer.
-    //std::unique_ptr<dmlc::SeekStream> fp(fs->OpenForRead(path));
-    //dmlc::istream in(fp.get());
+	//io::ifstream in(req.file_path());
+    std::unique_ptr<dmlc::SeekStream> fp(io::OpenFileStream(req.file_path()));
+    dmlc::istream in(fp.get());
     std::string line;
     auto& registry = ClassRegistry<ParserIf>::GetRegistry();
     std::unique_ptr<ParserIf> parser = registry.CreateObject(req.file_format());
@@ -107,7 +95,7 @@ std::string DB::ReadFile(const ReadFileReq& req) {
   int32_t next_atom_id = meta_data_.file_map().datum_ids_size();
   std::string output_file = meta_data_.file_map().atom_path()
     + std::to_string(next_atom_id);
-  auto compressed_size = WriteCompressedFile(output_file, serialized_atom);
+  auto compressed_size = io::WriteCompressedFile(output_file, serialized_atom);
   float compress_ratio = static_cast<float>(compressed_size) /
     serialized_atom.size();
   std::stringstream ss;
@@ -142,7 +130,7 @@ void DB::CommitDB() {
   auto db_proto = GetProto();
   std::string serialized_db = SerializeProto(GetProto());
   auto original_size = serialized_db.size();
-  auto compressed_size = WriteCompressedFile(db_file, serialized_db);
+  auto compressed_size = io::WriteCompressedFile(db_file, serialized_db);
   //auto compressed_size = WriteCompressedString(serialized_db);
   //rocksdb::Status s = db->Put(rocksdb::WriteOptions(), kDBProto, serialized_db);
   //assert(s.ok());
