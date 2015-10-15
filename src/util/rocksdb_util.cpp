@@ -1,4 +1,5 @@
 #include "util/rocksdb_util.hpp"
+#include <glog/logging.h>
 
 
 
@@ -15,9 +16,9 @@ rocksdb::DB* OpenRocksDB(const std::string& dbname) {
   options.create_if_missing = true;
   // open DB
   rocksdb::Status s = rocksdb::DB::Open(options, dbname, &db_ptr);
+  LOG(INFO) << "OpenDB: " << dbname;
   assert(s.ok());
   return db_ptr;
 }
-
 
 }

@@ -66,31 +66,26 @@ void DBServer::InitFromDBRootFile() {
       "This must be a new DB";
     return;
   }
+  // **** Read File Persistency
+   /*
   auto db_root_file = io::ReadCompressedFile(db_root_file_path,
       Compressor::NO_COMPRESS);
-  DBRootFile db_root;
-  db_root.ParseFromString(db_root_file);
-  /*
-   for (int i = 0; i < db_root.db_names_size(); ++i) {
-     std::string db_name = db_root.db_names(i);
-     std::string db_path = db_dir_ + "/" + db_name;
-     dbs_[db_name] = make_unique<DB>(db_path);
-   }
-   */
-
+  // */
   // **** RocksDB Persistency. **********
-  /*
+  // /*
+  LOG(INFO) << "Load DB Root File (" << db_root_file_path << ") from rocksdb";
   std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_root_file_path));
   std::string db_root_file;
   rocksdb::Status s = db->Get(rocksdb::ReadOptions(), kDBRootFile, &db_root_file);
   assert(s.ok());
+  // */
   DBRootFile db_root;
   db_root.ParseFromString(db_root_file);
-  */
   std::stringstream ss;
   for (int i = 0; i < db_root.db_names_size(); ++i) {
     std::string db_name = db_root.db_names(i);
     std::string db_path = db_dir_ + "/" + db_name;
+    LOG(INFO) << "Load DB File (" << db_path << ") from rocksdb";
     dbs_[db_name] = make_unique<DB>(db_path);
     ss << db_name << std::endl;
   }
@@ -106,16 +101,19 @@ void DBServer::CommitToDBRootFile() const {
   }
   LOG(INFO) << "Write to " << db_root_file_path << " with compressor "
     << Compressor::NO_COMPRESS;
+
+   /* ----------- File Persistence -------------
   io::WriteCompressedFile(db_root_file_path, SerializeProto(db_root),
       Compressor::NO_COMPRESS);
-
-  /*
+  // */
+  
   // **** RocksDB Persistency. **********
+  // /*
   std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_root_file_path));
   // Put key(kDBRootFile)-value(SerializeProto(db_root)).
   rocksdb::Status s = db->Put(rocksdb::WriteOptions(), kDBRootFile, SerializeProto(db_root));
   assert(s.ok());
-  */
+  // */
 }
 
 void DBServer::CreateDirectory(const std::string& dir) {

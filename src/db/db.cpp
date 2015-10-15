@@ -23,15 +23,19 @@ const std::string kDBProto = "DBProto";
 
 DB::DB(const std::string& db_path) {
   auto db_file_path = db_path + kDBFile;
-  //std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_file_path));
-  //std::string db_str;
-  //rocksdb::Status s = db->Get(rocksdb::ReadOptions(), kDBProto, &db_str);
-  //CHECK(s.ok());
+  // /*
+  std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_file_path));
+  std::string db_str;
+  rocksdb::Status s = db->Get(rocksdb::ReadOptions(), kDBProto, &db_str);
+  LOG(INFO) << "Get Key (" << kDBProto << ") from DB (" << db_file_path << ")";
+  CHECK(s.ok());
+  // */
+  /*
   CHECK(io::Exists(db_file_path));
   std::string db_str = io::ReadCompressedFile(db_file_path);
+  */
   DBProto proto;
-  //proto.ParseFromString(ReadCompressedString(db_str));
-  proto.ParseFromString(db_str);
+  proto.ParseFromString(ReadCompressedString(db_str));
   meta_data_ = proto.meta_data();
   schema_ = make_unique<Schema>(proto.schema_proto());
   LOG(INFO) << "DB " << meta_data_.db_config().db_name() << " is initialized"
@@ -126,14 +130,21 @@ DBProto DB::GetProto() const {
 
 void DB::CommitDB() {
   std::string db_file = meta_data_.db_config().db_dir() + kDBFile;
-  //std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_file));
+
   auto db_proto = GetProto();
   std::string serialized_db = SerializeProto(GetProto());
   auto original_size = serialized_db.size();
+  // /*
+  std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_file));
+  // */
+   /*
   auto compressed_size = io::WriteCompressedFile(db_file, serialized_db);
-  //auto compressed_size = WriteCompressedString(serialized_db);
-  //rocksdb::Status s = db->Put(rocksdb::WriteOptions(), kDBProto, serialized_db);
-  //assert(s.ok());
+   */
+  // /* ----- RocksDB Method ------
+  auto compressed_size = WriteCompressedString(serialized_db);
+  rocksdb::Status s = db->Put(rocksdb::WriteOptions(), kDBProto, serialized_db);
+  assert(s.ok());
+  //    --------------------------- */
   float db_compression_ratio = static_cast<float>(compressed_size)
     / original_size;
   LOG(INFO) << "Committed DB " << meta_data_.db_config().db_name()
