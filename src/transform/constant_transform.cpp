@@ -9,8 +9,6 @@ namespace hotbox {
 
 void ConstantTransform::TransformSchema(const TransformParam& param,
     TransformWriter* writer) const {
-  const ConstantTransformConfig& config = 
-    param.GetConfig().constant_transform();
   const auto& input_features = param.GetInputFeatures();
   auto feature_name = "constant" + ToString(input_features.size());
   writer->AddFeature(feature_name);
