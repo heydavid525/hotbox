@@ -13,6 +13,7 @@ TEST_INCFLAGS = -I$(PROJECT)
 
 $(TEST_DIR)/%: $(PROJECT)/test/%.cpp $(HB_LIB) test/facility/test_facility.hpp
 	mkdir -p $(@D)
+	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
 		$< -lgtest $(HB_LIB) $(LDFLAGS) -o $@
 

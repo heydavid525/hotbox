@@ -95,7 +95,6 @@ void DBServer::InitFromDBRootFile() {
 
 void DBServer::CommitToDBRootFile() const {
   auto db_root_file_path = db_dir_ + kDBRootFile;
-  CHECK(io::Exists(db_root_file_path));
   
   DBRootFile db_root;
   for (const auto& p : dbs_) {

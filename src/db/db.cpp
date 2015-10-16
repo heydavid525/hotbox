@@ -23,7 +23,7 @@ const std::string kDBProto = "DBProto";
 
 DB::DB(const std::string& db_path) {
   auto db_file_path = db_path + kDBFile;
-  CHECK(io::Exists(db_file_path));
+  //CHECK(io::Exists(db_file_path));
   // /*
   std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_file_path));
   std::string db_str;
@@ -130,7 +130,7 @@ DBProto DB::GetProto() const {
 
 void DB::CommitDB() {
   std::string db_file = meta_data_.db_config().db_dir() + kDBFile;
-  CHECK(io::Exists(db_file));
+  //CHECK(io::Exists(db_file));
   
   auto db_proto = GetProto();
   std::string serialized_db = SerializeProto(GetProto());
