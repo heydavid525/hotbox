@@ -34,7 +34,8 @@ CXXFLAGS += -O2 \
            -fno-builtin-calloc \
            -fno-builtin-realloc \
            -fno-builtin-free \
-           -fno-omit-frame-pointer
+           -fno-omit-frame-pointer \
+					 -DDMLC_USE_GLOG=1
 
 THIRD_PARTY = $(PROJECT)/third_party
 THIRD_PARTY_SRC = $(THIRD_PARTY)/src
