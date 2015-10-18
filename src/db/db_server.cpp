@@ -2,7 +2,7 @@
 #include <string>
 #include "db/db_server.hpp"
 #include "util/all.hpp"
-#include "util/rocksdb_util.hpp"
+//#include "util/rocksdb_util.hpp"
 #include "util/file_util.hpp"
 #include <string>
 #include <algorithm>
@@ -67,12 +67,12 @@ void DBServer::InitFromDBRootFile() {
     return;
   }
   // **** Read File Persistency
-   /*
+  // /*
   auto db_root_file = io::ReadCompressedFile(db_root_file_path,
       Compressor::NO_COMPRESS);
   // */
   // **** RocksDB Persistency. **********
-  // /*
+   /*
   LOG(INFO) << "Load DB Root File (" << db_root_file_path << ") from rocksdb";
   std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_root_file_path));
   std::string db_root_file;
@@ -103,13 +103,13 @@ void DBServer::CommitToDBRootFile() const {
   LOG(INFO) << "Write to " << db_root_file_path << " with compressor "
     << Compressor::NO_COMPRESS;
 
-   /* ----------- File Persistence -------------
+  // /* ----------- File Persistence -------------
   io::WriteCompressedFile(db_root_file_path, SerializeProto(db_root),
       Compressor::NO_COMPRESS);
   // */
   
   // **** RocksDB Persistency. **********
-  // /*
+   /*
   std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_root_file_path));
   // Put key(kDBRootFile)-value(SerializeProto(db_root)).
   rocksdb::Status s = db->Put(rocksdb::WriteOptions(), kDBRootFile, SerializeProto(db_root));
