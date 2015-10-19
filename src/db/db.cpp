@@ -8,7 +8,7 @@
 #include <sstream>
 #include "util/class_registry.hpp"
 #include "util/file_util.hpp"
-//#include "util/rocksdb_util.hpp"
+#include "util/rocksdb_util.hpp"
 #include "transform/all.hpp"
 #include "schema/all.hpp"
 
@@ -24,14 +24,14 @@ const std::string kDBProto = "DBProto";
 DB::DB(const std::string& db_path) {
   auto db_file_path = db_path + kDBFile;
   //CHECK(io::Exists(db_file_path));
-   /*
+   ///*
   std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_file_path));
   std::string db_str;
   rocksdb::Status s = db->Get(rocksdb::ReadOptions(), kDBProto, &db_str);
   LOG(INFO) << "Get Key (" << kDBProto << ") from DB (" << db_file_path << ")";
   CHECK(s.ok());
   // */
-  ///*
+  /*
   std::string db_str = io::ReadCompressedFile(db_file_path);
   // */
   DBProto proto;
@@ -135,17 +135,15 @@ void DB::CommitDB() {
   auto db_proto = GetProto();
   std::string serialized_db = SerializeProto(GetProto());
   auto original_size = serialized_db.size();
-   /*
+  // /* ----- RocksDB Method ------
   std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_file));
-  // */
-  // /*
-  auto compressed_size = io::WriteCompressedFile(db_file, serialized_db);
-  // */
-   /* ----- RocksDB Method ------
   auto compressed_size = WriteCompressedString(serialized_db);
   rocksdb::Status s = db->Put(rocksdb::WriteOptions(), kDBProto, serialized_db);
   assert(s.ok());
   //    --------------------------- */
+   /*
+  auto compressed_size = io::WriteCompressedFile(db_file, serialized_db);
+  // */
   float db_compression_ratio = static_cast<float>(compressed_size)
     / original_size;
   LOG(INFO) << "Committed DB " << meta_data_.db_config().db_name()
