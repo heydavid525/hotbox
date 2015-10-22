@@ -10,7 +10,7 @@ public:
 
   Status(StatusCode status) : status_code_(status) { }
 
-  bool ok() const {
+  bool IsOk() const {
     return status_code_ == StatusCode::OK;
   }
 

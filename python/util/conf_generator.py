@@ -24,12 +24,17 @@ def AddBucketizeTransform(config_list, feature, output_family_name, buckets):
   new_config.base_config.output_family = output_family_name
   new_config.bucketize_transform.buckets.extend(buckets)
 
+def AddConstantTransform(config_list, constant_val):
+  new_config = config_list.transform_configs.add()
+  new_config.constant_transform.constant = constant_val
+
 if __name__ == '__main__':
   config_list = transform_pb.TransformConfigList()
   AddBucketizeTransform(config_list, '3', 'bucketize1',
       [float('-inf'), 0, 1, 2, float('inf')])
   AddBucketizeTransform(config_list, '67', 'bucketize2',
       [0, 1, float('inf')])
+  AddConstantTransform(config_list, 3.15)
   config_list_str = text_format.MessageToString(config_list)
   with open(output, 'w') as f:
     f.write(config_list_str)

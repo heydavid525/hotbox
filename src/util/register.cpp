@@ -32,6 +32,8 @@ void RegisterTransforms() {
       Creator<TransformIf, OneHotTransform>);
   registry.AddCreator(TransformConfig::kBucketizeTransform,
       Creator<TransformIf, BucketizeTransform>);
+  registry.AddCreator(TransformConfig::kConstantTransform,
+      Creator<TransformIf, ConstantTransform>);
 }
 
 }  // namespace hotbox

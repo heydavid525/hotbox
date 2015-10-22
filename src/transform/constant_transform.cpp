@@ -9,20 +9,19 @@ namespace hotbox {
 
 void ConstantTransform::TransformSchema(const TransformParam& param,
     TransformWriter* writer) const {
-  const auto& input_features = param.GetInputFeatures();
-  auto feature_name = "constant" + ToString(input_features.size());
-  writer->AddFeature(feature_name);
+  const ConstantTransformConfig& config =
+    param.GetConfig().constant_transform();
+  writer->AddFeature("constant" + ToString(config.constant()));
 }
 
 std::function<void(TransDatum*)> ConstantTransform::GenerateTransform(
     const TransformParam& param) const {
-
   const ConstantTransformConfig& config = 
     param.GetConfig().constant_transform();
   auto constant = config.constant();
-  BigInt offset = 0; //only one feature is added and idx always starts from 0
-  return [offset, constant] (TransDatum *datum) {
-      datum->SetFeatureValRelativeOffset(offset, constant);
+  return [constant] (TransDatum *datum) {
+      // only one feature is added and idx always starts from 0
+      datum->SetFeatureValRelativeOffset(0, constant);
     };
 }
 

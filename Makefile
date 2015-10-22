@@ -21,7 +21,7 @@ $(NEED_MKDIR):
 
 clean:
 	rm -rf $(BUILD)
-	rm -r db_testbed
+	rm -rf db_testbed
 
 .PHONY: all path clean
 

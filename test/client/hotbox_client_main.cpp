@@ -14,12 +14,12 @@ int main(int argc, char *argv[]) {
     "/resource/test_transform1.conf";
   session_options.output_store_type = hotbox::OutputStoreType::DENSE;
   hotbox::Session session = hb_client.CreateSession(session_options);
+  CHECK(session.GetStatus().IsOk());
   hotbox::OSchema o_schema = session.GetOSchema();
   LOG(INFO) << "OSchema: " << o_schema.ToString();
   auto p = o_schema.GetName(4);
   LOG(INFO) << "o_schema(4): family: " << p.first << " feature_name: "
                            << p.second;
-  CHECK(session.GetStatus().ok());
   int i = 0;
   for (hotbox::DataIterator it = session.NewDataIterator(0, 5); it.HasNext();
       it.Next()) {
