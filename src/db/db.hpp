@@ -7,6 +7,7 @@
 #include "db/proto/db.pb.h"
 #include "util/proto/warp_msg.pb.h"
 #include "schema/all.hpp"
+#include "util/rocksdb_util.hpp"
 
 namespace hotbox {
 
@@ -41,6 +42,7 @@ public:
   // client to use directly.
   SessionProto CreateSession(const SessionOptionsProto& session_options);
 
+  void InitDB(const std::string& db_path);
   // Write all the states of DB to /DB file.
   void CommitDB();
 
@@ -53,6 +55,9 @@ private:
 
   // TODO(wdai): Allows multiple schemas (schema evolution).
   std::unique_ptr<Schema> schema_;
+
+  std::unique_ptr<rocksdb::DB> meta_db_;
+  std::unique_ptr<rocksdb::DB> record_db_;
 
   //std::vector<Epoch> epochs_;
 

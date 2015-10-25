@@ -2,7 +2,6 @@
 #include <string>
 #include "db/db_server.hpp"
 #include "util/all.hpp"
-#include "util/rocksdb_util.hpp"
 #include "util/file_util.hpp"
 #include <string>
 #include <algorithm>
@@ -64,6 +63,7 @@ void DBServer::InitFromDBRootFile() {
   if (!io::Exists(db_root_file_path)) {
     LOG(INFO) << "DB File (" << db_root_file_path << ") doesn't exist yet. "
       "This must be a new DB";
+    db_list_.reset(io::OpenRocksMetaDB(db_root_file_path));
     return;
   }
   // **** Read File Persistency
@@ -74,10 +74,9 @@ void DBServer::InitFromDBRootFile() {
   // **** RocksDB Persistency. **********
   // /* -----------------------------------------
   LOG(INFO) << "Load DB Root File (" << db_root_file_path << ") from rocksdb";
-  std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_root_file_path));
+  db_list_.reset(io::OpenRocksMetaDB(db_root_file_path));
   std::string db_root_file;
-  rocksdb::Status s = db->Get(rocksdb::ReadOptions(), kDBRootFile, &db_root_file);
-  assert(s.ok());
+  io::GetKey(db_list_.get(), kDBRootFile, &db_root_file);
   // ------------------------------------------*/
   DBRootFile db_root;
   db_root.ParseFromString(db_root_file);
@@ -110,10 +109,8 @@ void DBServer::CommitToDBRootFile() const {
   
   // **** RocksDB Persistency. **********
   // /*
-  std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_root_file_path));
-  // Put key(kDBRootFile)-value(SerializeProto(db_root)).
-  rocksdb::Status s = db->Put(rocksdb::WriteOptions(), kDBRootFile, SerializeProto(db_root));
-  assert(s.ok());
+  // TODO(weiren): We should use rocksdb::Merge operator.
+  io::PutKey(db_list_.get(), kDBRootFile, SerializeProto(db_root));
   // */
 }
 
@@ -134,14 +131,7 @@ void DBServer::CreateDBReqHandler(int client_id, const CreateDBReq& req) {
   auto db_config = req.db_config();
   auto db_path = db_dir_ + "/" + db_config.db_name();
   CreateDirectory(db_path);
-  /*
-<<<<<<< Updated upstream
-  db_config.set_db_dir(db_path);
-  //dbs_[db_config.db_name()] = make_unique<DB>(db_config);
-  //SendGenericReply(client_id, "Done creating DB");
-  //CommitToDBRootFile();
-=======
-*/
+
   db_config.set_db_dir(db_path);
   //db_config.set_db_dir(db_path.string());
   const auto it = dbs_.find(db_config.db_name());

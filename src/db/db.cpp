@@ -8,7 +8,6 @@
 #include <sstream>
 #include "util/class_registry.hpp"
 #include "util/file_util.hpp"
-#include "util/rocksdb_util.hpp"
 #include "transform/all.hpp"
 #include "schema/all.hpp"
 
@@ -16,20 +15,26 @@ namespace hotbox {
 
 namespace {
 
-const std::string kDBFile = "/DBFile";
+const std::string kDBMeta = "/DBMeta";
+const std::string kDBFile = "/DBRecord";
 const std::string kDBProto = "DBProto";
 
 }  // anonymous namespace
 
+void DB::InitDB(const std::string& db_path) {
+  LOG(INFO) << "Open DB db_path: " << db_path;
+  auto metadb_file_path = db_path + kDBMeta;
+  auto recorddb_file_path = db_path + kDBFile;
+  meta_db_.reset(io::OpenRocksMetaDB(metadb_file_path));
+  record_db_.reset(io::OpenRocksRecordDB(recorddb_file_path));
+}
+
 DB::DB(const std::string& db_path) {
-  auto db_file_path = db_path + kDBFile;
-  //CHECK(io::Exists(db_file_path));
-   ///*
-  std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_file_path));
+  InitDB(db_path);
+
   std::string db_str;
-  rocksdb::Status s = db->Get(rocksdb::ReadOptions(), kDBProto, &db_str);
-  LOG(INFO) << "Get Key (" << kDBProto << ") from DB (" << db_file_path << ")";
-  CHECK(s.ok());
+  io::GetKey(meta_db_.get(), kDBProto, &db_str);
+  LOG(INFO) << "Get Key (" << kDBProto << ") from DB (" << meta_db_->GetName() << ")";
   // */
   /*
   std::string db_str = io::ReadCompressedFile(db_file_path);
@@ -39,7 +44,7 @@ DB::DB(const std::string& db_path) {
   meta_data_ = proto.meta_data();
   schema_ = make_unique<Schema>(proto.schema_proto());
   LOG(INFO) << "DB " << meta_data_.db_config().db_name() << " is initialized"
-    " from " << db_file_path << " # features in schema: "
+    " from " << meta_db_->GetName() << " # features in schema: "
     << schema_->GetNumFeatures();
   // TODO(wdai): Throw exception and catch and handle it in DBServer.
   if (kFeatureIndexType == FeatureIndexType::INT32 &&
@@ -53,6 +58,7 @@ DB::DB(const std::string& db_path) {
 DB::DB(const DBConfig& config) : schema_(new Schema(config.schema_config())) {
   auto db_config = meta_data_.mutable_db_config();
   *db_config = config;
+  InitDB(meta_data_.db_config().db_dir());
   auto unix_timestamp = std::chrono::seconds(std::time(nullptr)).count();
   meta_data_.set_creation_time(unix_timestamp);
   meta_data_.set_feature_index_type(kFeatureIndexType);
@@ -129,17 +135,19 @@ DBProto DB::GetProto() const {
 }
 
 void DB::CommitDB() {
-  std::string db_file = meta_data_.db_config().db_dir() + kDBFile;
+  std::string db_file = meta_data_.db_config().db_dir() + kDBMeta;
   //CHECK(io::Exists(db_file));
   
   auto db_proto = GetProto();
   std::string serialized_db = SerializeProto(GetProto());
   auto original_size = serialized_db.size();
+
   // /* ----- RocksDB Method ------
-  std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_file));
+  //std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_file));
   auto compressed_size = WriteCompressedString(serialized_db);
-  rocksdb::Status s = db->Put(rocksdb::WriteOptions(), kDBProto, serialized_db);
-  assert(s.ok());
+  io::PutKey(meta_db_.get(), kDBProto, serialized_db);
+  //rocksdb::Status s = db->Put(rocksdb::WriteOptions(), kDBProto, serialized_db);
+  //assert(s.ok());
   //    --------------------------- */
    /*
   auto compressed_size = io::WriteCompressedFile(db_file, serialized_db);
