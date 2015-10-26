@@ -11,6 +11,7 @@
 #include "transform/all.hpp"
 #include "schema/all.hpp"
 
+
 namespace hotbox {
 
 namespace {
@@ -30,15 +31,16 @@ void DB::InitDB(const std::string& db_path) {
 }
 
 DB::DB(const std::string& db_path) {
+#ifdef USE_ROCKS
   InitDB(db_path);
-
   std::string db_str;
   io::GetKey(meta_db_.get(), kDBProto, &db_str);
   LOG(INFO) << "Get Key (" << kDBProto << ") from DB (" << meta_db_->GetName() << ")";
-  // */
-  /*
-  std::string db_str = io::ReadCompressedFile(db_file_path);
-  // */
+#else
+  auto metadb_file_path = db_path + kDBMeta;
+  auto recorddb_file_path = db_path + kDBFile;
+  std::string db_str = io::ReadCompressedFile(metadb_file_path);
+#endif
   DBProto proto;
   proto.ParseFromString(ReadCompressedString(db_str));
   meta_data_ = proto.meta_data();
@@ -142,16 +144,13 @@ void DB::CommitDB() {
   std::string serialized_db = SerializeProto(GetProto());
   auto original_size = serialized_db.size();
 
-  // /* ----- RocksDB Method ------
-  //std::unique_ptr<rocksdb::DB> db(OpenRocksDB(db_file));
+#ifdef USE_ROCKS
   auto compressed_size = WriteCompressedString(serialized_db);
   io::PutKey(meta_db_.get(), kDBProto, serialized_db);
-  //rocksdb::Status s = db->Put(rocksdb::WriteOptions(), kDBProto, serialized_db);
-  //assert(s.ok());
-  //    --------------------------- */
-   /*
+#else
   auto compressed_size = io::WriteCompressedFile(db_file, serialized_db);
-  // */
+#endif
+  
   float db_compression_ratio = static_cast<float>(compressed_size)
     / original_size;
   LOG(INFO) << "Committed DB " << meta_data_.db_config().db_name()

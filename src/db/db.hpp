@@ -7,7 +7,13 @@
 #include "db/proto/db.pb.h"
 #include "util/proto/warp_msg.pb.h"
 #include "schema/all.hpp"
+
+
+#define USE_ROCKS 0
+
+#ifdef USE_ROCKS
 #include "util/rocksdb_util.hpp"
+#endif
 
 namespace hotbox {
 
@@ -56,8 +62,10 @@ private:
   // TODO(wdai): Allows multiple schemas (schema evolution).
   std::unique_ptr<Schema> schema_;
 
+#ifdef USE_ROCKS
   std::unique_ptr<rocksdb::DB> meta_db_;
   std::unique_ptr<rocksdb::DB> record_db_;
+#endif
 
   //std::vector<Epoch> epochs_;
 

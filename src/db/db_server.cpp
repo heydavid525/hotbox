@@ -66,18 +66,15 @@ void DBServer::InitFromDBRootFile() {
     db_list_.reset(io::OpenRocksMetaDB(db_root_file_path));
     return;
   }
-  // **** Read File Persistency
-   /*
-  auto db_root_file = io::ReadCompressedFile(db_root_file_path,
-      Compressor::NO_COMPRESS);
-  // */
-  // **** RocksDB Persistency. **********
-  // /* -----------------------------------------
+#ifdef USE_ROCKS
   LOG(INFO) << "Load DB Root File (" << db_root_file_path << ") from rocksdb";
   db_list_.reset(io::OpenRocksMetaDB(db_root_file_path));
   std::string db_root_file;
   io::GetKey(db_list_.get(), kDBRootFile, &db_root_file);
-  // ------------------------------------------*/
+#else
+  auto db_root_file = io::ReadCompressedFile(db_root_file_path,
+      Compressor::NO_COMPRESS);
+#endif
   DBRootFile db_root;
   db_root.ParseFromString(db_root_file);
   std::stringstream ss;
@@ -102,16 +99,13 @@ void DBServer::CommitToDBRootFile() const {
   LOG(INFO) << "Write to " << db_root_file_path << " with compressor "
     << Compressor::NO_COMPRESS;
 
-   /* ----------- File Persistence -------------
-  io::WriteCompressedFile(db_root_file_path, SerializeProto(db_root),
-      Compressor::NO_COMPRESS);
-  // --------------------------------------- */
-  
-  // **** RocksDB Persistency. **********
-  // /*
+#ifdef USE_ROCKS
   // TODO(weiren): We should use rocksdb::Merge operator.
   io::PutKey(db_list_.get(), kDBRootFile, SerializeProto(db_root));
-  // */
+#else
+  io::WriteCompressedFile(db_root_file_path, SerializeProto(db_root),
+      Compressor::NO_COMPRESS);
+#endif
 }
 
 void DBServer::CreateDirectory(const std::string& dir) {
