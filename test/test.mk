@@ -11,25 +11,27 @@ TEST_INCFLAGS = -I$(PROJECT)
 #	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
 #		 $(LDFLAGS) -c $< -o $@
 
-$(TEST_DIR)/%: $(PROJECT)/test/%.cpp $(HB_LIB) test/facility/test_facility.hpp
+$(TEST_DIR)/%: $(PROJECT)/test/%.cpp $(HB_LIB_LINK) test/facility/test_facility.hpp
 	mkdir -p $(@D)
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
-		$< -lgtest $(HB_LIB) $(LDFLAGS) -o $@
+		$< -o $@ \
+		 -lgtest $(HB_LIB_LINK) $(LDFLAGS) 
 
-db_server_main: $(PROJECT)/test/db/db_server_main.cpp $(HB_LIB) \
+db_server_main: $(PROJECT)/test/db/db_server_main.cpp $(HB_LIB_LINK) \
 	test/facility/test_facility.hpp
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
-		$< -lgtest $(HB_LIB) $(LDFLAGS) -o \
-		$(TEST_DIR)/db/db_server_main
+		$< -o $(TEST_DIR)/db/db_server_main \
+		-lgtest $(HB_LIB_LINK) $(LDFLAGS) 
+		
 
-hotbox_client_main: $(PROJECT)/test/client/hotbox_client_main.cpp $(HB_LIB) \
+hotbox_client_main: $(PROJECT)/test/client/hotbox_client_main.cpp $(HB_LIB_LINK) \
 	test/facility/test_facility.hpp
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
-		$< -lgtest $(HB_LIB) $(LDFLAGS) -o \
-		$(TEST_DIR)/client/hotbox_client_main
+		$< -o $(TEST_DIR)/client/hotbox_client_main\
+		-lgtest $(HB_LIB_LINK) $(LDFLAGS)
 
 test: $(TEST_BIN) class_registry_test stream_test db_server_main
 

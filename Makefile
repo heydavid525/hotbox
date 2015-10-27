@@ -5,14 +5,16 @@ include $(PROJECT)/config.mk
 
 #BUILD := $(PROJECT)/build
 BUILD :=build
+BUILD_SHARED := build_shared
 
 SRC_DIR:=$(PROJECT)/src
 
 LIB = $(BUILD)/lib
+LIB_SHARED = $(BUILD_SHARED)/lib
 
-NEED_MKDIR = $(BUILD) $(LIB)
+NEED_MKDIR = $(BUILD) $(LIB) $(BUILD_SHARED) $(LIB_SHARED)
 
-all: proto hotbox_lib test
+all: proto hotbox_lib hotbox_sharedlib test
 
 path: $(NEED_MKDIR)
 
@@ -21,6 +23,7 @@ $(NEED_MKDIR):
 
 clean:
 	rm -rf $(BUILD)
+	rm -rf $(BUILD_SHARED)
 	rm -rf db_testbed
 
 .PHONY: all path clean
@@ -35,7 +38,10 @@ CXXFLAGS += -O2 \
            -fno-builtin-realloc \
            -fno-builtin-free \
            -fno-omit-frame-pointer \
-					 -DDMLC_USE_GLOG=1
+					 -DDMLC_USE_GLOG=1 \
+
+CXXFLAGS_SHARED = $(CXXFLAGS)
+CXXFLAGS_SHARED += -fPIC \
 
 THIRD_PARTY = $(PROJECT)/third_party
 THIRD_PARTY_SRC = $(THIRD_PARTY)/src
@@ -67,16 +73,20 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
 					-lsnappy \
           -ldmlc \
           -lhdfs \
-          -lrocksdb 
+          -lrocksdb \
 
 HB_SRC = $(shell find src -type f -name "*.cpp")
 HB_PROTO = $(shell find src -type f -name "*.proto")
 HB_HEADERS = $(shell find src -type f -name "*.hpp")
+HB_LIB_SHARED_OBJS = $(shell find $(BUILD_SHARED) -type f -name "*.o")
 
 ###
-PROTO_HDRS = $(patsubst src/%.proto, build/%.pb.h, $(HB_PROTO))
-PROTO_OBJS = $(patsubst src/%.proto, build/%.pb.o, $(HB_PROTO))
-HB_OBJS = $(patsubst src/%.cpp, build/%.o, $(HB_SRC))
+PROTO_HDRS = $(patsubst src/%.proto, $(BUILD)/%.pb.h, $(HB_PROTO))
+PROTO_OBJS = $(patsubst src/%.proto, $(BUILD)/%.pb.o, $(HB_PROTO))
+HB_OBJS = $(patsubst src/%.cpp, $(BUILD)/%.o, $(HB_SRC))
+PROTO_OBJS_SHARED = $(patsubst src/%.proto, $(BUILD_SHARED)/%.pb.o, $(HB_PROTO))
+HB_OBJS_SHARED = $(patsubst src/%.cpp, $(BUILD_SHARED)/%.o, $(HB_SRC))
+
 
 PROTOC = $(THIRD_PARTY_BIN)/protoc
 
@@ -92,8 +102,8 @@ $(HB_LIB): $(PROTO_OBJS) $(HB_OBJS)
 	ar csrv $@ $(filter %.o, $?)
 	# Make $(BUILD)/ into a python module.
 	python $(PROJECT)/python/util/modularize.py $(BUILD)
-	
-$(PROTO_OBJS): %.pb.o: %.pb.cc
+
+$(PROTO_OBJS): $(BUILD)/%.pb.o: $(BUILD)/%.pb.cc
 	@echo PROTO_OBJS_
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c $< -o $@
@@ -103,8 +113,26 @@ $(HB_OBJS): $(BUILD)/%.o: $(SRC_DIR)/%.cpp
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c $< -o $@
 
+$(HB_SHARED_LIB): $(HB_OBJS_SHARED) $(PROTO_OBJS_SHARED)
+	@echo HB_LIB_SHARED_
+	mkdir -p $(@D)
+	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
+	$(CXX) -shared -o $@ $(HB_LIB_SHARED_OBJS) $(LDFLAGS)
+	
+$(PROTO_OBJS_SHARED): $(BUILD_SHARED)/%.pb.o: $(BUILD)/%.pb.cc
+	@echo PROTO_OBJS_SHARED
+	mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS_SHARED) $(INCFLAGS) -c $< -o $@
+
+$(HB_OBJS_SHARED): $(BUILD_SHARED)/%.o: $(SRC_DIR)/%.cpp
+	@echo HB_OBJS_SHARED
+	mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS_SHARED) $(INCFLAGS) -c $< -o $@
+
 proto:$(PROTO_HDRS)
 
 hotbox_lib: path proto $(HB_LIB)
+
+hotbox_sharedlib: path proto $(HB_SHARED_LIB)
 
 include $(PROJECT)/test/test.mk

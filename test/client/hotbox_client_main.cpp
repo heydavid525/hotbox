@@ -7,6 +7,7 @@ int main(int argc, char *argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
   hotbox::HBClient hb_client;
+  LOG(INFO) << "HBClient Initialized";
   hotbox::SessionOptions session_options;
   session_options.db_name = "test_db";
   session_options.session_id = "test_session";

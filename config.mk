@@ -8,3 +8,6 @@ ifndef LIBJVM
 endif
 
 HB_LIB = $(PROJECT)/build/lib/libhotbox.a
+HB_SHARED_LIB = $(PROJECT)/build_shared/lib/libhotbox.so
+
+HB_LIB_LINK = $(HB_LIB)
