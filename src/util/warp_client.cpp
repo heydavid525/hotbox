@@ -14,6 +14,8 @@ WarpClient::WarpClient() {
   zmq_ctx_.reset(zmq_util::CreateZmqContext());
   sock_.reset(new zmq::socket_t(*zmq_ctx_, ZMQ_ROUTER));
 
+  LOG(INFO) << "WarpClient: reset socket. Init phase.";
+
   // accept only routable messages on ROUTER sockets
   int sock_mandatory = 1;
   zmq_util::ZMQSetSockOpt(sock_.get(), ZMQ_ROUTER_MANDATORY, &(sock_mandatory),

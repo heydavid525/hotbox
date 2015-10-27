@@ -22,6 +22,7 @@ const std::string kDBProto = "DBProto";
 
 }  // anonymous namespace
 
+#ifdef USE_ROCKS
 void DB::InitDB(const std::string& db_path) {
   LOG(INFO) << "Open DB db_path: " << db_path;
   auto metadb_file_path = db_path + kDBMeta;
@@ -29,6 +30,7 @@ void DB::InitDB(const std::string& db_path) {
   meta_db_.reset(io::OpenRocksMetaDB(metadb_file_path));
   record_db_.reset(io::OpenRocksRecordDB(recorddb_file_path));
 }
+#endif
 
 DB::DB(const std::string& db_path) {
 #ifdef USE_ROCKS
@@ -36,18 +38,24 @@ DB::DB(const std::string& db_path) {
   std::string db_str;
   io::GetKey(meta_db_.get(), kDBProto, &db_str);
   LOG(INFO) << "Get Key (" << kDBProto << ") from DB (" << meta_db_->GetName() << ")";
+  DBProto proto;
+  proto.ParseFromString(ReadCompressedString(db_str));
 #else
   auto metadb_file_path = db_path + kDBMeta;
   auto recorddb_file_path = db_path + kDBFile;
   std::string db_str = io::ReadCompressedFile(metadb_file_path);
-#endif
   DBProto proto;
-  proto.ParseFromString(ReadCompressedString(db_str));
+  proto.ParseFromString(db_str);
+#endif
   meta_data_ = proto.meta_data();
   schema_ = make_unique<Schema>(proto.schema_proto());
   LOG(INFO) << "DB " << meta_data_.db_config().db_name() << " is initialized"
-    " from " << meta_db_->GetName() << " # features in schema: "
-    << schema_->GetNumFeatures();
+#ifdef USE_ROCKS
+    " from " << meta_db_->GetName() 
+#else
+    " from " << metadb_file_path
+#endif
+    << " # features in schema: "  << schema_->GetNumFeatures();
   // TODO(wdai): Throw exception and catch and handle it in DBServer.
   if (kFeatureIndexType == FeatureIndexType::INT32 &&
       meta_data_.feature_index_type() == FeatureIndexType::INT64) {
@@ -60,15 +68,20 @@ DB::DB(const std::string& db_path) {
 DB::DB(const DBConfig& config) : schema_(new Schema(config.schema_config())) {
   auto db_config = meta_data_.mutable_db_config();
   *db_config = config;
+  
+  std::time_t read_timestamp = meta_data_.creation_time();
+  LOG(INFO) << "Creating DB " << config.db_name() << ". Creation time: "
+    << std::ctime(&read_timestamp);
+
+#ifdef USE_ROCKS
   InitDB(meta_data_.db_config().db_dir());
+#endif
+
   auto unix_timestamp = std::chrono::seconds(std::time(nullptr)).count();
   meta_data_.set_creation_time(unix_timestamp);
   meta_data_.set_feature_index_type(kFeatureIndexType);
-  std::time_t read_timestamp = meta_data_.creation_time();
   meta_data_.mutable_file_map()->set_atom_path(
       meta_data_.db_config().db_dir() + "/atom.");
-  LOG(INFO) << "Creating DB " << config.db_name() << ". Creation time: "
-    << std::ctime(&read_timestamp);
 }
 
 std::string DB::ReadFile(const ReadFileReq& req) {

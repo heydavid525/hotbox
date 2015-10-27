@@ -63,7 +63,9 @@ void DBServer::InitFromDBRootFile() {
   if (!io::Exists(db_root_file_path)) {
     LOG(INFO) << "DB File (" << db_root_file_path << ") doesn't exist yet. "
       "This must be a new DB";
+#ifdef USE_ROCKS
     db_list_.reset(io::OpenRocksMetaDB(db_root_file_path));
+#endif
     return;
   }
 #ifdef USE_ROCKS
@@ -81,7 +83,7 @@ void DBServer::InitFromDBRootFile() {
   for (int i = 0; i < db_root.db_names_size(); ++i) {
     std::string db_name = db_root.db_names(i);
     std::string db_path = db_dir_ + "/" + db_name;
-    LOG(INFO) << "Load DB File (" << db_path << ") from rocksdb";
+    LOG(INFO) << "Load DB File (" << db_path << ").";
     dbs_[db_name] = make_unique<DB>(db_path);
     ss << db_name << std::endl;
   }

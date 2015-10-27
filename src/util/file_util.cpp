@@ -52,7 +52,7 @@ std::string ReadCompressedFile(const std::string& file_path,
     return compressor_if->Uncompress(buffer);
   } catch (const FailedToUncompressException& e) {
     throw FailedFileOperationException("Failed to uncompress " + file_path
-        + "\n" + e.what());
+        + " " + e.what());
   }
   // Should never get here.
   return "";

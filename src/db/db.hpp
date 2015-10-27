@@ -9,7 +9,7 @@
 #include "schema/all.hpp"
 
 
-#define USE_ROCKS 0
+#define USE_ROCKS_
 
 #ifdef USE_ROCKS
 #include "util/rocksdb_util.hpp"
@@ -48,8 +48,10 @@ public:
   // client to use directly.
   SessionProto CreateSession(const SessionOptionsProto& session_options);
 
-  void InitDB(const std::string& db_path);
-  // Write all the states of DB to /DB file.
+#ifdef USE_ROCKS
+  void InitDB(const std::string& db_path
+#endif  
+// Write all the states of DB to /DB file.
   void CommitDB();
 
   DBProto GetProto() const;
