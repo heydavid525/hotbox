@@ -26,3 +26,9 @@
 *.exe
 *.out
 *.app
+
+# SourceInsight files
+hotbox-vm.*
+
+# Tmp files
+*~
