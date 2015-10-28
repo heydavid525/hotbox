@@ -22,7 +22,8 @@ public:
   // Initialize dense store.
   FlexiDatum(std::vector<float>&& vals,
       float label = std::nanf(""), float weight = 1.);
-
+  
+  FlexiDatum(const FlexiDatum& other){};
   // Move semantics
   FlexiDatum(FlexiDatum&& other) noexcept;  // move c'tor
   FlexiDatum& operator=(FlexiDatum&& other);  // move assignment
@@ -40,7 +41,6 @@ public:
 
   std::string ToString() const;
 
-  inline bool isDense(){ return store_type_ == OutputStoreType::DENSE;};
 private:
   // Dense or Sparse. store_type_ can only be set in constructor.
   OutputStoreType store_type_;

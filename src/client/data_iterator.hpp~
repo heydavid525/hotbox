@@ -24,6 +24,8 @@ public:
 
   FlexiDatum&& GetDatum();
   
+  DataIterator() {};
+
 private:
   // Can only be created by Session, and the parent Session needs to outlive
   // DataIterator.

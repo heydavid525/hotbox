@@ -1,0 +1,18 @@
+syntax = "proto3";
+package spark_exp;
+
+message Session_option_msg {
+  string db_name = 1;
+  string session_id = 2;
+  string transform_config_path = 3;
+  bool is_dense = 4;
+}
+
+message Data_request_msg{
+  int64 begin = 1;
+  int64 end = 2;
+}
+
+message Libsvm_data_msg {
+  repeated string data = 1;
+}

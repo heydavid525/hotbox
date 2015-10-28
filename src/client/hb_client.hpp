@@ -22,6 +22,8 @@ public:
   // Create a session. HBClient must outlive the created Session.
   Session CreateSession(const SessionOptions& session_options) noexcept;
 
+  Session* CreateSessionWithPointer(const SessionOptions& session_options) noexcept;
+
 private:
   WarpClient warp_client_;
 };

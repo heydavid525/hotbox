@@ -13,6 +13,7 @@ class Session {
 public:
   Session(WarpClient& warp_client, Status status,
       const SessionProto& session_proto);
+  Session(){};
   // Close the connection in destructor.
   ~Session();
 

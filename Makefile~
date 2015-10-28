@@ -115,9 +115,8 @@ proto:$(PROTO_HDRS)
 
 $PY_CLIENT_SRC=$(shell find src/client/py_client -type f -name "*.cpp")
 py_hb_client: $(HB_LIB)
-	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(LDFLAGS) -shared -Wl,--export-dynamic $(PY_CLIENT_SRC) -L./build/lib -lhotbox -lboost_python -L/usr/lib/python2.7/config -lpython2.7 -o py_hb_client.so
-spark_exp_server: experiment/spark_exp/server/spark_exp.pb.cc experiment/spark_exp/server/spark_exp.pb.h experiment/spark_exp/server/server.cpp $(HB_LIB)
-	$(CXX) $(CXXFLAGS) $(INCFLAGS) experiment/spark_exp/server/server.cpp experiment/spark_exp/server/spark_exp.pb.cc experiment/spark_exp/server/spark_exp.pb.h $(HB_LIB) $(LDFLAGS) -o spark_exp_server
+	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(LDFLAGS) -shared -Wl,--export-dynamic $(PY_CLIENT_SRC) -L./build/lib -lhotbox -lboost_python -L/usr/lib/python2.7/config -lpython2.7 -o pyhbclient.so
+
 hotbox_lib: path proto $(HB_LIB)
 
 include $(PROJECT)/test/test.mk
