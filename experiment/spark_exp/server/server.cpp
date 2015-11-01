@@ -1,4 +1,3 @@
-#include "spark_exp.pb.h"
 #include "client/hb_client.hpp"
 
 #include <stdio.h>
@@ -25,26 +24,33 @@
 #define LISTENT_PORT 13579
 
 using namespace std;
-using namespace spark_exp;
 using namespace hotbox;
 
 
 Session *session;
 
+void memcpyInt(unsigned char *dst, const unsigned char *src)
+{
+	memcpy(dst++, src + 3, 1);
+	memcpy(dst++, src + 2, 1);
+	memcpy(dst++, src + 1, 1);
+	memcpy(dst++, src + 0, 1);
+};
+
 void handleCreate(int clientSocket, int length){
 	char body[BODY_LEN];
 	if(recv(clientSocket, body, length, 0) <= 0)
 		return;
+		
+	char db_name[BODY_LEN], session_id[BODY_LEN], transform_config_path[BODY_LEN], is_dense[10];
+	sscanf(body, "%s %s %s %s", db_name, session_id, transform_config_path, is_dense);
+	printf("session option : %s %s %s %s\n", db_name, session_id, transform_config_path, is_dense);
 	SessionOptions session_options;
-	Session_option_msg som;
-	if (!som.ParseFromString(string(body))) {
-      printf("Failed to parse Session_option_msg \n");
-      return;
-    }
-	session_options.db_name = som.db_name();
-	session_options.session_id = som.session_id();
-	session_options.transform_config_path = som.transform_config_path();
-	if(som.is_dense())
+
+	session_options.db_name = db_name;
+	session_options.session_id = session_id;
+	session_options.transform_config_path = transform_config_path;
+	if(strcmp(is_dense, "true"))
 		session_options.output_store_type = OutputStoreType::DENSE;
 	else
 		session_options.output_store_type = OutputStoreType::SPARSE;
@@ -61,24 +67,22 @@ void handleGet(int clientSocket, int length){
 	
 	if(recv(clientSocket, body, length, 0) <= 0)
 		return;
-	Data_request_msg drm;
-	if (!drm.ParseFromString(string(body))) {
-      printf("Failed to parse Data_request_msg \n");
-      return;
-    }
-	Libsvm_data_msg ldm;
-	
-	for (DataIterator it = session->NewDataIterator(drm.begin(), drm.end()); it.HasNext(); it.Next()) {
-		string datum = it.GetDatum().ToString();
-		ldm.add_data(datum);		
+		
+	int64_t begin, end;
+	sscanf(body, "%ld %ld", &begin, &end);
+	printf("get data : %ld %ld", begin, end);
+	stringstream data;
+	for (DataIterator it = session->NewDataIterator(begin, end); it.HasNext(); it.Next()) {
+		data << it.GetDatum().GetFeatureDim() << " "
+		  << it.GetDatum().ToLibsvmString() << ";;;";		
+		printf("tmp_len: %ld\n", data.str().length());
 	}
-	string ser;	
-	ldm.SerializeToString(&ser);
-	char response[4];
-	int serLen = ser.length();
-	memcpy(response, &serLen, 4);
+	unsigned char response[4];
+	int data_len = data.str().length() + 1;
+	printf("data_len: %d\n", data_len);
+	memcpyInt(response, (unsigned char*)&data_len);
 	send(clientSocket, response, 4, 0);
-	send(clientSocket, ser.c_str(), serLen, 0);	
+	send(clientSocket, data.str().c_str(), data_len, 0);	
 }
 
 void doClientRequest(int clientSocket){
@@ -87,7 +91,8 @@ void doClientRequest(int clientSocket){
 		char header[HEADER_LEN];
 		if(recv(clientSocket, header, HEADER_LEN, 0) <= 0)
 			return;
-		memcpy(&length, &header[1], 4);
+		printf("%x %x %x %x %x\n", header[0], header[1], header[2], header[3], header[4]);
+		length=((header[1]<<24)|(header[2]<<16)|(header[3]<<8)|header[4]);
 		printf("length: %d\n", length);
 		
 		if(header[0] == TYPE_CREATE_SESSION){
