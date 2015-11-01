@@ -35,6 +35,7 @@ private:
 
   // Read an atom file and perform transform.
   void ReadAtomAndTransform(int atom_id);
+  void ReadSizeLimitedAtomAndTransform(BigInt file_begin, BigInt file_end);
 
 private:
   const SessionProto& session_proto_;

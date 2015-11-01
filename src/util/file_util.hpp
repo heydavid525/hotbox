@@ -5,6 +5,8 @@
 #include "db/proto/db.pb.h"
 #include "io/filesys.hpp"
 
+#define _ATOM_SIZE_MB 64*1024*1024
+
 namespace hotbox {
 	namespace io {
 
@@ -18,6 +20,15 @@ std::string ReadCompressedFile(const std::string& file_path,
 // Compress and write data to file_path. Return compressed bytes.
 size_t WriteCompressedFile(const std::string& file_path,
     const std::string& data, Compressor compressor = Compressor::SNAPPY);
+
+// By Default compression is already done for this method.
+size_t WriteSizeLimitedFiles(const std::string& file_path, int32_t& file_idx,
+	const std::string& data);
+
+size_t WriteAtomFiles(const std::string& file_path, int32_t& file_idx,
+	const std::string& data, Compressor compressor = Compressor::SNAPPY);
+
+size_t AppendFile(const std::string& file_path, const std::string& data);
 
 // Read normal data file and return the string
 std::string ReadFile(const std::string& file_path);

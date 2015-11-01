@@ -5,6 +5,7 @@
 #include <glog/logging.h>
 #include <sstream>
 #include <memory>
+#include <cmath>
 
 namespace hotbox {
   namespace io {
@@ -58,6 +59,70 @@ std::string ReadCompressedFile(const std::string& file_path,
   return "";
 }
 
+size_t WriteSizeLimitedFiles(const std::string& file_dir, int32_t& file_idx,
+    const std::string& data) {
+  // Configurations.
+  // int32_t size_limit = _ATOM_SIZE_MB;
+  int32_t curr_atom_idx = file_idx;
+  int32_t size_written = 0;
+  int32_t data_offset = 0;
+
+  // Get current loop count according to current atom size.
+  std::string curr_file_path = file_dir + std::to_string(curr_atom_idx);
+  dmlc::io::URI path(curr_file_path.c_str());
+  // We don't own the FileSystem pointer.
+  dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
+  dmlc::io::FileInfo info = fs->GetPathInfo(path);
+  size_t curr_atom_size = info.size;
+  //float curr_X = (float)(data.size() + curr_atom_size)) / (float)_ATOM_SIZE_MB;
+  int32_t curr_X = data.size() + curr_atom_size + _ATOM_SIZE_MB;
+  int32_t atom_size_mb = _ATOM_SIZE_MB;
+  int32_t loop_size = curr_X / atom_size_mb; // MACRO can't be put in demoninator?
+  LOG(INFO) << "WriteSizeLimitedFiles: "
+            << "Size Limit: " << _ATOM_SIZE_MB << ". "
+            << "Current Atom File: " << curr_atom_idx << ". "
+            << "Current X: " << curr_X << ". "
+            << "Data Size: " << data.size() << ". "
+            << "curr_atom_size " << curr_atom_size << ". "
+            << "Loop Size: " << loop_size << ". ";
+  
+  //TODO(weiren): find a non-copy method for compressing data.
+  for(int i=0; i < loop_size; i++, curr_atom_size++) {
+    // Write to the current atom file.
+    if(i == 0) {
+      data_offset = _ATOM_SIZE_MB-curr_atom_size;
+      size_written += AppendFile(curr_file_path, data.substr(0, data_offset));
+    }
+    // Write whole size_limit files.
+    else if(i < loop_size - 1) {
+      curr_file_path = file_dir + std::to_string(curr_atom_size);
+      size_written += AppendFile(curr_file_path, data.substr(data_offset, _ATOM_SIZE_MB));
+      data_offset += _ATOM_SIZE_MB;
+    }
+    // Write the left data to a new file.
+    else {
+      curr_file_path = file_dir + std::to_string(curr_atom_size);
+      int32_t len = data.size() - data_offset;
+      size_written += AppendFile(curr_file_path, data.substr(data_offset, len));
+    }
+  }
+  return size_written;
+}
+
+size_t WriteAtomFiles(const std::string& file_dir, int32_t& file_idx,
+    const std::string& data, Compressor compressor) {
+  // Fisrt Compress then write to separate files.
+  if (compressor != Compressor::NO_COMPRESS) {
+    auto& registry = ClassRegistry<CompressorIf>::GetRegistry();
+    std::unique_ptr<CompressorIf> compressor_if = 
+                          registry.CreateObject(compressor);
+    std::string compressed = compressor_if->Compress(data);
+    LOG(INFO) << "Compressed String Len: " << compressed.size(); 
+    return WriteSizeLimitedFiles(file_dir, file_idx, compressed);
+  } else {
+    return WriteSizeLimitedFiles(file_dir, file_idx, data);
+  }
+}
 
 size_t WriteCompressedFile(const std::string& file_path,
     const std::string& data, Compressor compressor) {
@@ -78,6 +143,19 @@ size_t WriteCompressedFile(const std::string& file_path,
     os->Write(compressed.c_str(), compressed.size());
     return compressed.size();
   }
+  os->Write(data.c_str(), data.size());
+  return data.size();
+}
+
+size_t AppendFile(const std::string& file_path,
+    const std::string& data) {
+  // We do own this pointer.
+  std::unique_ptr<dmlc::Stream> os(dmlc::Stream::Create(file_path.c_str(), "a"));
+  if (!os) {
+    throw FailedFileOperationException("Failed to open " + file_path
+        + " for write.");
+  }
+  LOG(INFO) << "Writing to " << file_path;
   os->Write(data.c_str(), data.size());
   return data.size();
 }

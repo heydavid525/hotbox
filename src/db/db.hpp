@@ -43,6 +43,7 @@ public:
 
   // Initialize/augment schema accordingly. Return a message.
   std::string ReadFile(const ReadFileReq& req);
+  std::string IngestFile(const ReadFileReq& req);
 
   // Return a server session containing transformed schema etc for next
   // client to use directly.
@@ -68,6 +69,8 @@ private:
   std::unique_ptr<rocksdb::DB> meta_db_;
   std::unique_ptr<rocksdb::DB> record_db_;
 #endif
+
+  void GenerateDBAtom(const DBAtom& atom, const ReadFileReq& req);
 
   //std::vector<Epoch> epochs_;
 

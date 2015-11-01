@@ -149,7 +149,7 @@ void DBServer::ReadFileReqHandler(int client_id, const ReadFileReq& req) {
   if (it == dbs_.cend()) {
     SendGenericReply(client_id, "DB " + req.db_name() + " not found.");
   }
-  std::string reply_msg = it->second->ReadFile(req);
+  std::string reply_msg = it->second->IngestFile(req);
   SendGenericReply(client_id, reply_msg);
 }
 

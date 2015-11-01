@@ -99,7 +99,7 @@ $(HB_LIB): $(PROTO_OBJS) $(HB_OBJS)
 	@echo HB_LIB_
 	mkdir -p $(@D)
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
-	ar csrv $@ $(filter %.o, $?)
+	ar csrv $@ $(filter %.o, $?) $(THIRD_PARTY_LIB)/libdmlc.a
 	# Make $(BUILD)/ into a python module.
 	python $(PROJECT)/python/util/modularize.py $(BUILD)
 

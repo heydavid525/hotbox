@@ -16,6 +16,7 @@ DataIterator::DataIterator(const SessionProto& session_proto,
   }
 
 FlexiDatum&& DataIterator::GetDatum() {
+  /*
   CHECK_LT(next_, data_end_);
   if (next_ == chunk_end_) {
     // Read the next chunk.
@@ -28,6 +29,78 @@ FlexiDatum&& DataIterator::GetDatum() {
     chunk_end_ = chunk_begin_ + data_buffer_.size();
   }
   return std::move(data_buffer_[next_ - chunk_begin_]);
+  */
+  // Get Datum from Size Limited Files.
+  CHECK_LT(next_, data_end_);
+  if (next_ == chunk_end_) {
+    // Read the next chunk.
+    auto high = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(), next_);
+    auto data_idx = high - datum_ids_.cbegin() - 1;
+    int32_t file_begin, file_end;
+    if(next_ == 0) {
+      file_begin = 0;
+      file_end = session_proto_.file_map().data_idx(data_idx);
+    } else {
+      file_begin = session_proto_.file_map().data_idx(data_idx);
+      file_end = session_proto_.file_map().data_idx(data_idx + 1);
+    }
+    LOG(INFO) << "data_idx: " << data_idx << ". "
+              << "file_begin: " << file_begin << ". "
+              << "file_end: " << file_end << ". "
+              << "next_: " << next_ << ". ";
+    CHECK_GE(data_idx, 0) << "Couldn't find atom file containing datum " << next_;
+    CHECK_LT(data_idx, datum_ids_.size());
+    CHECK_LT(file_begin, file_end);
+    ReadSizeLimitedAtomAndTransform(file_begin, file_end);
+    chunk_begin_ = chunk_end_;
+    chunk_end_ = chunk_begin_ + data_buffer_.size();
+  }
+  return std::move(data_buffer_[next_ - chunk_begin_]);
+}
+
+void DataIterator::ReadSizeLimitedAtomAndTransform(BigInt file_begin, BigInt file_end) {
+  int32_t size_limit = _ATOM_SIZE_MB;
+  int32_t atom_idx_begin = file_begin / size_limit;
+  int32_t atom_idx_end = file_end / size_limit;
+  std::stringstream ss;
+
+  for(int i=0; i < (atom_idx_end + 1 - atom_idx_begin) ; i++) {
+    LOG(INFO) << "Reading atom file " << atom_idx_begin + i;
+    std::string content = io::ReadCompressedFile(
+        session_proto_.file_map().atom_path() + std::to_string(atom_idx_begin + i),
+        Compressor::NO_COMPRESS);
+    if(i == 0) {
+      ss << content.substr(file_begin % size_limit, file_end - file_begin);
+    }
+    else if (i < (atom_idx_end - atom_idx_begin - 1)) {
+      ss << content;
+    }
+    else {
+      ss << content.substr(0, file_end % size_limit);
+    }
+  }
+  LOG(INFO) << "File Read: " << ss.str().size();
+  std::string data = ReadCompressedString(ss.str(), session_proto_.compressor());
+
+  DBAtom atom_proto;
+  atom_proto.ParseFromString(data);
+  data_buffer_.resize(atom_proto.datum_protos_size());
+  FeatureFamily internal_family(session_proto_.internal_family_proto());
+  auto output_store_type = session_proto_.output_store_type();
+  auto output_dim = session_proto_.output_dim();
+
+  // Start from the last datum because protobuf only has ReleaseLast().
+  for (int i = atom_proto.datum_protos_size() - 1; i >= 0; --i) {
+    DatumBase* datum_base = new DatumBase(
+        atom_proto.mutable_datum_protos()->ReleaseLast());
+    TransDatum trans_datum(datum_base, internal_family, output_store_type,
+        output_dim);
+    for (int t = 0; t < transforms_.size(); ++t) {
+      trans_datum.ReadyTransform(session_proto_.transform_output_ranges(t));
+      transforms_[t](&trans_datum);
+    }
+    data_buffer_[i] = std::move(trans_datum.GetFlexiDatum());
+  }
 }
 
 void DataIterator::ReadAtomAndTransform(int atom_id) {
