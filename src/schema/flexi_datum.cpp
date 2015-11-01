@@ -92,4 +92,19 @@ std::string FlexiDatum::ToString() const {
   return ss.str();
 }
 
+std::string FlexiDatum::ToLibsvmString() const {
+  std::stringstream ss;
+  ss << label_;
+  if (store_type_ == OutputStoreType::SPARSE) {
+    for (int i = 0; i < sparse_idx_.size(); ++i) {
+      ss << " " << sparse_idx_[i] << ":" << sparse_vals_[i];
+    }
+  } else {
+    for (int i = 0; i < dense_vals_.size(); ++i) {
+      ss << " " << i << ":" << dense_vals_[i];
+    } 
+  }
+  return ss.str();
+}
+
 }  // namespace hotbox

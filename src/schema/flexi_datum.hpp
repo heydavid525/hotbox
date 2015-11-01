@@ -39,7 +39,9 @@ public:
   std::vector<float>&& MoveSparseVals();
 
   std::string ToString() const;
+  std::string ToLibsvmString() const;
 
+  BigInt GetFeatureDim(){return feature_dim_;};
   inline bool isDense(){ return store_type_ == OutputStoreType::DENSE;};
 private:
   // Dense or Sparse. store_type_ can only be set in constructor.
