@@ -131,6 +131,12 @@ $(HB_OBJS_SHARED): $(BUILD_SHARED)/%.o: $(SRC_DIR)/%.cpp
 
 proto:$(PROTO_HDRS)
 
+#$PY_CLIENT_SRC=$(shell find src/client/py_client -type f -name "*.cpp")
+#py_hb_client: $(HB_LIB)
+#	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(LDFLAGS) -shared -Wl,--export-dynamic $(PY_CLIENT_SRC) -L./build/lib -lhotbox -lboost_python -L/usr/lib/python2.7/config -lpython2.7 -o py_hb_client.so
+spark_exp_server: experiment/spark_exp/server/server.cpp $(HB_LIB)
+	$(CXX) $(CXXFLAGS) $(INCFLAGS) experiment/spark_exp/server/server.cpp $(HB_LIB) $(LDFLAGS) -o spark_exp_server
+
 hotbox_lib: path proto $(HB_LIB)
 
 hotbox_sharedlib: path proto $(HB_SHARED_LIB)
