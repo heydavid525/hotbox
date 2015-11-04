@@ -45,9 +45,6 @@ Schema::Schema(const SchemaProto& proto) {
     output_families_[i] = proto.output_families(i);
   }
   append_store_offset_ = proto.append_store_offset();
-
-  //internal_family_ = FeatureFamily(
-  //    proto.families().at(kInternalFamily), features_);
 }
 
 void Schema::AddFeature(const std::string& family_name,
@@ -55,8 +52,8 @@ void Schema::AddFeature(const std::string& family_name,
   UpdateStoreOffset(new_feature);
   new_feature->set_global_offset(features_->size());
   features_->emplace_back(*new_feature);
-  LOG(INFO) << "Adding feature " << new_feature->name() << " to family "
-    << family_name << " global offset: " << new_feature->global_offset();
+  //LOG(INFO) << "Adding feature " << new_feature->name() << " to family "
+  //  << family_name << " global offset: " << new_feature->global_offset();
   GetOrCreateMutableFamily(family_name).AddFeature(*new_feature, family_idx);
 }
 
@@ -65,9 +62,9 @@ void Schema::AddFeature(FeatureFamily* family, Feature* new_feature,
   UpdateStoreOffset(new_feature);
   new_feature->set_global_offset(features_->size());
   features_->emplace_back(*new_feature);
-  LOG(INFO) << "Adding feature " << new_feature->name() << " to family "
-    << family->GetFamilyName() << " global offset: "
-    << new_feature->global_offset();
+  //LOG(INFO) << "Adding feature " << new_feature->name() << " to family "
+  //  << family->GetFamilyName() << " global offset: "
+  //  << new_feature->global_offset();
   family->AddFeature(*new_feature, family_idx);
 }
 

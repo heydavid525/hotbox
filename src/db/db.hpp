@@ -36,7 +36,6 @@ public:
 
   // Initialize/augment schema accordingly. Return a message.
   std::string ReadFile(const ReadFileReq& req);
-  std::string IngestFile(const ReadFileReq& req);
 
   // Return a server session containing transformed schema etc for next
   // client to use directly.

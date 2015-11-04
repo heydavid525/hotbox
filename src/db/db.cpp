@@ -76,7 +76,7 @@ void DB::GenerateDBAtom(const DBAtom& atom, const ReadFileReq& req) {
 }
 
 // With Atom sized to 64MB (or other size) limited chunks.
-std::string DB::IngestFile(const ReadFileReq& req) {
+std::string DB::ReadFile(const ReadFileReq& req) {
   DBAtom atom;
   BigInt num_features_before = schema_->GetNumFeatures();
   {
@@ -85,26 +85,23 @@ std::string DB::IngestFile(const ReadFileReq& req) {
     dmlc::istream in(fp.get());
     std::string line;
     auto& registry = ClassRegistry<ParserIf>::GetRegistry();
-    std::unique_ptr<ParserIf> parser = registry.CreateObject(req.file_format());
+    std::unique_ptr<ParserIf> parser = registry.CreateObject(
+        req.file_format());
     // Comment(wdai): parser_config is optional, and a default is config is
     // created automatically if necessary.
     parser->SetConfig(req.parser_config());
+    StatCollector stat_collector(&stats_);
     while (std::getline(in, line)) {
       CHECK_NOTNULL(parser.get());
-      DatumBase datum = parser->ParseAndUpdateSchema(line, schema_.get());
+      DatumBase datum = parser->ParseAndUpdateSchema(line, schema_.get(),
+          &stat_collector);
       // Let DBAtom takes the ownership of DatumProto release from datum.
       atom.mutable_datum_protos()->AddAllocated(datum.ReleaseProto());
     }
   }
   BigInt num_features_after = schema_->GetNumFeatures();
-  // TODO(weiren): Use various compression library. Need to have some
-  // interface like parser_if.hpp.
   std::string serialized_atom = SerializeProto(atom);
 
-  // TODO(wdai): Don't always create a new file if the previous file hasn't
-  // reached 64MB yet.  
-  // TODO(weiren): Store datum to disk properly, e.g., limit each atom file
-  // to 64MB.
   std::string output_file_dir = meta_data_.file_map().atom_path();
   // meta_data_.file_map().datum_ids_size() is the number of atom files.
   int32_t atom_size_mb = _ATOM_SIZE_MB;
@@ -114,15 +111,18 @@ std::string DB::IngestFile(const ReadFileReq& req) {
   LOG(INFO) << "curr_data_idx_size: " << curr_data_idx_size << ". ";
   int32_t curr_atom_id = curr_data_idx / atom_size_mb;
   int32_t ori_atom_id = curr_atom_id;
-  auto compressed_size = io::WriteAtomFiles(output_file_dir, curr_atom_id, serialized_atom);
+  auto compressed_size = io::WriteAtomFiles(output_file_dir,
+      curr_atom_id, serialized_atom);
   LOG(INFO) << "curr_atom_id: " << curr_atom_id << ". ";
 
   BigInt num_data_read = atom.datum_protos_size();
   BigInt num_data_before_read = meta_data_.file_map().num_data();
   meta_data_.mutable_file_map()->add_datum_ids(num_data_before_read);
-  meta_data_.mutable_file_map()->add_data_idx(curr_data_idx + compressed_size);
+  meta_data_.mutable_file_map()->add_data_idx(
+      curr_data_idx + compressed_size);
   // meta_data_.mutable_file_map()->add_datum_ids(num_data_before_read);
-  meta_data_.mutable_file_map()->set_num_data(num_data_before_read + num_data_read);
+  meta_data_.mutable_file_map()->set_num_data(
+      num_data_before_read + num_data_read);
   auto meta_data_str = PrintMetaData();
 
   CommitDB();
@@ -139,72 +139,6 @@ std::string DB::IngestFile(const ReadFileReq& req) {
      << "# of features in schema: " << num_features_before 
      << " (before) --> " << num_features_after << " (after).\n";
   LOG(INFO) << ss.str() << meta_data_str;
-
-  return ss.str() + meta_data_str;
-
-}
-
-std::string DB::ReadFile(const ReadFileReq& req) {
-  DBAtom atom;
-  BigInt num_features_before = schema_->GetNumFeatures();
-  {
-    std::unique_ptr<dmlc::SeekStream> fp(io::OpenFileStream(req.file_path()));
-    dmlc::istream in(fp.get());
-    std::string line;
-    auto& registry = ClassRegistry<ParserIf>::GetRegistry();
-    std::unique_ptr<ParserIf> parser = registry.CreateObject(
-        req.file_format());
-    // Comment(wdai): parser_config is optional, and a default is config is
-    // created automatically if necessary.
-    parser->SetConfig(req.parser_config());
-    StatCollector stat_collector(&stats_);
-    // TODO(weiren): Store datum to disk properly, e.g., limit each atom file
-    // to 64MB.
-    // TODO(weiren): write file would also need more delicate control.
-    while (std::getline(in, line)) {
-      CHECK_NOTNULL(parser.get());
-      DatumBase datum = parser->ParseAndUpdateSchema(line, schema_.get(),
-          &stat_collector);
-      // Let DBAtom takes the ownership of DatumProto release from datum.
-      atom.mutable_datum_protos()->AddAllocated(datum.ReleaseProto());
-    }
-  }
-  BigInt num_features_after = schema_->GetNumFeatures();
-
-  // TODO(weiren): Use various compression library. Need to have some
-  // interface like parser_if.hpp.
-  std::string serialized_atom = SerializeProto(atom);
-
-  // meta_data_.file_map().datum_ids_size() is the number of atom files.
-  //
-  // TODO(wdai): Don't always create a new file if the previous file hasn't
-  // reached 64MB yet.
-  int32_t next_atom_id = meta_data_.file_map().datum_ids_size();
-  std::string output_file = meta_data_.file_map().atom_path()
-    + std::to_string(next_atom_id);
-  auto compressed_size = io::WriteCompressedFile(output_file,
-      serialized_atom);
-  float compress_ratio = static_cast<float>(compressed_size) /
-    serialized_atom.size();
-  std::stringstream ss;
-  BigInt num_data_read = atom.datum_protos_size();
-  ss << "Read " << num_data_read << " datum. Wrote to " << output_file
-    << " " << SizeToReadableString(compressed_size) << " ("
-    << std::to_string(compress_ratio) << " compression). # of features in"
-    " schema: " << num_features_before << " (before) --> "
-    << num_features_after << " (after).\n";
-
-  //for (const auto& stat : stats_) {
-  //  ss << "stats: " << stat.GetProto().DebugString();
-  //}
-
-  BigInt num_data_before_read = meta_data_.file_map().num_data();
-  meta_data_.mutable_file_map()->add_datum_ids(num_data_before_read);
-  meta_data_.mutable_file_map()->set_num_data(num_data_before_read + num_data_read);
-  auto meta_data_str = PrintMetaData();
-  LOG(INFO) << ss.str() << meta_data_str;
-
-  CommitDB();
 
   return ss.str() + meta_data_str;
 }

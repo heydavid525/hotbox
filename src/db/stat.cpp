@@ -38,6 +38,7 @@ int Stat::UpdateStat(const Feature& feature, float val) {
   auto store_offset = feature.store_offset();
   auto stat = proto_->mutable_stats(store_offset);
   if (feature.is_factor()) {
+    LOG(INFO) << "feature " << feature.global_offset() << " is factor";
     bool exist = false;
     for (int i = 0; i < stat->unique_cat_values_size(); ++i) {
       if (val == stat->unique_cat_values(i)) {
@@ -46,6 +47,7 @@ int Stat::UpdateStat(const Feature& feature, float val) {
       }
     }
     if (!exist) {
+      LOG(INFO) << "Adding to unique values";
       stat->add_unique_cat_values(static_cast<int>(val));
     }
   }
