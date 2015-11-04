@@ -28,12 +28,24 @@ void RegisterCompressors() {
 
 void RegisterTransforms() {
   auto& registry = ClassRegistry<TransformIf>::GetRegistry();
+
   registry.AddCreator(TransformConfig::kOneHotTransform,
       Creator<TransformIf, OneHotTransform>);
+  kConfigCaseToTransformName[TransformConfig::kOneHotTransform]
+    = "OneHotTransform";
   registry.AddCreator(TransformConfig::kBucketizeTransform,
       Creator<TransformIf, BucketizeTransform>);
+  kConfigCaseToTransformName[TransformConfig::kBucketizeTransform]
+    = "BucketizeTransform";
   registry.AddCreator(TransformConfig::kConstantTransform,
       Creator<TransformIf, ConstantTransform>);
+  kConfigCaseToTransformName[TransformConfig::kConstantTransform]
+    = "ConstantTransform";
+  registry.AddCreator(TransformConfig::kSelectTransform,
+      Creator<TransformIf, SelectTransform>);
+  kConfigCaseToTransformName[TransformConfig::kSelectTransform]
+    = "SelectTransform";
+
 }
 
 }  // namespace hotbox

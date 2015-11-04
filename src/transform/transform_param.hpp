@@ -63,24 +63,39 @@ private:
       const std::vector<std::string>& input_features_str) {
     auto finders = GetInputFeatureFinders(input_features_str);
     for (const auto& finder : finders) {
-      if (finder.all_family) {
-        // Family-wide selection.
-        const auto& input_family = schema.GetFamily(finder.family_name);
-        const FeatureSeq& feature_seq = input_family.GetFeatures();
-        input_features_.resize(feature_seq.GetNumFeatures());
-        for (int i = 0; i < feature_seq.GetNumFeatures(); ++i) {
-          input_features_[i] = feature_seq.GetFeature(i);
-        }
-        for (int i = 0; i < feature_seq.GetNumFeatures(); ++i) {
-          input_features_desc_.push_back(input_family.GetFamilyName() + ":"
-              + std::to_string(i));
+      // wildcard to select all features in all-family.
+      if (finder.family_name == "*") {
+        CHECK(finder.all_family) << "Must select all family and all features";
+        const std::map<std::string, FeatureFamily>& families =
+          schema.GetFamilies();
+        for (const auto& p : families) {
+          FamilyWideSelection(schema, p.first);
         }
       } else {
-        input_features_.push_back(schema.GetFeature(finder));
-        input_features_desc_.push_back(finder.family_name + ":" +
-            (finder.feature_name.empty() ? std::to_string(finder.family_idx)
-            : finder.feature_name));
+        if (finder.all_family) {
+          FamilyWideSelection(schema, finder.family_name);
+        } else {
+          input_features_.push_back(schema.GetFeature(finder));
+          input_features_desc_.push_back(finder.family_name + ":" +
+              (finder.feature_name.empty() ? std::to_string(finder.family_idx)
+              : finder.feature_name));
+        }
       }
+    }
+  }
+
+  void FamilyWideSelection(const Schema& schema,
+      const std::string& family_name) {
+    // Family-wide selection.
+    const auto& input_family = schema.GetFamily(family_name);
+    const FeatureSeq& feature_seq = input_family.GetFeatures();
+    input_features_.resize(feature_seq.GetNumFeatures());
+    for (int i = 0; i < feature_seq.GetNumFeatures(); ++i) {
+      input_features_[i] = feature_seq.GetFeature(i);
+    }
+    for (int i = 0; i < feature_seq.GetNumFeatures(); ++i) {
+      input_features_desc_.push_back(input_family.GetFamilyName() + ":"
+          + std::to_string(i));
     }
   }
 

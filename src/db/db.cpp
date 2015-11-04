@@ -180,7 +180,12 @@ SessionProto DB::CreateSession(const SessionOptionsProto& session_options) {
     const TransformConfig& config = configs.transform_configs(i);
 
     // Configure TransWriter.
-    const auto output_family = config.base_config().output_family();
+    auto output_family = config.base_config().output_family();
+    if (output_family.empty()) {
+      // Set default family name when output_family isn't set.
+      output_family = kConfigCaseToTransformName[config.config_case()] +
+        std::to_string(i);
+    }
     FeatureStoreType store_type = config.base_config().output_store_type();
     TransformWriter trans_writer(&trans_schema, output_family, store_type);
 

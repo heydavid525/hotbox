@@ -5,7 +5,7 @@
 namespace hotbox {
 
 // By default we do not generate the last bucket.
-class BucketizeTransform : public TransformIf {
+class SelectTransform : public TransformIf {
 public:
   void TransformSchema(const TransformParam& param,
       TransformWriter* writer) const override;

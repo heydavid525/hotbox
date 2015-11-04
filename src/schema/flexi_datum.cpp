@@ -74,7 +74,14 @@ std::vector<float>&& FlexiDatum::MoveSparseVals() {
   return std::move(sparse_vals_);
 }
 
-std::string FlexiDatum::ToString() const {
+std::string FlexiDatum::ToString(bool libsvm_string) const {
+  if (libsvm_string) {
+    return ToLibsvmString();
+  }
+  return ToFullString();
+}
+
+std::string FlexiDatum::ToFullString() const {
   std::stringstream ss;
   ss << (store_type_ == OutputStoreType::SPARSE ?  "sparse" : "dense")
     << " dim: " << feature_dim_
@@ -102,7 +109,7 @@ std::string FlexiDatum::ToLibsvmString() const {
   } else {
     for (int i = 0; i < dense_vals_.size(); ++i) {
       ss << " " << i << ":" << dense_vals_[i];
-    } 
+    }
   }
   return ss.str();
 }

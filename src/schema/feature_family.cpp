@@ -18,13 +18,6 @@ bool FeatureFamily::HasFeature(BigInt family_idx) const {
     global_idx_[family_idx] >= 0;
 }
 
-/*
-// TODO(wdai): compact the offsets in DatumProto (can be expensive).
-void FeatureFamily::DeleteFeature(BigInt family_idx) {
-  (*features_)[global_idx_[family_idx]].set_initialized(false);
-}
-*/
-
 const Feature& FeatureFamily::GetFeature(const std::string& feature_name)
   const {
     const auto& it = name_to_family_idx_.find(feature_name);
@@ -163,6 +156,7 @@ FeatureFamily::FeatureFamily(const SelfContainedFeatureFamilyProto& proto) :
   name_to_family_idx_(proto.name_to_family_idx().cbegin(),
       proto.name_to_family_idx().cend()),
   global_idx_(features_->size()) {
+    // Fill in [0, 1, ..., global_idx_.size() -1]
     std::iota(global_idx_.begin(), global_idx_.end(), 0);
 }
 

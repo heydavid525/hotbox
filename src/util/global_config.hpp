@@ -4,8 +4,13 @@
 #include <glog/logging.h>
 #include <string>
 #include "util/file_util.hpp"
+#include <map>
 
 namespace hotbox {
+
+// Global map: TransformConfig::ConfigCase(int) --> Transform name (used as
+// default output family name). Initialized in util/register.cpp
+extern std::map<int, std::string> kConfigCaseToTransformName;
 
 namespace {
 
