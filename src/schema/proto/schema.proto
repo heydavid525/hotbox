@@ -2,7 +2,8 @@ syntax = "proto3";
 
 package hotbox;
 
-// FeatureType is used in parsing only.
+// FeatureType is used in parsing only (where store type like dense
+// and sparse aren't defined yet).
 enum FeatureType {
   UNKNOWN_FEATURE_TYPE = 0;  // if we can't infer the feature type.
   CATEGORICAL = 1;  // int32
@@ -18,18 +19,18 @@ enum OutputStoreType {
   DENSE = 1;
 }
 
-/*
-// FeatureStoreType should be determined by the frequency of a feature in
-// a dataset. This can be inferred at first ingest (schema creation) or
-// explicitly/manually determined by user.
-//
-// Comment(wdai): See Dato's nice column type inference from data.
-enum FeatureStoreType {
-  DYNAMIC = 0;  // let the system decide.
-  SPARSE = 1;
-  DENSE = 2;
+// Current max proto sequence: 7.
+message FeatureStatProto {
+  //uint32 num_unique = 1;   // used only for is_factor feature.
+  // size of unique_cat_values / unique_bytes_values are num_unique_values.
+  repeated int32 unique_cat_values = 6;
+  repeated string unique_bytes_values = 7;
+  double min = 2;
+  double max = 3;
+  double sum = 4;   // sum / num_data = mean.
+  //double quantile_5 = 3;
+  //double quantile_95 = 4;
 }
-*/
 
 enum FeatureIndexType {
   INT64 = 0;
@@ -79,7 +80,7 @@ enum FeatureStoreType {
 // identify the store in DatumRecord, and idx searches for the value in the
 // appropriate store.
 //
-// Current max proto sequence: 4.
+// Current max proto sequence: 6.
 message Feature {
   string name = 1;
   //FeatureLocator loc = 2;
@@ -90,10 +91,20 @@ message Feature {
   // Locate feature value in the store. It represents the global index for
   // dense store (vector) or global key in sparse store (map). For map lookup,
   // not found means 0. This index is determined at schema creation.
-  int64 offset = 3;
+  int64 store_offset = 3;
 
-  // TODO(wdai): is_factor = 7;
-  bool initialized = 4;
+  // Feature in a Schema across FeatureFamily are stored in a single vector
+  // (Schema::features_). global_offset finds the feature in that vector.
+  int64 global_offset = 6;
+
+  // A factor feature value space that's finite (usually very few).
+  // Categorical and bytes is assumed to be factor unless # of unique values
+  // exceeds 'num_unique_values_factor' in SchemaConfig.
+  bool is_factor = 5;
+
+  // Allow skipped features (i.e., feature 2 is initialized before
+  // feature 1), leaving some feature uninitialized.
+  //bool initialized = 4;
 }
 
 // Each data instance is stored as DatumProto, which has 6 data stores
@@ -113,13 +124,31 @@ message DatumProto {
 // FeatureFamily contains a set of offset to denote the start of family in
 // each store of DatumProto/DatumProto. Schema maintains these offsets for the
 // next family insertion.
-message DatumProtoOffset {
+message DatumProtoStoreOffset {
   // offsets(OutputStoreType) maps to the offset of the store.
   repeated int64 offsets = 1;
 }
 
-// Current max proto sequence: 5.
+// Current max proto sequence: 3.
 message FeatureFamilyProto {
+  string family_name = 1;
+
+  // Map from feature name (string) to index on features, used in
+  // "mobile:num_clicks" type of lookup (name = "num_clicks").
+  map<string, int64> name_to_family_idx = 2;
+
+  // Index lookup on family (e.g., "mobile:0" will find the first entry in
+  // features).
+  //repeated Feature features = 3;
+
+  // Maps to a global vector of Feature.
+  repeated int64 global_idx = 3;
+}
+
+// Similar to FeatureFamilyProto, but include Feature and thus does not
+// depend on the Feature in Schema.
+// Current max proto sequence: 3.
+message SelfContainedFeatureFamilyProto {
   string family_name = 1;
 
   // Map from feature name (string) to index on features, used in
@@ -138,6 +167,10 @@ message SchemaConfig {
 
   // True to use dense weight, good if most data has non-zero weight.
   bool use_dense_weight = 2;
+
+  // CATEGORICAL and BYTES features with fewer than this many unique values
+  // are assumed to be factor by default.
+  int32 num_unique_values_factor = 3;
 }
 
 // Current max proto sequence: 5.
@@ -165,7 +198,10 @@ message SchemaProto {
   // Comemnt: 'dim' can belong to DB level if we assume static schema.
   //int64 dim = 4;
 
-  DatumProtoOffset append_offset = 5;
+  DatumProtoStoreOffset append_store_offset = 5;
+
+  // Feature across all FeatureFamily.
+  repeated Feature features = 4;
 }
 
 // OSchema only stores features in FeatureStoreType::OUTPUT.

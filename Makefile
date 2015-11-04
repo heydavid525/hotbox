@@ -108,7 +108,7 @@ $(PROTO_OBJS): $(BUILD)/%.pb.o: $(BUILD)/%.pb.cc
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c $< -o $@
 
-$(HB_OBJS): $(BUILD)/%.o: $(SRC_DIR)/%.cpp
+$(HB_OBJS): $(BUILD)/%.o: $(SRC_DIR)/%.cpp $(PROTO_OBJS)
 	@echo HB_OBJS_
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c $< -o $@

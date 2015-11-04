@@ -6,19 +6,11 @@ import "transform/proto/transform.proto";
 
 package hotbox;
 
-// Current max proto sequence: 6.
-message FeatureStatProto {
-  double max = 5;
-  double min = 6;
-  double mean = 1;
-  double std = 2;
-  //double quantile_5 = 3;
-  //double quantile_95 = 4;
-}
-
-
-/*
-message EpochProto {
+// Track stats starting from an epoch. Each DB has at least one
+// StatProto starting from the beginning of DB.
+//
+// Current max proto sequence: 2.
+message StatProto {
   // Comment (yuwr:) This should be a schema index? We might have many
   // schemas, each schema could have many versions.  Each epoch would
   // correspond to a schema, but not vice versa, hence the index.
@@ -33,20 +25,18 @@ message EpochProto {
   //uint32 schema_version = 1;   // for schema evolution (future work).
 
   // # data in this epoch.
-  uint64 num_data = 2;
+  uint64 num_data = 1;
 
-  // # of outlier data determined at read time.
-  uint64 num_outliers = 3;
+  // The beginning epoch for the stat.
+  uint32 epoch_begin = 3;
 
-  // Read period in unix time seconds.
-  uint64 read_time_begin = 4;
-  uint64 read_time_end = 5;
+  // Should have the same # of features as in schema.
+  repeated FeatureStatProto stats = 2;
 
-  // We assue each epoch would have one single FileMap object to locate the files.
-  // We use the file map index to located the object, avoiding ojbect inconsistency.
-  uint32 file_map_id= 7;
+  repeated bool initialized = 4;
 }
 
+/*
 // File is assumed to be stored in file chunks of a user defined fixed size (e.g. HDFS).
 // Each file contains a number of data records.
 // (The record would start with a length descriptor (4 bytes) used to segment each compressed record.
@@ -130,7 +120,6 @@ message DBMetaData {
   // by 32-bit index system.
   FeatureIndexType feature_index_type = 2;
 
-
   // Mapping datum to atom file.
   FileMap file_map = 6;
 }
@@ -141,23 +130,28 @@ message DBAtom {
   repeated DatumProto datum_protos = 1;
 }
 
+// All DB info except atom files.
 message DBProto {
   DBMetaData meta_data = 1;
   SchemaProto schema_proto = 2;
+
+  // Multiple epoch_stats starting from various epoch.
+  repeated StatProto stats = 3;
 }
 
 // This file is saved at the root of a db_dir for finding all the DB under a
 // DBServer.
 //
 // Comment(wdai): DB in Hotbox is more like Table in SQL.
+// TODO(wdai): Remove this as we use RocksDB.
 message DBRootFile {
   repeated string db_names = 1;
 }
 
 message TransformOutputRange {
   // Transform writes to [offset_begin, offset_end) on store_type.
-  int64 offset_begin = 1;
-  int64 offset_end = 2;
+  int64 store_offset_begin = 1;
+  int64 store_offset_end = 2;
   FeatureStoreType store_type = 3;
 }
 
@@ -184,7 +178,7 @@ message SessionProto {
   repeated TransformOutputRange transform_output_ranges = 2;
   OSchemaProto o_schema = 3;
   // Need internal family to access label and weight.
-  FeatureFamilyProto internal_family_proto = 7;
+  SelfContainedFeatureFamilyProto internal_family_proto = 7;
 
   // All DB atom files are compressed by this compression mode. Default to
   // Compressr::SNAPPY.

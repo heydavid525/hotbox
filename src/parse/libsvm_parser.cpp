@@ -22,6 +22,7 @@ void LibSVMParser::SetConfig(const ParserConfig& config) {
 
 void LibSVMParser::Parse(const std::string& line, Schema* schema,
     DatumBase* datum) const {
+  LOG(INFO) << "parsing: " << line;
   char* ptr = nullptr, *endptr = nullptr;
 
   // Read label.
@@ -47,6 +48,7 @@ void LibSVMParser::Parse(const std::string& line, Schema* schema,
     ptr = endptr;
     try {
       const Feature& feature = family.GetFeature(feature_id);
+      LOG(INFO) << "Setting feature: " << feature.global_offset() << " val: " << val;
       datum->SetFeatureVal(feature, val);
     } catch (const FeatureNotFoundException& e) {
       TypedFeatureFinder typed_finder(e.GetNotFoundFeature(),
@@ -58,10 +60,12 @@ void LibSVMParser::Parse(const std::string& line, Schema* schema,
     }
     while (isspace(*ptr) && ptr - line.data() < line.size()) ++ptr;
   }
+  LOG(INFO) << "Parse cp1";
   if (not_found_features.size() > 0) {
     TypedFeaturesNotFoundException e;
     e.SetNotFoundTypedFeatures(std::move(not_found_features));
     throw e;
   }
+  LOG(INFO) << "Done libsvm::Parse()";
 }
 }  // namespace hotbox

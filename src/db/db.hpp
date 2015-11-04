@@ -8,13 +8,6 @@
 #include "util/proto/warp_msg.pb.h"
 #include "schema/all.hpp"
 
-
-#define USE_ROCKS_
-
-#ifdef USE_ROCKS
-#include "util/rocksdb_util.hpp"
-#endif
-
 namespace hotbox {
 
 /*
@@ -49,10 +42,7 @@ public:
   // client to use directly.
   SessionProto CreateSession(const SessionOptionsProto& session_options);
 
-#ifdef USE_ROCKS
-  void InitDB(const std::string& db_path
-#endif  
-// Write all the states of DB to /DB file.
+  // Write all the states of DB to /DB file.
   void CommitDB();
 
   DBProto GetProto() const;
@@ -65,10 +55,8 @@ private:
   // TODO(wdai): Allows multiple schemas (schema evolution).
   std::unique_ptr<Schema> schema_;
 
-#ifdef USE_ROCKS
-  std::unique_ptr<rocksdb::DB> meta_db_;
-  std::unique_ptr<rocksdb::DB> record_db_;
-#endif
+  // We only support a single Stat
+  std::vector<Stat> stats_;
 
   void GenerateDBAtom(const DBAtom& atom, const ReadFileReq& req);
 

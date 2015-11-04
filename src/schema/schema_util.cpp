@@ -14,6 +14,14 @@ Feature CreateFeature(FeatureStoreType store_type, const std::string& name) {
   Feature f;
   f.set_name(name);
   f.set_store_type(store_type);
+  switch (f.store_type()) {
+    case FeatureStoreType::DENSE_NUM:
+    case FeatureStoreType::SPARSE_NUM:
+      // Use default false value for is_factor().
+      return f;
+    default:
+      f.set_is_factor(true);
+  }
   return f;
 }
 

@@ -66,10 +66,12 @@ private:
       if (finder.all_family) {
         // Family-wide selection.
         const auto& input_family = schema.GetFamily(finder.family_name);
-        const auto& features = input_family.GetFeatures();
-        input_features_.insert(input_features_.end(), features.begin(),
-            features.end());
-        for (int i = 0; i < features.size(); ++i) {
+        const FeatureSeq& feature_seq = input_family.GetFeatures();
+        input_features_.resize(feature_seq.GetNumFeatures());
+        for (int i = 0; i < feature_seq.GetNumFeatures(); ++i) {
+          input_features_[i] = feature_seq.GetFeature(i);
+        }
+        for (int i = 0; i < feature_seq.GetNumFeatures(); ++i) {
           input_features_desc_.push_back(input_family.GetFamilyName() + ":"
               + std::to_string(i));
         }

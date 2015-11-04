@@ -5,18 +5,42 @@
 
 namespace hotbox {
 
+namespace {
+
+const int kMaxParseTries = 100;
+
+}  // anonymous namespace
+
 ParserIf::~ParserIf() { }
 
 // Parse and add features to schema if not found.
 DatumBase ParserIf::ParseAndUpdateSchema(const std::string& line,
-    Schema* schema) noexcept {
-  DatumProto* proto = CreateDatumProtoFromOffset(schema->GetAppendOffset());
-  DatumBase datum(proto);
-  bool success = false;
-  do {
+    Schema* schema, StatCollector* stat_collector) noexcept {
+  for (int i = 0; i < kMaxParseTries; ++i) {
+    DatumProto* proto = CreateDatumProtoFromOffset(schema->GetAppendOffset());
+    stat_collector->DatumCreateBegin();
+    DatumBase datum(proto, stat_collector);
     try {
       Parse(line, schema, &datum);
-      success = true;
+      // No missing feature in schema.
+      auto stats_output = stat_collector->DatumCreateEnd();
+      for (int j = 0; j < stats_output.num_updates; ++j) {
+        // Convert features with too many unique values to non-factor feature.
+        if (stats_output.num_unique[j] >=
+            schema->GetConfig().num_unique_values_factor()) {
+          const auto& f = stats_output.updated_features[j];
+          // Set this feature to factor in schema.
+          Feature& schema_f = schema->GetMutableFeature(f);
+          schema_f.set_is_factor(false);
+
+          // Clear out unique_cat_values() in all feature stat.
+          auto& stats = stat_collector->GetStats();
+          for (auto& stat : stats) {
+            stat.GetMutableFeatureStat(f).clear_unique_cat_values();
+          }
+        }
+      }
+      return datum;
     } catch (const TypedFeaturesNotFoundException& e) {
       // Add the missing features to schema.
       const auto& not_found_features = e.GetNotFoundTypedFeatures();
@@ -39,10 +63,12 @@ DatumBase ParserIf::ParseAndUpdateSchema(const std::string& line,
         // Leave the feature unnamed.
         Feature feature = CreateFeature(store_type);
         schema->AddFeature(finder.family_name, &feature, finder.family_idx);
+        stat_collector->AddFeatureStat(feature);
       }
     }
-  } while (!success);
-  return datum;
+  }
+  LOG(FATAL) << "Attempted to parse " << kMaxParseTries << ". Report bug";
+  return DatumBase(nullptr);
 }
 
 // Infer float or int.
@@ -63,7 +89,7 @@ void ParserIf::SetLabelAndWeight(Schema* schema, DatumBase* datum,
 }
 
 DatumProto* ParserIf::CreateDatumProtoFromOffset(
-    const DatumProtoOffset& offset) {
+    const DatumProtoStoreOffset& offset) {
   DatumProto* proto = new DatumProto;
   proto->mutable_dense_cat_store()->Resize(offset.offsets(
         FeatureStoreType::DENSE_CAT), 0);

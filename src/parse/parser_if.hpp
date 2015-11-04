@@ -15,8 +15,8 @@ public:
   virtual void SetConfig(const ParserConfig& config) = 0;
 
   // Parse and add features to schema if not found.
-  DatumBase ParseAndUpdateSchema(const std::string& line, Schema* schema)
-    noexcept;
+  DatumBase ParseAndUpdateSchema(const std::string& line, Schema* schema,
+      StatCollector* stat_collector) noexcept;
 
   virtual ~ParserIf();
 
@@ -35,7 +35,8 @@ protected:
 
 private:
   // Create DatumProto with dense feature space allocated.
-  static DatumProto* CreateDatumProtoFromOffset(const DatumProtoOffset& offset);
+  static DatumProto* CreateDatumProtoFromOffset(
+      const DatumProtoStoreOffset& offset);
 };
 
 class NoConfigParserIf : public ParserIf {

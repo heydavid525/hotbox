@@ -20,9 +20,11 @@ FlexiDatum&& DataIterator::GetDatum() {
   CHECK_LT(next_, data_end_);
   if (next_ == chunk_end_) {
     // Read the next chunk.
-    auto high = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(), next_);
+    auto high = std::upper_bound(datum_ids_.cbegin(),
+        datum_ids_.cend(), next_);
     auto atom_id = high - datum_ids_.cbegin() - 1;
-    CHECK_GE(atom_id, 0) << "Couldn't find atom file containing datum " << next_;
+    CHECK_GE(atom_id, 0) << "Couldn't find atom file containing datum "
+      << next_;
     CHECK_LT(atom_id, datum_ids_.size());
     ReadAtomAndTransform(atom_id);
     chunk_begin_ = chunk_end_;

@@ -19,8 +19,8 @@ float TransDatum::GetFeatureVal(const Feature& f) const {
 
 void TransDatum::ReadyTransform(const TransformOutputRange& output_range) {
   store_type_ = output_range.store_type();
-  offset_begin_ = output_range.offset_begin();
-  offset_end_ = output_range.offset_end();
+  offset_begin_ = output_range.store_offset_begin();
+  offset_end_ = output_range.store_offset_end();
   range_ = offset_end_ - offset_begin_;
 }
 

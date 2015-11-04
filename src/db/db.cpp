@@ -22,39 +22,27 @@ const std::string kDBProto = "DBProto";
 
 }  // anonymous namespace
 
-#ifdef USE_ROCKS
-void DB::InitDB(const std::string& db_path) {
-  LOG(INFO) << "Open DB db_path: " << db_path;
-  auto metadb_file_path = db_path + kDBMeta;
-  auto recorddb_file_path = db_path + kDBFile;
-  meta_db_.reset(io::OpenRocksMetaDB(metadb_file_path));
-  record_db_.reset(io::OpenRocksRecordDB(recorddb_file_path));
-}
-#endif
-
 DB::DB(const std::string& db_path) {
-#ifdef USE_ROCKS
-  InitDB(db_path);
-  std::string db_str;
-  io::GetKey(meta_db_.get(), kDBProto, &db_str);
-  LOG(INFO) << "Get Key (" << kDBProto << ") from DB (" << meta_db_->GetName() << ")";
-  DBProto proto;
-  proto.ParseFromString(ReadCompressedString(db_str));
-#else
   auto metadb_file_path = db_path + kDBMeta;
   auto recorddb_file_path = db_path + kDBFile;
   std::string db_str = io::ReadCompressedFile(metadb_file_path);
   DBProto proto;
   proto.ParseFromString(db_str);
-#endif
   meta_data_ = proto.meta_data();
   schema_ = make_unique<Schema>(proto.schema_proto());
+
+  // Take over DBProto::stats.
+  StatProto* released_stat = nullptr;
+  int num_stats = proto.stats_size();
+  CHECK_EQ(1, num_stats) << "Only support single stats for now";
+  proto.mutable_stats()->ExtractSubrange(0, num_stats, &released_stat);
+  CHECK_NOTNULL(released_stat);
+  for (int i = 0; i < num_stats; ++i) {
+    stats_.emplace_back(&released_stat[i]);
+  }
+
   LOG(INFO) << "DB " << meta_data_.db_config().db_name() << " is initialized"
-#ifdef USE_ROCKS
-    " from " << meta_db_->GetName() 
-#else
     " from " << metadb_file_path
-#endif
     << " # features in schema: "  << schema_->GetNumFeatures();
   // TODO(wdai): Throw exception and catch and handle it in DBServer.
   if (kFeatureIndexType == FeatureIndexType::INT32 &&
@@ -68,20 +56,19 @@ DB::DB(const std::string& db_path) {
 DB::DB(const DBConfig& config) : schema_(new Schema(config.schema_config())) {
   auto db_config = meta_data_.mutable_db_config();
   *db_config = config;
-  
+
   std::time_t read_timestamp = meta_data_.creation_time();
   LOG(INFO) << "Creating DB " << config.db_name() << ". Creation time: "
     << std::ctime(&read_timestamp);
-
-#ifdef USE_ROCKS
-  InitDB(meta_data_.db_config().db_dir());
-#endif
 
   auto unix_timestamp = std::chrono::seconds(std::time(nullptr)).count();
   meta_data_.set_creation_time(unix_timestamp);
   meta_data_.set_feature_index_type(kFeatureIndexType);
   meta_data_.mutable_file_map()->set_atom_path(
       meta_data_.db_config().db_dir() + "/atom.");
+  // Always has a stat starting at epoch 0.
+  // TODO(wdai): Implement epoch so to have multiple starting epoch points.
+  stats_.emplace_back(0);
 }
 
 void DB::GenerateDBAtom(const DBAtom& atom, const ReadFileReq& req) {
@@ -161,21 +148,23 @@ std::string DB::ReadFile(const ReadFileReq& req) {
   DBAtom atom;
   BigInt num_features_before = schema_->GetNumFeatures();
   {
-	//io::ifstream in(req.file_path());
     std::unique_ptr<dmlc::SeekStream> fp(io::OpenFileStream(req.file_path()));
     dmlc::istream in(fp.get());
     std::string line;
     auto& registry = ClassRegistry<ParserIf>::GetRegistry();
-    std::unique_ptr<ParserIf> parser = registry.CreateObject(req.file_format());
+    std::unique_ptr<ParserIf> parser = registry.CreateObject(
+        req.file_format());
     // Comment(wdai): parser_config is optional, and a default is config is
     // created automatically if necessary.
     parser->SetConfig(req.parser_config());
+    StatCollector stat_collector(&stats_);
     // TODO(weiren): Store datum to disk properly, e.g., limit each atom file
     // to 64MB.
     // TODO(weiren): write file would also need more delicate control.
     while (std::getline(in, line)) {
       CHECK_NOTNULL(parser.get());
-      DatumBase datum = parser->ParseAndUpdateSchema(line, schema_.get());
+      DatumBase datum = parser->ParseAndUpdateSchema(line, schema_.get(),
+          &stat_collector);
       // Let DBAtom takes the ownership of DatumProto release from datum.
       atom.mutable_datum_protos()->AddAllocated(datum.ReleaseProto());
     }
@@ -193,8 +182,8 @@ std::string DB::ReadFile(const ReadFileReq& req) {
   int32_t next_atom_id = meta_data_.file_map().datum_ids_size();
   std::string output_file = meta_data_.file_map().atom_path()
     + std::to_string(next_atom_id);
-  auto compressed_size = io::WriteCompressedFile(output_file, serialized_atom);
-
+  auto compressed_size = io::WriteCompressedFile(output_file,
+      serialized_atom);
   float compress_ratio = static_cast<float>(compressed_size) /
     serialized_atom.size();
   std::stringstream ss;
@@ -204,6 +193,10 @@ std::string DB::ReadFile(const ReadFileReq& req) {
     << std::to_string(compress_ratio) << " compression). # of features in"
     " schema: " << num_features_before << " (before) --> "
     << num_features_after << " (after).\n";
+
+  //for (const auto& stat : stats_) {
+  //  ss << "stats: " << stat.GetProto().DebugString();
+  //}
 
   BigInt num_data_before_read = meta_data_.file_map().num_data();
   meta_data_.mutable_file_map()->add_datum_ids(num_data_before_read);
@@ -220,24 +213,20 @@ DBProto DB::GetProto() const {
   DBProto proto;
   *(proto.mutable_meta_data()) = meta_data_;
   *(proto.mutable_schema_proto()) = schema_->GetProto();
+  for (const auto& stat : stats_) {
+    *(proto.add_stats()) = stat.GetProto();
+  }
   return proto;
 }
 
 void DB::CommitDB() {
   std::string db_file = meta_data_.db_config().db_dir() + kDBMeta;
   //CHECK(io::Exists(db_file));
-  
   auto db_proto = GetProto();
   std::string serialized_db = SerializeProto(GetProto());
   auto original_size = serialized_db.size();
 
-#ifdef USE_ROCKS
-  auto compressed_size = WriteCompressedString(serialized_db);
-  io::PutKey(meta_db_.get(), kDBProto, serialized_db);
-#else
   auto compressed_size = io::WriteCompressedFile(db_file, serialized_db);
-#endif
-  
   float db_compression_ratio = static_cast<float>(compressed_size)
     / original_size;
   LOG(INFO) << "Committed DB " << meta_data_.db_config().db_name()
@@ -275,7 +264,7 @@ SessionProto DB::CreateSession(const SessionOptionsProto& session_options) {
   session.set_compressor(meta_data_.db_config().compressor());
   *(session.mutable_file_map()) = meta_data_.file_map();
   *(session.mutable_internal_family_proto()) =
-    trans_schema.GetFamily(kInternalFamily).GetProto();
+    trans_schema.GetFamily(kInternalFamily).GetSelfContainedProto();
   session.set_output_store_type(session_options.output_store_type());
   session.set_output_dim(
       trans_schema.GetAppendOffset().offsets(FeatureStoreType::OUTPUT));

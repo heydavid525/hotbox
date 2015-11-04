@@ -6,6 +6,8 @@
 
 namespace hotbox {
 
+// CreateFeature would set is_factor = false for numerical store_types, true
+// otherwise.
 Feature CreateFeature(FeatureStoreType store_type,
     const std::string& name = "");
 
