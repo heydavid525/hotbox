@@ -17,7 +17,9 @@ void RegisterAll() {
 
 void RegisterParsers() {
   auto& registry = ClassRegistry<ParserIf>::GetRegistry();
+  
   registry.AddCreator(FileFormat::LIBSVM, Creator<ParserIf, LibSVMParser>);
+  registry.AddCreator(FileFormat::CSV, Creator<ParserIf, CSVParser>);
   registry.AddCreator(FileFormat::FAMILY, Creator<ParserIf, FamilyParser>);
 }
 

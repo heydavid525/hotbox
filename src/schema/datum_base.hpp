@@ -37,7 +37,16 @@ public:
 
   // Assumes the dense feature stores are resized already.
   void SetFeatureVal(const Feature& f, float val);
-
+  
+  //Oct 30
+  void SetFeatureValString(const Feature& f,const char* str, int length);
+  
+  //Oct 30
+  void SetDenseStrFeatureVal(BigInt offset,const char* str_val,int length);
+  
+  //Oct 30
+  void SetSparseStrFeatureVal(BigInt offset,const char* str_val,int length);
+  
   // Directly set in dense_cat_store()
   void SetDenseCatFeatureVal(BigInt offset, int val);
 

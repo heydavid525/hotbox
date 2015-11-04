@@ -4,7 +4,8 @@ package hotbox;
 
 message ParserConfig {
   oneof config {
-    LibSVMParserConfig libsvm_config = 1;
+    LibSVMParserConfig libsvm_config = 2;
+    CSVParserConfig csv_config = 1;
   }
 }
 
@@ -14,4 +15,13 @@ message LibSVMParserConfig {
 
   // True if label indices starts from 1.
   bool label_one_based = 2;
+}
+
+message CSVParserConfig {
+  // True if feature indices starts from 1.
+  bool has_header = 3;
+
+  // True if label indices starts from 0.
+  bool label_front = 4;
+ // bool label_end = false;
 }
