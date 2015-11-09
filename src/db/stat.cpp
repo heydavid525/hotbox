@@ -11,11 +11,11 @@ Stat::Stat(int epoch_begin, BigInt feature_dim) : proto_(new StatProto) {
 Stat::Stat(StatProto* proto) : proto_(proto) { }
 
 const FeatureStatProto& Stat::GetFeatureStat(const Feature& feature) const {
-  return proto_->stats(feature.store_offset());
+  return proto_->stats(feature.global_offset());
 }
 
 FeatureStatProto& Stat::GetMutableFeatureStat(const Feature& feature) {
-  return *(proto_->mutable_stats(feature.store_offset()));
+  return *(proto_->mutable_stats(feature.global_offset()));
 }
 
 void Stat::AddFeatureStat(const Feature& feature) {
@@ -35,8 +35,8 @@ void Stat::AddFeatureStat(const Feature& feature) {
 }
 
 int Stat::UpdateStat(const Feature& feature, float val) {
-  auto store_offset = feature.store_offset();
-  auto stat = proto_->mutable_stats(store_offset);
+  auto global_offset = feature.global_offset();
+  auto stat = proto_->mutable_stats(global_offset);
   if (feature.is_factor()) {
     LOG(INFO) << "feature " << feature.global_offset() << " is factor";
     bool exist = false;

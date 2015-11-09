@@ -186,10 +186,12 @@ SessionProto DB::CreateSession(const SessionOptionsProto& session_options) {
       output_family = kConfigCaseToTransformName[config.config_case()] +
         std::to_string(i);
     }
+    // Create transform param before TransformWriter modifies trans_schema.
+    TransformParam trans_param(trans_schema, config);
+
     FeatureStoreType store_type = config.base_config().output_store_type();
     TransformWriter trans_writer(&trans_schema, output_family, store_type);
 
-    TransformParam trans_param(trans_schema, config);
     std::unique_ptr<TransformIf> transform =
       registry.CreateObject(config.config_case());
     transform->TransformSchema(trans_param, &trans_writer);

@@ -45,14 +45,15 @@ public:
 
   // Throws FamilyNotFoundException.
   const FeatureFamily& GetFamily(const std::string& family_name) const;
+  FeatureFamily& GetMutableFamily(const std::string& family_name);
 
   // Try to get a family. If it doesn't exist, create it. 'output_family' ==
   // true if the family is stored in FeatureStoreType::OUTPUT. This helps
   // generate a OSchema to send to client.
   const FeatureFamily& GetOrCreateFamily(const std::string& family_name,
-      bool output_family = false) const;
+      bool output_family = false, bool simple_family = false) const;
   FeatureFamily& GetOrCreateMutableFamily(const std::string& family_name,
-      bool output_family = false);
+      bool output_family = false, bool simple_family = false);
 
   // Return append_store_offset_.
   const DatumProtoStoreOffset& GetAppendOffset() const;
@@ -74,9 +75,11 @@ public:
   std::string Serialize() const;
 
 private:
-  // Increment the appropriate append_store_offset_ and assign the offset to
-  // new_feature.
-  void UpdateStoreOffset(Feature* new_feature);
+  // if store_offset == -1 (default), increment the appropriate
+  // append_store_offset_ and assign the offset to new_feature. Otherwise set
+  // new_feature->store_offset and append_store_offset_ according to
+  // store_offset.
+  void UpdateStoreOffset(Feature* new_feature, BigInt store_offset = -1);
 
 private:
   // Comment(wdai): It's mutable so we can add family while

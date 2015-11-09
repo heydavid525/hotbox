@@ -84,6 +84,7 @@ bool IsNumber(const Feature& f) {
     case FeatureStoreType::DENSE_NUM:
     case FeatureStoreType::SPARSE_CAT:
     case FeatureStoreType::SPARSE_NUM:
+    case FeatureStoreType::OUTPUT:
       return true;
     default:
       return false;

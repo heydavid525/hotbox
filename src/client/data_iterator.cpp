@@ -60,7 +60,8 @@ FlexiDatum&& DataIterator::GetDatum() {
   return std::move(data_buffer_[next_ - chunk_begin_]);
 }
 
-void DataIterator::ReadSizeLimitedAtomAndTransform(BigInt file_begin, BigInt file_end) {
+void DataIterator::ReadSizeLimitedAtomAndTransform(BigInt file_begin,
+    BigInt file_end) {
   int32_t size_limit = _ATOM_SIZE_MB;
   int32_t atom_idx_begin = file_begin / size_limit;
   int32_t atom_idx_end = file_end / size_limit;
