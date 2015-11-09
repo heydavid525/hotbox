@@ -82,8 +82,8 @@ void DataIterator::ReadSizeLimitedAtomAndTransform(BigInt file_begin,
       ss << content.substr(0, file_end % size_limit);
     }
   }
-  LOG(INFO) << "File Read: " << ss.str().size();
   std::string data = ReadCompressedString(ss.str(), session_proto_.compressor());
+  LOG(INFO) << "File Read: " << ss.str().size();
 
   DBAtom atom_proto;
   atom_proto.ParseFromString(data);
