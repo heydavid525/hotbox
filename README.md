@@ -1,25 +1,27 @@
-HOTBOX requires `third_party`.  The followings assumes you are at the repo root path.
+HOTBOX requires `third_party`.  Under repo root path,
+
+```
+git clone https://github.com/daiwei89/third_party
+cd third_party
+```
 
 #### With Sudo
 If you have `sudo` access, you can install many third party libraries using
 ```
-sudo apt-get -y install libgflags-dev libgoogle-glog-dev
-libgoogle-perftools-dev libsnappy-dev libyaml-cpp-dev libboost1.55-dev
-libboost-filesystem1.55-dev libgtest-dev unzip python-setuptools autoconf
+sudo apt-get -y install libgflags-dev libgoogle-glog-dev \
+libgoogle-perftools-dev libsnappy-dev libyaml-cpp-dev libboost1.55-dev \
+libboost-filesystem1.55-dev libgtest-dev unzip python-setuptools autoconf \
 python-zmq python-yaml
 
-git clone https://github.com/daiwei89/third_party
-cd third_party
+# Compile just the non-standard third party libraries.
 make -j4
 ```
 
 #### Without Sudo
 ```
-git clone https://github.com/daiwei89/third_party
-cd third_party
+# Compile all dependencies. This could take 1 hour or more.
 make -j4 third_party_core
 ```
-This could take 1 hour or more.
 
 #### Build Hotbox
 The rest of the commands assume you are in repo root. To build Hotbox, do
