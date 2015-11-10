@@ -8,6 +8,7 @@ cd third_party
 #### With Sudo
 If you have `sudo` access, you can install many third party libraries using
 ```
+sudo apt-get update
 sudo apt-get -y install libgflags-dev libgoogle-glog-dev \
 libgoogle-perftools-dev libsnappy-dev libyaml-cpp-dev libboost1.55-dev \
 libboost-filesystem1.55-dev libgtest-dev unzip python-setuptools autoconf \
