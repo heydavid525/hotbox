@@ -32,13 +32,15 @@ CXX = g++
 CXXFLAGS += -O2 \
            -std=c++11 \
            -Wall \
+					 -fPIC \
 					 -Wno-sign-compare \
            -fno-builtin-malloc \
            -fno-builtin-calloc \
            -fno-builtin-realloc \
            -fno-builtin-free \
            -fno-omit-frame-pointer \
-					 -DDMLC_USE_GLOG=1 \
+					 -DDMLC_USE_GLOG
+					 #-DUSE_ROCKS
 
 CXXFLAGS_SHARED = $(CXXFLAGS)
 CXXFLAGS_SHARED += -fPIC \
@@ -56,12 +58,9 @@ INCFLAGS += -I$(JAVA_HOME)/include # include java for HDFS/DMLC access
 INCFLAGS += $(HDFS_INCFLAGS)
 
 LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
-		  -Wl,-rpath=$(LIBJVM) \
           -L$(THIRD_PARTY_LIB) \
-          -L$(LIBJVM) -ljvm \
           -lpthread -lrt -lnsl \
           -lzmq \
-          -lglog \
           -lgflags \
           -ltcmalloc \
 					-lprotobuf \
@@ -72,8 +71,11 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
 					-lyaml-cpp \
 					-lsnappy \
           -ldmlc \
-          -lhdfs \
-          -lrocksdb \
+          -lglog	# lglog must come after ldmlc, which depends on glog.
+		  		#-Wl,-rpath=$(LIBJVM) \
+          #-L$(LIBJVM) -ljvm \
+          #-lhdfs
+          #-lrocksdb
 
 HB_SRC = $(shell find src -type f -name "*.cpp")
 HB_PROTO = $(shell find src -type f -name "*.proto")

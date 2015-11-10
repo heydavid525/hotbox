@@ -1,3 +1,4 @@
+#ifdef USE_ROCKS
 #include "util/rocksdb_util.hpp"
 #include <glog/logging.h>
 
@@ -69,3 +70,4 @@ rocksdb::DB* OpenRocksRecordDB(const std::string& dbname) {
 
 }
 }
+#endif

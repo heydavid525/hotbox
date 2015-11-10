@@ -1,3 +1,4 @@
+#ifdef USE_ROCKS
 #pragma once
 
 #include <rocksdb/db.h>
@@ -26,3 +27,4 @@ void GetKeyRange(rocksdb::DB* db, const std::string& key1, const std::string& ke
 
 }
 }
+#endif
