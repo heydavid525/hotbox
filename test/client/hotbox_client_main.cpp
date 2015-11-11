@@ -21,8 +21,8 @@ int main(int argc, char *argv[]) {
   CHECK(session.GetStatus().IsOk());
   hotbox::OSchema o_schema = session.GetOSchema();
   LOG(INFO) << "OSchema: " << o_schema.ToString();
-  auto p = o_schema.GetName(2);
-  LOG(INFO) << "o_schema(2): family: " << p.first << " feature_name: "
+  auto p = o_schema.GetName(4);
+  LOG(INFO) << "o_schema(4): family: " << p.first << " feature_name: "
                            << p.second;
   int i = 0;
   for (hotbox::DataIterator it = session.NewDataIterator(0, 5); it.HasNext();
