@@ -75,7 +75,7 @@ void DataIterator::ReadSizeLimitedAtomAndTransform(BigInt file_begin,
     if(i == 0) {
       ss << content.substr(file_begin % size_limit, file_end - file_begin);
     }
-    else if (i < (atom_idx_end - atom_idx_begin - 1)) {
+    else if (i < (atom_idx_end - atom_idx_begin)) {
       ss << content;
     }
     else {
