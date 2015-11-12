@@ -47,6 +47,8 @@ float DatumBase::GetFeatureVal(const Schema& schema,
 }
 */
 
+//Nov 2 get feature value for string
+//
 float DatumBase::GetFeatureVal(const Feature& f) const {
   CHECK_NOTNULL(proto_.get());
   CHECK(IsNumber(f));
