@@ -2,9 +2,9 @@
 import os
 import sys
 
-# build_path is mandatory, build_all specify.
+# build_path is mandatory, build_all is optional.
 if len(sys.argv) < 2:
-  print "usage: %s <build_path> [build_all]" % sys.argv[0]
+  print "usage: %s [build_path> [build_all]" % sys.argv[0]
   sys.exit(1)
 
 # Build all is by default False.

@@ -1,38 +1,43 @@
-HOTBOX requires `third_party`.  Under repo root path,
-
-```
-git clone https://github.com/daiwei89/third_party
-cd third_party
-```
+HOTBOX has dependency on third party libraries. Two ways to get it:
 
 #### With Sudo
 If you have `sudo` access, you can install many third party libraries using
 ```
-sudo apt-get update
-sudo apt-get -y install libgflags-dev libgoogle-glog-dev \
-libgoogle-perftools-dev libsnappy-dev libyaml-cpp-dev libboost1.55-dev \
-libboost-filesystem1.55-dev libgtest-dev unzip python-setuptools autoconf \
-python-zmq python-yaml
+# Under repo root path:
+sudo apt-get update && sudo apt-get -y install libgflags-dev  \
+libgoogle-glog-dev libgoogle-perftools-dev libsnappy-dev libyaml-cpp-dev \
+libboost1.55-dev libboost-filesystem1.55-dev unzip \
+python-setuptools autoconf python-zmq python-yaml
 
-# Compile just the non-standard third party libraries.
-make -j4
+# Compile just the non-standard third party libraries to [build_path].
+python install_third_party.py [build_path]
 ```
+where `[build_path]` needs to be replaced by a path you put dependencies into
+and with write permission. For example, to build it as `third_party` under
+hotbox repo path, do `python install_third_party.py third_party`.
 
 #### Without Sudo
+If you can not run `sudo apt-get` then do
 ```
-# Compile all dependencies. This could take 1 hour or more.
-make -j4 third_party_core
+# Compile just the non-standard third party libraries to [build_path].
+python install_third_party.py [build_path] build_all
 ```
+You will compile all the dependencies to `[build_path]`.
+
 
 #### Build Hotbox
-The rest of the commands assume you are in repo root. To build Hotbox, do
+The rest of the commands assume you are in repo root. Before building,
+configure `THIRD_PARTY_PATH` in `config.mk'. By default it is
+```
+THIRD_PARTY = $(PROJECT)/third_party
+```
+After that, run
 ```
 make -j4
 ```
 Run the command again if you get error the first time. To test run it:
-
 ```
-# Remove any existing test db
+# Remove any existing test db from previous runs.
 rm -r db_testbed/
 
 # Start server
