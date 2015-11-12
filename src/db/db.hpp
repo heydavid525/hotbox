@@ -62,6 +62,7 @@ private:
   int32_t GetCurrentAtomID();
   void UpdateReadMetaData(const DBAtom& atom, const int32_t compressed_size);
   size_t WriteToAtomFiles(const DBAtom& atom, int32_t* ori_sizes, int32_t* comp_size);
+  int32_t GuessBatchSize(const int32_t size);
 
   //std::vector<Epoch> epochs_;
 

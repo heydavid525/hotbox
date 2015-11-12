@@ -10,7 +10,7 @@
 // Use this to set batch ingestion window,
 // which effects the proto obj size and batch efficiency.
 // It doesn't seem to affect compression ratio though.
-const int32_t RECORD_BATCH = 100000;
+//const int32_t RECORD_BATCH = 100000;
 const double sparse_comp_ratio = 0.38;
 const double dense_comp_ratio = 0.38;
 

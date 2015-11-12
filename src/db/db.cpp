@@ -116,6 +116,11 @@ void DB::UpdateReadMetaData(const DBAtom& atom, const int32_t new_len) {
   //LOG(INFO) << "curr_data_idx: " << curr_data_idx << ". ";
 }
 
+int32_t DB::GuessBatchSize(const int32_t size) {
+  int32_t limit = _ATOM_SIZE_MB;
+  return limit / (size * 2) ;
+}
+
 // With Atom sized to 64MB (or other size) limited chunks.
 std::string DB::ReadFile(const ReadFileReq& req) {
   int32_t ori_size = 0;
@@ -137,11 +142,16 @@ std::string DB::ReadFile(const ReadFileReq& req) {
     StatCollector stat_collector(&stats_);
     while (!in.eof()) {
       DBAtom atom;
+      int32_t RECORD_BATCH = 100;
       for(int i=0; i < RECORD_BATCH && std::getline(in, line); i++) {
         ++rec_counter;
         CHECK_NOTNULL(parser.get());
         DatumBase datum = parser->ParseAndUpdateSchema(line, 
           schema_.get(), &stat_collector);
+        if(i == 0) {
+          RECORD_BATCH = GuessBatchSize(datum.GetDatumProto().SpaceUsed());
+          LOG(INFO) << "Single Datum Size: " << datum.GetDatumProto().SpaceUsed();
+        }
         // Let DBAtom takes the ownership of DatumProto release from datum.
         atom.mutable_datum_protos()->AddAllocated(datum.ReleaseProto());
       }
