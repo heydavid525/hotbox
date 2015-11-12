@@ -7,12 +7,6 @@
 
 // Use this to define file block size.
 #define _ATOM_SIZE_MB 64*1024*1024
-// Use this to set batch ingestion window,
-// which effects the proto obj size and batch efficiency.
-// It doesn't seem to affect compression ratio though.
-//const int32_t RECORD_BATCH = 100000;
-const double sparse_comp_ratio = 0.38;
-const double dense_comp_ratio = 0.38;
 
 namespace hotbox {
 	namespace io {
@@ -28,7 +22,7 @@ std::string ReadCompressedFile(const std::string& file_path,
 size_t WriteCompressedFile(const std::string& file_path,
     const std::string& data, Compressor compressor = Compressor::SNAPPY);
 
-// By Default compression is already done for this method.
+// This method writes 'data' directly to disk without compression
 size_t WriteSizeLimitedFiles(const std::string& file_path, int32_t& file_idx,
 	const std::string& data);
 

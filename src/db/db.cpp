@@ -106,14 +106,16 @@ void DB::UpdateReadMetaData(const DBAtom& atom, const int32_t new_len) {
       meta_data_.file_map().data_idx(curr_data_idx_size - 1);
   meta_data_.mutable_file_map()->add_data_idx(
       curr_data_idx + new_len);
+  LOG(INFO) << "data_idx: " << curr_data_idx + new_len;
   
   BigInt num_data_read = atom.datum_protos_size();
   BigInt num_data_before_read = meta_data_.file_map().num_data();
   meta_data_.mutable_file_map()->add_datum_ids(num_data_before_read);
   meta_data_.mutable_file_map()->set_num_data(
       num_data_before_read + num_data_read);
-  //LOG(INFO) << "curr_data_idx_size: " << curr_data_idx_size << ". ";
-  //LOG(INFO) << "curr_data_idx: " << curr_data_idx << ". ";
+  LOG(INFO) << "num_data_read: " << num_data_read << ". ";
+  LOG(INFO) << "num_data_before_read: " << num_data_before_read << ". ";
+  LOG(INFO) << "num_data: " << num_data_before_read + num_data_read << ". ";
 }
 
 int32_t DB::GuessBatchSize(const int32_t size) {
@@ -159,6 +161,7 @@ std::string DB::ReadFile(const ReadFileReq& req) {
                 << "Interval: " << RECORD_BATCH << ".";
       size_t len = WriteToAtomFiles(atom, &ori_size, &compressed_size);
       UpdateReadMetaData(atom, len);
+      LOG(INFO) << " ----------------- ------------ ------------";
     }
     CommitDB();
   }
@@ -171,7 +174,7 @@ std::string DB::ReadFile(const ReadFileReq& req) {
   std::stringstream ss;
   ss << "Read " << rec_counter << " datum. "
      << "Wrote to " << output_file_dir 
-     <<" ( " << ori_atom_id << " - " << GetCurrentAtomID() << ")"<<". " 
+     <<" [" << ori_atom_id << " - " << GetCurrentAtomID() << "]"<<". " 
      << "Written Size " << SizeToReadableString(compressed_size)  << ". "
      << " (" << std::to_string(compress_ratio) << " compression). "
      << "# of features in schema: " << num_features_before 

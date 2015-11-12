@@ -104,9 +104,10 @@ size_t WriteSizeLimitedFiles(const std::string& file_dir, int32_t& file_idx,
     // Write the left data to a new file.
     else {
       curr_file_path = file_dir + std::to_string(curr_atom_idx);
-      int32_t len = data.size() - data_offset;
-      size_written += AppendFile(curr_file_path, data.substr(data_offset, len));
-      LOG(INFO) << "Final Offset for Seeking: " << data_offset;
+      //int32_t len = data.size() - data_offset;
+      //size_written += AppendFile(curr_file_path, data.substr(data_offset, len));
+      size_written += AppendFile(curr_file_path, data.substr(data_offset, atom_size_mb));
+      LOG(INFO) << "Final Offset for Seeking. ";// << data_offset;
     }
   }
   file_idx = --curr_atom_idx;
