@@ -16,10 +16,12 @@ build_path = sys.argv[1]
 
 cmd = 'git clone https://github.com/daiwei89/hotbox_third_party %s' \
     % build_path
+print(cmd)
 os.system(cmd)
 
 if build_all:
   cmd = 'cd %s; make -j third_party_core' % (build_path)
 else:
   cmd = 'cd %s; make -j third_party_special' % (build_path)
+print(cmd)
 os.system(cmd)
