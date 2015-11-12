@@ -5,14 +5,14 @@ include $(PROJECT)/config.mk
 
 #BUILD := $(PROJECT)/build
 BUILD :=build
-BUILD_SHARED := build_shared
+#BUILD_SHARED := build_shared
 
 SRC_DIR:=$(PROJECT)/src
 
 LIB = $(BUILD)/lib
-LIB_SHARED = $(BUILD_SHARED)/lib
+#LIB_SHARED = $(BUILD_SHARED)/lib
 
-NEED_MKDIR = $(BUILD) $(LIB) $(BUILD_SHARED) $(LIB_SHARED)
+NEED_MKDIR = $(BUILD) $(LIB) $(LIB_SHARED)
 
 all: proto hotbox_lib hotbox_sharedlib test
 
@@ -23,7 +23,6 @@ $(NEED_MKDIR):
 
 clean:
 	rm -rf $(BUILD)
-	rm -rf $(BUILD_SHARED)
 	rm -rf db_testbed
 
 .PHONY: all path clean
@@ -32,18 +31,16 @@ CXX = g++
 CXXFLAGS += -O2 \
            -std=c++11 \
            -Wall \
+					 -fPIC \
 					 -Wno-sign-compare \
            -fno-builtin-malloc \
            -fno-builtin-calloc \
            -fno-builtin-realloc \
            -fno-builtin-free \
            -fno-omit-frame-pointer \
-					 -DDMLC_USE_GLOG=1 \
+					 -DDMLC_USE_GLOG
+					 #-DUSE_ROCKS
 
-CXXFLAGS_SHARED = $(CXXFLAGS)
-CXXFLAGS_SHARED += -fPIC \
-
-THIRD_PARTY = $(PROJECT)/third_party
 THIRD_PARTY_SRC = $(THIRD_PARTY)/src
 THIRD_PARTY_INCLUDE = $(THIRD_PARTY)/include
 THIRD_PARTY_LIB = $(THIRD_PARTY)/lib
@@ -56,12 +53,9 @@ INCFLAGS += -I$(JAVA_HOME)/include # include java for HDFS/DMLC access
 INCFLAGS += $(HDFS_INCFLAGS)
 
 LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
-		  -Wl,-rpath=$(LIBJVM) \
           -L$(THIRD_PARTY_LIB) \
-          -L$(LIBJVM) -ljvm \
           -lpthread -lrt -lnsl \
           -lzmq \
-          -lglog \
           -lgflags \
           -ltcmalloc \
 					-lprotobuf \
@@ -72,20 +66,19 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
 					-lyaml-cpp \
 					-lsnappy \
           -ldmlc \
-          -lhdfs \
-          -lrocksdb \
+          -lglog	# lglog must come after ldmlc, which depends on glog.
+		  		#-Wl,-rpath=$(LIBJVM) \
+          #-L$(LIBJVM) -ljvm \
+          #-lhdfs
+          #-lrocksdb
 
 HB_SRC = $(shell find src -type f -name "*.cpp")
 HB_PROTO = $(shell find src -type f -name "*.proto")
 HB_HEADERS = $(shell find src -type f -name "*.hpp")
-HB_LIB_SHARED_OBJS = $(shell find $(BUILD_SHARED) -type f -name "*.o")
 
-###
 PROTO_HDRS = $(patsubst src/%.proto, $(BUILD)/%.pb.h, $(HB_PROTO))
 PROTO_OBJS = $(patsubst src/%.proto, $(BUILD)/%.pb.o, $(HB_PROTO))
 HB_OBJS = $(patsubst src/%.cpp, $(BUILD)/%.o, $(HB_SRC))
-PROTO_OBJS_SHARED = $(patsubst src/%.proto, $(BUILD_SHARED)/%.pb.o, $(HB_PROTO))
-HB_OBJS_SHARED = $(patsubst src/%.cpp, $(BUILD_SHARED)/%.o, $(HB_SRC))
 
 
 PROTOC = $(THIRD_PARTY_BIN)/protoc
@@ -113,21 +106,11 @@ $(HB_OBJS): $(BUILD)/%.o: $(SRC_DIR)/%.cpp $(PROTO_OBJS)
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c $< -o $@
 
-$(HB_SHARED_LIB): $(HB_OBJS_SHARED) $(PROTO_OBJS_SHARED)
+$(HB_SHARED_LIB): $(HB_OBJS) $(PROTO_OBJS)
 	@echo HB_LIB_SHARED_
 	mkdir -p $(@D)
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
-	$(CXX) -shared -o $@ $(HB_LIB_SHARED_OBJS) $(LDFLAGS)
-	
-$(PROTO_OBJS_SHARED): $(BUILD_SHARED)/%.pb.o: $(BUILD)/%.pb.cc
-	@echo PROTO_OBJS_SHARED
-	mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS_SHARED) $(INCFLAGS) -c $< -o $@
-
-$(HB_OBJS_SHARED): $(BUILD_SHARED)/%.o: $(SRC_DIR)/%.cpp
-	@echo HB_OBJS_SHARED
-	mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS_SHARED) $(INCFLAGS) -c $< -o $@
+	$(CXX) -shared -o $@ $(HB_LIB_OBJS) $(LDFLAGS)
 
 proto:$(PROTO_HDRS)
 

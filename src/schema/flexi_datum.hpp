@@ -38,8 +38,11 @@ public:
   std::vector<BigInt>&& MoveSparseIdx();
   std::vector<float>&& MoveSparseVals();
 
-  std::string ToString() const;
+  // Print Libsvm format or dense format
+  std::string ToString(bool libsvm_string = false) const;
   std::string ToLibsvmString() const;
+  // Full string includes weight & feature dim.
+  std::string ToFullString() const;
 
   BigInt GetFeatureDim(){return feature_dim_;};
   inline bool isDense(){ return store_type_ == OutputStoreType::DENSE;};

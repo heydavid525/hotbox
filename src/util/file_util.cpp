@@ -75,11 +75,11 @@ size_t WriteSizeLimitedFiles(const std::string& file_dir, int32_t& file_idx,
   dmlc::io::FileInfo info = fs->GetPathInfo(path);
   size_t curr_atom_size = info.size;
   //float curr_X = (float)(data.size() + curr_atom_size)) / (float)_ATOM_SIZE_MB;
-  int32_t curr_X = data.size() + curr_atom_size + _ATOM_SIZE_MB;
   int32_t atom_size_mb = _ATOM_SIZE_MB;
+  int32_t curr_X = data.size() + curr_atom_size + atom_size_mb;
   int32_t loop_size = curr_X / atom_size_mb; // MACRO can't be put in demoninator?
   LOG(INFO) << "WriteSizeLimitedFiles: "
-            << "Size Limit: " << _ATOM_SIZE_MB << ". "
+            << "Size Limit: " << atom_size_mb << ". "
             << "Current Atom File: " << curr_atom_idx << ". "
             << "Current X: " << curr_X << ". "
             << "Data Size: " << data.size() << ". "
@@ -87,25 +87,30 @@ size_t WriteSizeLimitedFiles(const std::string& file_dir, int32_t& file_idx,
             << "Loop Size: " << loop_size << ". ";
   
   //TODO(weiren): find a non-copy method for compressing data.
-  for(int i=0; i < loop_size; i++, curr_atom_size++) {
+  for(int i=0; i < loop_size; i++, curr_atom_idx++) {
     // Write to the current atom file.
     if(i == 0) {
-      data_offset = _ATOM_SIZE_MB-curr_atom_size;
+      data_offset = atom_size_mb - curr_atom_size;
       size_written += AppendFile(curr_file_path, data.substr(0, data_offset));
+      LOG(INFO) << "Initial Offset for Length: " << data_offset;
     }
     // Write whole size_limit files.
     else if(i < loop_size - 1) {
-      curr_file_path = file_dir + std::to_string(curr_atom_size);
-      size_written += AppendFile(curr_file_path, data.substr(data_offset, _ATOM_SIZE_MB));
-      data_offset += _ATOM_SIZE_MB;
+      curr_file_path = file_dir + std::to_string(curr_atom_idx);
+      size_written += AppendFile(curr_file_path, data.substr(data_offset, atom_size_mb));
+      data_offset += atom_size_mb;
+      LOG(INFO) << "Intermediate Offset for seeking: " << data_offset;
     }
     // Write the left data to a new file.
     else {
-      curr_file_path = file_dir + std::to_string(curr_atom_size);
+      curr_file_path = file_dir + std::to_string(curr_atom_idx);
       int32_t len = data.size() - data_offset;
       size_written += AppendFile(curr_file_path, data.substr(data_offset, len));
+      LOG(INFO) << "Final Offset for Seeking: " << data_offset;
     }
   }
+  file_idx = --curr_atom_idx;
+  LOG(INFO) << "file_idx: " << file_idx;
   return size_written;
 }
 
@@ -113,6 +118,7 @@ size_t WriteAtomFiles(const std::string& file_dir, int32_t& file_idx,
     const std::string& data, Compressor compressor) {
   // Fisrt Compress then write to separate files.
   if (compressor != Compressor::NO_COMPRESS) {
+    LOG(INFO) << "Compressing Atom Data.";
     auto& registry = ClassRegistry<CompressorIf>::GetRegistry();
     std::unique_ptr<CompressorIf> compressor_if = 
                           registry.CreateObject(compressor);
@@ -120,6 +126,7 @@ size_t WriteAtomFiles(const std::string& file_dir, int32_t& file_idx,
     LOG(INFO) << "Compressed String Len: " << compressed.size(); 
     return WriteSizeLimitedFiles(file_dir, file_idx, compressed);
   } else {
+    LOG(INFO) << "Writing UnCompressed Atom Data.";
     return WriteSizeLimitedFiles(file_dir, file_idx, data);
   }
 }

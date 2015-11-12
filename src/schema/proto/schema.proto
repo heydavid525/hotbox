@@ -57,6 +57,14 @@ enum FeatureStoreType {
   NUM_STORE_TYPES = 7;
 }
 
+// For FeatureFamily that uses single store, we can directly access that
+// store (store_type) on range [offset_begin, offset_end).
+message StoreTypeAndOffset {
+  FeatureStoreType store_type = 1;
+  int64 offset_begin = 2;
+  int64 offset_end = 3;
+}
+
 // Locate which store in DatumProto a feature is stored.
 //message FeatureLocator {
   /*
@@ -116,9 +124,23 @@ message DatumProto {
 
   // Sparse stores are maps, each represented by an index array and a value
   // array.
-  map<uint32, int64> sparse_cat_store = 4;
-  map<uint32, float> sparse_num_store = 5;
-  map<uint32, bytes> sparse_bytes_store = 6;
+  //
+  // Comment(wdai): I choose two array representation over proto3's map for 2
+  // reasons: (1) To have ordered key-value pairs, which is important as write
+  // and read both happen in ascending order in index. (2) uint32 can be
+  // changed to int64 easily to support ultra-high dim beyond 2B.
+  repeated uint32 sparse_cat_store_idxs = 4;
+  repeated int64 sparse_cat_store_vals = 5;
+
+  repeated uint32 sparse_num_store_idxs = 6;
+  repeated float sparse_num_store_vals = 7;
+
+  repeated uint32 sparse_bytes_store_idxs = 8;
+  repeated bytes sparse_bytes_store_vals = 9;
+
+  //map<uint32, int64> sparse_cat_store = 4;
+  //map<uint32, float> sparse_num_store = 5;
+  //map<uint32, bytes> sparse_bytes_store = 6;
 }
 
 // FeatureFamily contains a set of offset to denote the start of family in
@@ -129,7 +151,7 @@ message DatumProtoStoreOffset {
   repeated int64 offsets = 1;
 }
 
-// Current max proto sequence: 3.
+// Current max proto sequence: 6.
 message FeatureFamilyProto {
   string family_name = 1;
 
@@ -143,6 +165,14 @@ message FeatureFamilyProto {
 
   // Maps to a global vector of Feature.
   repeated int64 global_idx = 3;
+
+  // Assume each FeatureFamily has contiguous store range on all stores. This
+  // would be the case if all features in a family are added before the next
+  // feature.
+  DatumProtoStoreOffset offset_begin = 4;
+  DatumProtoStoreOffset offset_end = 5;
+
+  bool simple_family = 6;
 }
 
 // Similar to FeatureFamilyProto, but include Feature and thus does not
@@ -158,6 +188,12 @@ message SelfContainedFeatureFamilyProto {
   // Index lookup on family (e.g., "mobile:0" will find the first entry in
   // features).
   repeated Feature features = 3;
+
+  // See FeatureFamilyProto.
+  DatumProtoStoreOffset offset_begin = 4;
+  DatumProtoStoreOffset offset_end = 5;
+
+  bool simple_family = 6;
 }
 
 // Message to construct default Schema.

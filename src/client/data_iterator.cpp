@@ -60,7 +60,8 @@ FlexiDatum&& DataIterator::GetDatum() {
   return std::move(data_buffer_[next_ - chunk_begin_]);
 }
 
-void DataIterator::ReadSizeLimitedAtomAndTransform(BigInt file_begin, BigInt file_end) {
+void DataIterator::ReadSizeLimitedAtomAndTransform(BigInt file_begin,
+    BigInt file_end) {
   int32_t size_limit = _ATOM_SIZE_MB;
   int32_t atom_idx_begin = file_begin / size_limit;
   int32_t atom_idx_end = file_end / size_limit;
@@ -74,15 +75,15 @@ void DataIterator::ReadSizeLimitedAtomAndTransform(BigInt file_begin, BigInt fil
     if(i == 0) {
       ss << content.substr(file_begin % size_limit, file_end - file_begin);
     }
-    else if (i < (atom_idx_end - atom_idx_begin - 1)) {
+    else if (i < (atom_idx_end - atom_idx_begin)) {
       ss << content;
     }
     else {
       ss << content.substr(0, file_end % size_limit);
     }
   }
-  LOG(INFO) << "File Read: " << ss.str().size();
   std::string data = ReadCompressedString(ss.str(), session_proto_.compressor());
+  LOG(INFO) << "File Read: " << ss.str().size();
 
   DBAtom atom_proto;
   atom_proto.ParseFromString(data);

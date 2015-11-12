@@ -9,6 +9,9 @@
 
 namespace hotbox {
 
+// kConfigCaseToTransformName is populated in util/register.cpp
+std::map<int, std::string> kConfigCaseToTransformName = {};
+
 GlobalConfig& GlobalConfig::GetInstance() {
   static GlobalConfig instance;
   return instance;

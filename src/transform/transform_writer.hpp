@@ -26,8 +26,9 @@ public:
     new_feature.set_store_type(store_type_);
     new_feature.set_name(feature_name);
     schema_->AddFeature(output_family_, &new_feature);
-    LOG(INFO) << "Add feature " << feature_name << " store_offset: " << new_feature.store_offset();
-    output_store_offset_end_.set_offsets(store_type_, new_feature.store_offset() + 1);
+    auto curr_end = output_store_offset_end_.offsets(store_type_);
+    output_store_offset_end_.set_offsets(store_type_,
+        std::max(curr_end, new_feature.store_offset() + 1));
   }
 
   // Get the output range for each transform to be sent to client.
@@ -36,7 +37,6 @@ public:
     range.set_store_offset_begin(output_store_offset_begin_.offsets(store_type_));
     range.set_store_offset_end(output_store_offset_end_.offsets(store_type_));
     range.set_store_type(store_type_);
-    LOG(INFO) << "GetTransformOutputRange: " << range.DebugString();
     return range;
   }
 

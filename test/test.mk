@@ -1,6 +1,6 @@
 
-ROCKS_TEST_SRC = $(shell find test -type f -name "*.cc")
-ROCKS_CPP = $(patsubst test/%.cc, test/%.cpp, $(ROCKS_TEST_SRC))
+#ROCKS_TEST_SRC = $(shell find test -type f -name "*.cc")
+#ROCKS_CPP = $(patsubst test/%.cc, test/%.cpp, $(ROCKS_TEST_SRC))
 TEST_DIR = $(PROJECT)/$(BUILD)/test
 TEST_SRC = $(shell find $(PROJECT)/test -type f -name "*.cpp")
 TEST_BIN = $(patsubst $(PROJECT)/test/%.cpp, $(TEST_DIR)/%, $(TEST_SRC))

@@ -69,6 +69,15 @@ public:
   // Return the serialized bytes from proto_.
   std::string Serialize() const;
 
+  const DatumProto& GetDatumProto() const {
+    return *proto_;
+  }
+
+private:
+  // Verify that sparse idx in proto_ are in ascending order. Turn off in
+  // production.
+  void CheckInOrder() const;
+
 private:
   std::unique_ptr<DatumProto> proto_;
   StatCollector* stat_collector_{nullptr};

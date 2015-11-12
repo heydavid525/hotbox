@@ -38,11 +38,14 @@ class FeatureFamily {
 public:
   FeatureFamily();
 
+  // A simple_family is a family that uses only one feature store.
   FeatureFamily(const std::string& family_name,
-      std::shared_ptr<std::vector<Feature>> features);
+      std::shared_ptr<std::vector<Feature>> features,
+      bool simple_family = false);
 
   FeatureFamily(const FeatureFamilyProto& proto,
-      std::shared_ptr<std::vector<Feature>> features);
+      std::shared_ptr<std::vector<Feature>> features,
+      bool simple_family = false);
 
   FeatureFamily(const SelfContainedFeatureFamilyProto& proto);
 
@@ -74,6 +77,27 @@ public:
 
   std::string GetFamilyName() const;
 
+  // Set the begin and end of offset.
+  inline void SetOffset(const DatumProtoStoreOffset& offset) {
+    offset_begin_ = offset;
+    offset_end_ = offset;
+  }
+
+  inline DatumProtoStoreOffset GetOffsetBegin() const {
+    return offset_begin_;
+  }
+
+  inline DatumProtoStoreOffset GetOffsetEnd() const {
+    return offset_end_;
+  }
+
+  // True if this family only uses one FeatureStoreType.
+  bool IsSimple() const {
+    return simple_family_;
+  }
+
+  StoreTypeAndOffset GetStoreTypeAndOffset() const;
+
 private:
   // Allow Schema to access AddFeature.
   //friend void Schema::AddFeature(const std::string& family_name,
@@ -87,6 +111,8 @@ private:
   // Throws FeatureNotFoundException if not found.
   void CheckFeatureExist(BigInt family_idx) const;
 
+  void UpdateOffsets(const Feature& new_feature);
+
 private:
   std::string family_name_;
 
@@ -99,6 +125,13 @@ private:
   // Maps from family_idx to global idx. Needed in feature lookup.
   // Uninitialized features will have global_idx_ = -1
   std::vector<BigInt> global_idx_;
+
+  // Each FeatureFamily must have contiguous offsets in each store:
+  // [offset_begin_, offset_end).
+  DatumProtoStoreOffset offset_begin_;
+  DatumProtoStoreOffset offset_end_;
+
+  bool simple_family_;
 };
 
 }  // namespace hotbox
