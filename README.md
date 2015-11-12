@@ -1,8 +1,9 @@
+#### Build Third Party Libraries
 HOTBOX has dependency on third party libraries. You need to build third party
 libraries the first time using Hotbox. Afterwards you can skip this part even
 when you rebuild Hotbox. Two ways to get third party libraries:
 
-#### With Sudo
+##### With Sudo
 If you have `sudo` access, you can install many third party libraries using
 ```
 # Under repo root path:
@@ -18,7 +19,7 @@ where `[build_path]` needs to be replaced by a path you put dependencies into
 and with write permission. For example, to build it as `third_party` under
 hotbox repo path, do `python install_third_party.py third_party`.
 
-#### Without Sudo
+##### Without Sudo
 If you can not run `sudo apt-get` then do
 ```
 # Compile just the non-standard third party libraries to [build_path].
