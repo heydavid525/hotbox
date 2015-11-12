@@ -101,9 +101,10 @@ message FileMap {
 
   // Each data insertion would add this. The idx is in terms of file size.
   repeated int64 data_idx = 4;
-  // atom file i stores [datum_id(i), datum_id(i+1)) datum range. The
-  // last one (N-1) has range [datum_id(N-1), num_data).
+  // data_idx [data_idx(i), data_idx(i+1)) file range has data range
+  // [datum_id(i), datum_id(i+1)] 
   repeated int64 datum_ids = 1;
+  // Total # of data 
   int64 num_data = 2;
 }
 

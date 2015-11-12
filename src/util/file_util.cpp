@@ -110,6 +110,7 @@ size_t WriteSizeLimitedFiles(const std::string& file_dir, int32_t& file_idx,
     }
   }
   file_idx = --curr_atom_idx;
+  LOG(INFO) << "file_idx: " << file_idx;
   return size_written;
 }
 

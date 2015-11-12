@@ -13,6 +13,7 @@ project_dir = dirname(dirname(dirname(os.path.realpath(__file__))))
 sys.path.append(join(project_dir, 'build'))
 sys.path.append(join(project_dir, 'third_party', 'include'))
 
+
 import util.proto.warp_msg_pb2 as warp_msg_pb
 import util.proto.util_pb2 as util_pb
 

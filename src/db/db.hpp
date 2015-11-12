@@ -59,6 +59,10 @@ private:
 
   void GenerateDBAtom(const DBAtom& atom, const ReadFileReq& req);
 
+  int32_t GetCurrentAtomID();
+  void UpdateReadMetaData(const DBAtom& atom, const int32_t compressed_size);
+  size_t WriteToAtomFiles(const DBAtom& atom, int32_t* ori_sizes, int32_t* comp_size);
+
   //std::vector<Epoch> epochs_;
 
   // stats_ does not have 1:1 relation with epochs_.
