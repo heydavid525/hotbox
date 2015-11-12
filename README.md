@@ -17,7 +17,10 @@ python install_third_party.py [build_path]
 ```
 where `[build_path]` needs to be replaced by a path you put dependencies into
 and with write permission. For example, to build it as `third_party` under
-hotbox repo path, do `python install_third_party.py third_party`.
+hotbox repo path, do
+```
+python install_third_party.py third_party
+```
 
 ##### Without Sudo
 If you can not run `sudo apt-get` then do
@@ -25,7 +28,10 @@ If you can not run `sudo apt-get` then do
 # Compile just the non-standard third party libraries to [build_path].
 python install_third_party.py [build_path] build_all
 ```
-You will compile all the dependencies to `[build_path]`.
+You will compile all the dependencies to `[build_path]`. For example
+```
+python install_third_party.py third_party build_all
+```
 
 
 #### Build Hotbox
