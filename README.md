@@ -1,4 +1,6 @@
-HOTBOX has dependency on third party libraries. Two ways to get it:
+HOTBOX has dependency on third party libraries. You need to build third party
+libraries the first time using Hotbox. Afterwards you can skip this part even
+when you rebuild Hotbox. Two ways to get third party libraries:
 
 #### With Sudo
 If you have `sudo` access, you can install many third party libraries using
