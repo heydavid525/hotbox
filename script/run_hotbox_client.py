@@ -15,6 +15,7 @@ env_params = (
   "GLOG_minloglevel=0 "
   )
 
+#cmd = env_params + prog + 'This is what I change for CMD'
 cmd = env_params + prog
 #cmd += "".join([" --%s=%s" % (k,v) for k,v in params.items()])
 print cmd

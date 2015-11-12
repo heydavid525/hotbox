@@ -130,5 +130,5 @@ if __name__ == "__main__":
   server_ip = "localhost"
   db_client = HBClient(server_ip)
   test_db = db_client.CreateDB('test_db')
-  test_db.ReadFile('test/resource/dataset/a1a.toy',
-      file_format='libsvm')
+  test_db.ReadFile('test/resource/dataset/csv.toy',
+      file_format='csv')

@@ -42,7 +42,7 @@ void CSVParser::SetConfig(const ParserConfig& config) {
 //DatumBase* datum
 
 void CSVParser::Parse(const std::string& line,Schema* schema,DatumBase* datum)  const {
-  
+  LOG(INFO) << "parsing: " << line;
   char* ptr = nullptr, *endptr = nullptr;
   
   //Assume the length of every feature string is within 1000
@@ -56,12 +56,13 @@ void CSVParser::Parse(const std::string& line,Schema* schema,DatumBase* datum)  
  
   std::string myline (line);
 
-  if(label_front_){
+  if(!label_front_){
     label = strtof(line.data(), &endptr);
     //std::cout << "label: " << label << endl;
     //check
     this->SetLabelAndWeight(schema, datum, label);
     ptr = endptr;
+    //G(INFO) << "parsing: " << line;
     //first char after read label is comma, skip it wrong!!!!
     ++ptr;
   }
@@ -155,7 +156,7 @@ void CSVParser::Parse(const std::string& line,Schema* schema,DatumBase* datum)  
     
     //if this throws an exception, put the unkonw feature type into not_found_features
       const Feature& feature = family.GetFeature(feature_id);
-    
+      LOG(INFO) << "Setting feature: " << feature.global_offset() << " val: " << str_val[0];    
     //need to modify this API (datum->SetFeatureValString) to assign an bytes value to the datum
     
       if(*conversionFlagNumerical==','){
