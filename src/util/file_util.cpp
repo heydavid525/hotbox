@@ -24,6 +24,8 @@ std::string ReadCompressedFile(const std::string& file_path,
     // Comment(wdai): There's a lot of copying. Optimize it! Check out 
   // zero_copy_stream.h
   // (https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.io.zero_copy_stream?hl=en)
+  // Comment(weiren): zerocopy stream can only skip a certain bytes but it cannot 
+  //     let you specify the len of reading. Maybe try later.
   
   // Read    
   dmlc::io::URI path(file_path.c_str());
