@@ -49,6 +49,30 @@ std::string ReadCompressedString(std::string input,
   // Should never get here.
   return "";
 }
+
+
+std::string ReadCompressedString(const void* data, const int size,
+    Compressor compressor) {
+  // Uncompress
+  if (compressor == Compressor::NO_COMPRESS) {
+    std::string ret((const char *)data, size);
+    return ret;
+  }
+  auto& registry = ClassRegistry<CompressorIf>::GetRegistry();
+  std::unique_ptr<CompressorIf> compressor_if =
+    registry.CreateObject(compressor);
+  try {
+    return compressor_if->Uncompress(data, size);
+  } catch (const FailedToUncompressException& e) {
+    throw FailedFileOperationException(std::string("Failed to uncompress ")
+        + "\n" + e.what());
+  }
+  // Should never get here.
+  return "";
+}
+
+
+
 size_t WriteCompressedString(std::string& input,
     Compressor compressor) {
   if (compressor != Compressor::NO_COMPRESS) {

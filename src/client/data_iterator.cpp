@@ -63,7 +63,8 @@ void DataIterator::ReadSizeLimitedAtomAndTransform(BigInt file_begin,
                 : (size_limit - file_begin % size_limit); // file_len
       ss << io::ReadCompressedFile(
         session_proto_.file_map().atom_path() + std::to_string(atom_idx_begin + i),
-            file_begin % size_limit, read_len, Compressor::NO_COMPRESS);
+          Compressor::NO_COMPRESS,
+            file_begin % size_limit, read_len);
     }
     else if (i < (atom_idx_end - atom_idx_begin)) {
       ss << io::ReadCompressedFile(
@@ -73,7 +74,7 @@ void DataIterator::ReadSizeLimitedAtomAndTransform(BigInt file_begin,
     else {
       ss << io::ReadCompressedFile(
         session_proto_.file_map().atom_path() + std::to_string(atom_idx_begin + i),
-            0, file_end % size_limit, Compressor::NO_COMPRESS);
+          Compressor::NO_COMPRESS, 0, file_end % size_limit);
     }
 /*
     std::string content = io::ReadCompressedFile(

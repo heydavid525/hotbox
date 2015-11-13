@@ -131,8 +131,8 @@ std::string DB::ReadFile(const ReadFileReq& req) {
   int32_t ori_atom_id = GetCurrentAtomID();
   BigInt num_features_before = schema_->GetNumFeatures();
   {
-    //io::ifstream in(req.file_path());
-    std::unique_ptr<dmlc::SeekStream> fp(io::OpenFileStream(req.file_path()));
+    // fp is a smart pointer.
+    auto fp = io::OpenFileStream(req.file_path());
     dmlc::istream in(fp.get());
     std::string line;
     auto& registry = ClassRegistry<ParserIf>::GetRegistry();

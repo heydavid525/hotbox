@@ -7,67 +7,54 @@
 #include <memory>
 #include <cmath>
 
+#include <google/protobuf/io/zero_copy_stream_impl.h>
+
 namespace hotbox {
   namespace io {
 
-dmlc::SeekStream* OpenFileStream(const std::string& file_path){
-  dmlc::io::URI path(file_path.c_str());
-  // We don't own the FileSystem pointer.
-  dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
-  // We do own the file system pointer.
-  return fs->OpenForRead(path);
-}
-
-std::string ReadCompressedFile(const std::string& file_path,
-  const int32_t& file_begin, const int32_t& len, 
-  Compressor compressor) {
-    // Comment(wdai): There's a lot of copying. Optimize it! Check out 
-  // zero_copy_stream.h
-  // (https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.io.zero_copy_stream?hl=en)
-  // Comment(weiren): zerocopy stream can only skip a certain bytes but it cannot 
-  //     let you specify the len of reading. Maybe try later.
-  
-  // Read    
-  dmlc::io::URI path(file_path.c_str());
-  // We don't own the FileSystem pointer.
-  dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
-  dmlc::io::FileInfo info = fs->GetPathInfo(path);
-  // We do own the file system pointer.
-  std::unique_ptr<dmlc::SeekStream> fp(fs->OpenForRead(path));
-  if (!fp) {
+std::unique_ptr<dmlc::SeekStream> OpenFileStream(const std::string& file_path){
+  std::unique_ptr<dmlc::SeekStream> sk
+        (dmlc::SeekStream::CreateForRead(file_path.c_str())); 
+  if (!sk) {
     throw FailedFileOperationException("Failed to open " + file_path
         + " for read.");
   }
-  // size_t size = info.size;
-  std::string buffer(len, ' ');
-  fp->Seek(file_begin);
-  size_t nread = fp->Read(&buffer[0], len);
-  if (nread != len) {
+  return sk;
+}
+
+
+// Comment(wdai): There's a lot of copying. Optimize it! Check out 
+// zero_copy_stream.h
+// (https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.io.zero_copy_stream?hl=en)
+// Implementation using zero_copy_stream_impl of protobuf.
+std::string ReadCompressedFile(const std::string& file_path,
+  Compressor compressor, 
+  int32_t file_begin, int32_t len) {
+  // sk is a smart pointer. We do own the SeekStream pointer.
+  auto sk = io::OpenFileStream(file_path.c_str());  
+  dmlc::istream in(sk.get()); // type conversion.
+  // By default, read the whole file.
+  if(len == 0) {
+    len = GetFileSize(file_path);
+  }
+  auto fp = make_unique<google::protobuf::io::IstreamInputStream>
+      (dynamic_cast<std::basic_istream<char>*>(&in),len);
+
+  const void* buffer;
+  int size;
+  fp->Skip(file_begin); // offset to start reading.
+  // Read a bulk of size len, into buffer, length returned in size
+  bool b_succeed = fp->Next(&buffer, &size); 
+  if (!b_succeed || (len != size)) {
     throw FailedFileOperationException("Failed to read file: " + file_path
         + "\n");
   }
-  // Uncompress
-  if (compressor == Compressor::NO_COMPRESS) {
-    return buffer;
-  }
-  auto& registry = ClassRegistry<CompressorIf>::GetRegistry();
-  std::unique_ptr<CompressorIf> compressor_if =
-    registry.CreateObject(compressor);
-  try {
-    return compressor_if->Uncompress(buffer);
-  } catch (const FailedToUncompressException& e) {
-    throw FailedFileOperationException("Failed to uncompress " + file_path
-        + " " + e.what());
-  }
-  // Should never get here.
-  return "";
+  return ReadCompressedString(buffer, size, compressor);
 }
 
+/*
 std::string ReadCompressedFile(const std::string& file_path,
     Compressor compressor) {
-  // Comment(wdai): There's a lot of copying. Optimize it! Check out 
-  // zero_copy_stream.h
-  // (https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.io.zero_copy_stream?hl=en)
 
   // Read    
   dmlc::io::URI path(file_path.c_str());
@@ -103,6 +90,7 @@ std::string ReadCompressedFile(const std::string& file_path,
   // Should never get here.
   return "";
 }
+*/
 
 size_t WriteSizeLimitedFiles(const std::string& file_dir, int32_t& file_idx,
     const std::string& data) {
@@ -215,7 +203,7 @@ size_t AppendFile(const std::string& file_path,
 }
 
 std::string ReadFile(const std::string& file_path) {
-  return ReadCompressedFile(file_path, Compressor::NO_COMPRESS);
+  return ReadCompressedFile(file_path, Compressor::NO_COMPRESS,0,0);
 }
 
 bool Exists(const std::string& path) {
@@ -241,6 +229,14 @@ std::string Path(const std::string& file_path) {
 // Return the parent path of a given file or directory.
 std::string ParentPath(const std::string& file_path) {
   return dmlc::io::FileSystem::parent_path(file_path);
+}
+
+size_t GetFileSize(const std::string& file_path) {
+  dmlc::io::URI path(file_path.c_str());
+  // We don't own the FileSystem pointer.
+  dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
+  dmlc::io::FileInfo info = fs->GetPathInfo(path);
+  return info.size;
 }
 
 }  // namaspace hotbox::io

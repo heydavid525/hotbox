@@ -22,6 +22,9 @@ std::string SerializeProto(const google::protobuf::Message& msg);
 std::string ReadCompressedString(std::string input,
     Compressor compressor = Compressor::SNAPPY);
 
+std::string ReadCompressedString(const void* data, const int size,
+    Compressor compressor = Compressor::SNAPPY);
+
 size_t WriteCompressedString(std::string& input,
     Compressor compressor = Compressor::SNAPPY);
 
