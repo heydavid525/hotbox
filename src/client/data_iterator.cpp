@@ -16,22 +16,6 @@ DataIterator::DataIterator(const SessionProto& session_proto,
   }
 
 FlexiDatum&& DataIterator::GetDatum() {
-  /*
-  CHECK_LT(next_, data_end_);
-  if (next_ == chunk_end_) {
-    // Read the next chunk.
-    auto high = std::upper_bound(datum_ids_.cbegin(),
-        datum_ids_.cend(), next_);
-    auto atom_id = high - datum_ids_.cbegin() - 1;
-    CHECK_GE(atom_id, 0) << "Couldn't find atom file containing datum "
-      << next_;
-    CHECK_LT(atom_id, datum_ids_.size());
-    ReadAtomAndTransform(atom_id);
-    chunk_begin_ = chunk_end_;
-    chunk_end_ = chunk_begin_ + data_buffer_.size();
-  }
-  return std::move(data_buffer_[next_ - chunk_begin_]);
-  */
   // Get Datum from Size Limited Files.
   CHECK_LT(next_, data_end_);
   if (next_ == chunk_end_) {
@@ -73,6 +57,25 @@ void DataIterator::ReadSizeLimitedAtomAndTransform(BigInt file_begin,
   std::stringstream ss;
   for(int i=0; i < (atom_idx_end + 1 - atom_idx_begin) ; i++) {
     LOG(INFO) << "Reading atom file " << atom_idx_begin + i;
+    if(i == 0) {
+      int32_t read_len = (atom_idx_end == atom_idx_begin)
+                ? file_end - file_begin // total read len
+                : (size_limit - file_begin % size_limit); // file_len
+      ss << io::ReadCompressedFile(
+        session_proto_.file_map().atom_path() + std::to_string(atom_idx_begin + i),
+            file_begin % size_limit, read_len, Compressor::NO_COMPRESS);
+    }
+    else if (i < (atom_idx_end - atom_idx_begin)) {
+      ss << io::ReadCompressedFile(
+        session_proto_.file_map().atom_path() + std::to_string(atom_idx_begin + i),
+          Compressor::NO_COMPRESS);
+    }
+    else {
+      ss << io::ReadCompressedFile(
+        session_proto_.file_map().atom_path() + std::to_string(atom_idx_begin + i),
+            0, file_end % size_limit, Compressor::NO_COMPRESS);
+    }
+/*
     std::string content = io::ReadCompressedFile(
         session_proto_.file_map().atom_path() + std::to_string(atom_idx_begin + i),
         Compressor::NO_COMPRESS);
@@ -85,6 +88,7 @@ void DataIterator::ReadSizeLimitedAtomAndTransform(BigInt file_begin,
     else {
       ss << content.substr(0, file_end % size_limit);
     }
+*/
   }
   std::string data = ReadCompressedString(ss.str(), session_proto_.compressor());
   LOG(INFO) << "File Read: " << ss.str().size();

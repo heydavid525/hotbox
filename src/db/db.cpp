@@ -41,9 +41,9 @@ DB::DB(const std::string& db_path) {
     stats_.emplace_back(&released_stat[i]);
   }
 
-  LOG(INFO) << "DB " << meta_data_.db_config().db_name() << " is initialized"
-    " from " << metadb_file_path
-    << " # features in schema: "  << schema_->GetNumFeatures();
+  LOG(INFO) << "DB " << meta_data_.db_config().db_name() << " is initialized "
+            << " from " << metadb_file_path << ". "
+            << "# features in schema: "  << schema_->GetNumFeatures();
   // TODO(wdai): Throw exception and catch and handle it in DBServer.
   if (kFeatureIndexType == FeatureIndexType::INT32 &&
       meta_data_.feature_index_type() == FeatureIndexType::INT64) {
@@ -96,7 +96,7 @@ size_t DB::WriteToAtomFiles(const DBAtom& atom, int32_t* ori_sizes, int32_t* com
   *ori_sizes += serialized_atom.size();
   *comp_size += compressed_size;
   LOG(INFO) << "curr_atom_id: " << curr_atom_id << ". "
-            << "Written: " << *comp_size << ". ";  
+            << "This ingestion wrote: " << *comp_size << ". ";  
   return compressed_size;
 }
 
@@ -106,21 +106,21 @@ void DB::UpdateReadMetaData(const DBAtom& atom, const int32_t new_len) {
       meta_data_.file_map().data_idx(curr_data_idx_size - 1);
   meta_data_.mutable_file_map()->add_data_idx(
       curr_data_idx + new_len);
-  LOG(INFO) << "data_idx: " << curr_data_idx + new_len;
+  LOG(INFO) << "Total data offset: " << curr_data_idx + new_len;
   
   BigInt num_data_read = atom.datum_protos_size();
   BigInt num_data_before_read = meta_data_.file_map().num_data();
   meta_data_.mutable_file_map()->add_datum_ids(num_data_before_read);
   meta_data_.mutable_file_map()->set_num_data(
       num_data_before_read + num_data_read);
-  LOG(INFO) << "num_data_read: " << num_data_read << ". ";
-  LOG(INFO) << "num_data_before_read: " << num_data_before_read << ". ";
-  LOG(INFO) << "num_data: " << num_data_before_read + num_data_read << ". ";
+  LOG(INFO) << "# records read this interval: " << num_data_read << ". ";
+  LOG(INFO) << "# records before: " << num_data_before_read << ". ";
+  LOG(INFO) << "# records in DB: " << num_data_before_read + num_data_read << ". ";
 }
 
 int32_t DB::GuessBatchSize(const int32_t size) {
   int32_t limit = _ATOM_SIZE_MB;
-  return limit / (size * 2) ;
+  return limit / (size * 1.3) ;
 }
 
 // With Atom sized to 64MB (or other size) limited chunks.
@@ -152,13 +152,12 @@ std::string DB::ReadFile(const ReadFileReq& req) {
           schema_.get(), &stat_collector);
         if(i == 0) {
           RECORD_BATCH = GuessBatchSize(datum.GetDatumProto().SpaceUsed());
-          LOG(INFO) << "Single Datum Size: " << datum.GetDatumProto().SpaceUsed();
+          LOG(INFO) << "Single Datum Size: " << datum.GetDatumProto().SpaceUsed() << ". "
+                    << "Interval: " << RECORD_BATCH << ".";
         }
-        // Let DBAtom takes the ownership of DatumProto release from datum.
+        // Let DBAtom take the ownership of DatumProto release from datum.
         atom.mutable_datum_protos()->AddAllocated(datum.ReleaseProto());
       }
-      LOG(INFO) << "Writing to Atom Files. " 
-                << "Interval: " << RECORD_BATCH << ".";
       size_t len = WriteToAtomFiles(atom, &ori_size, &compressed_size);
       UpdateReadMetaData(atom, len);
       LOG(INFO) << " ----------------- ------------ ------------";

@@ -19,6 +19,49 @@ dmlc::SeekStream* OpenFileStream(const std::string& file_path){
 }
 
 std::string ReadCompressedFile(const std::string& file_path,
+  const int32_t& file_begin, const int32_t& len, 
+  Compressor compressor) {
+    // Comment(wdai): There's a lot of copying. Optimize it! Check out 
+  // zero_copy_stream.h
+  // (https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.io.zero_copy_stream?hl=en)
+  
+  // Read    
+  dmlc::io::URI path(file_path.c_str());
+  // We don't own the FileSystem pointer.
+  dmlc::io::FileSystem *fs = dmlc::io::FileSystem::GetInstance(path.protocol);
+  dmlc::io::FileInfo info = fs->GetPathInfo(path);
+  // We do own the file system pointer.
+  std::unique_ptr<dmlc::SeekStream> fp(fs->OpenForRead(path));
+  if (!fp) {
+    throw FailedFileOperationException("Failed to open " + file_path
+        + " for read.");
+  }
+  // size_t size = info.size;
+  std::string buffer(len, ' ');
+  fp->Seek(file_begin);
+  size_t nread = fp->Read(&buffer[0], len);
+  if (nread != len) {
+    throw FailedFileOperationException("Failed to read file: " + file_path
+        + "\n");
+  }
+  // Uncompress
+  if (compressor == Compressor::NO_COMPRESS) {
+    return buffer;
+  }
+  auto& registry = ClassRegistry<CompressorIf>::GetRegistry();
+  std::unique_ptr<CompressorIf> compressor_if =
+    registry.CreateObject(compressor);
+  try {
+    return compressor_if->Uncompress(buffer);
+  } catch (const FailedToUncompressException& e) {
+    throw FailedFileOperationException("Failed to uncompress " + file_path
+        + " " + e.what());
+  }
+  // Should never get here.
+  return "";
+}
+
+std::string ReadCompressedFile(const std::string& file_path,
     Compressor compressor) {
   // Comment(wdai): There's a lot of copying. Optimize it! Check out 
   // zero_copy_stream.h
@@ -81,10 +124,10 @@ size_t WriteSizeLimitedFiles(const std::string& file_dir, int32_t& file_idx,
   LOG(INFO) << "WriteSizeLimitedFiles: "
             << "Size Limit: " << atom_size_mb << ". "
             << "Current Atom File: " << curr_atom_idx << ". "
-            << "Current X: " << curr_X << ". "
-            << "Data Size: " << data.size() << ". "
+            // << "Current X: " << curr_X << ". "
+            // << "Data Size: " << data.size() << ". "
             << "curr_atom_size " << curr_atom_size << ". "
-            << "Loop Size: " << loop_size << ". ";
+            << "Span # Atom Files: " << loop_size << ". ";
   
   //TODO(weiren): find a non-copy method for compressing data.
   for(int i=0; i < loop_size; i++, curr_atom_idx++) {
@@ -92,14 +135,14 @@ size_t WriteSizeLimitedFiles(const std::string& file_dir, int32_t& file_idx,
     if(i == 0) {
       data_offset = atom_size_mb - curr_atom_size;
       size_written += AppendFile(curr_file_path, data.substr(0, data_offset));
-      LOG(INFO) << "Initial Offset for Length: " << data_offset;
+      LOG(INFO) << "Space Left in This Atom: " << data_offset;
     }
     // Write whole size_limit files.
     else if(i < loop_size - 1) {
       curr_file_path = file_dir + std::to_string(curr_atom_idx);
       size_written += AppendFile(curr_file_path, data.substr(data_offset, atom_size_mb));
       data_offset += atom_size_mb;
-      LOG(INFO) << "Intermediate Offset for seeking: " << data_offset;
+      LOG(INFO) << "Data String Seeking Position: " << data_offset;
     }
     // Write the left data to a new file.
     else {
@@ -107,11 +150,11 @@ size_t WriteSizeLimitedFiles(const std::string& file_dir, int32_t& file_idx,
       //int32_t len = data.size() - data_offset;
       //size_written += AppendFile(curr_file_path, data.substr(data_offset, len));
       size_written += AppendFile(curr_file_path, data.substr(data_offset, atom_size_mb));
-      LOG(INFO) << "Final Offset for Seeking. ";// << data_offset;
+      LOG(INFO) << "Last, Data String Seeking Position. ";// << data_offset;
     }
   }
   file_idx = --curr_atom_idx;
-  LOG(INFO) << "file_idx: " << file_idx;
+  LOG(INFO) << "After Writing Atom Idx: " << file_idx;
   return size_written;
 }
 
@@ -119,12 +162,13 @@ size_t WriteAtomFiles(const std::string& file_dir, int32_t& file_idx,
     const std::string& data, Compressor compressor) {
   // Fisrt Compress then write to separate files.
   if (compressor != Compressor::NO_COMPRESS) {
-    LOG(INFO) << "Compressing Atom Data.";
+    LOG(INFO) << "Compressing Atom Data: " << data.size();
     auto& registry = ClassRegistry<CompressorIf>::GetRegistry();
     std::unique_ptr<CompressorIf> compressor_if = 
                           registry.CreateObject(compressor);
     std::string compressed = compressor_if->Compress(data);
     LOG(INFO) << "Compressed String Len: " << compressed.size(); 
+    LOG(INFO) << "Writing to Atom Files. ";
     return WriteSizeLimitedFiles(file_dir, file_idx, compressed);
   } else {
     LOG(INFO) << "Writing UnCompressed Atom Data.";

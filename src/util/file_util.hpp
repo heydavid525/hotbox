@@ -6,7 +6,7 @@
 #include "io/filesys.hpp"
 
 // Use this to define file block size.
-#define _ATOM_SIZE_MB 64*1024*1024
+#define _ATOM_SIZE_MB 12*1024*1024
 
 namespace hotbox {
 	namespace io {
@@ -17,6 +17,10 @@ namespace hotbox {
 // that we know what compression we use for each DB's atom file.
 std::string ReadCompressedFile(const std::string& file_path,
     Compressor compressor = Compressor::SNAPPY);
+
+std::string ReadCompressedFile(const std::string& file_path,
+	const int32_t& file_begin, const int32_t& len, 
+	Compressor compressor = Compressor::SNAPPY);
 
 // Compress and write data to file_path. Return compressed bytes.
 size_t WriteCompressedFile(const std::string& file_path,
