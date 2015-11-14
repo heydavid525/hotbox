@@ -6,7 +6,7 @@
 #include "io/filesys.hpp"
 
 // Use this to define file block size.
-#define _ATOM_SIZE_MB 12*1024*1024
+#define _ATOM_SIZE_MB 64*1024*1024
 
 namespace hotbox {
 	namespace io {
