@@ -10,9 +10,8 @@ BUILD :=build
 SRC_DIR:=$(PROJECT)/src
 
 LIB = $(BUILD)/lib
-#LIB_SHARED = $(BUILD_SHARED)/lib
 
-NEED_MKDIR = $(BUILD) $(LIB) $(LIB_SHARED)
+NEED_MKDIR = $(BUILD) $(LIB)
 
 all: proto hotbox_lib hotbox_sharedlib test
 
@@ -65,12 +64,11 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
 					-lpthread \
 					-lyaml-cpp \
 					-lsnappy \
-          -ldmlc \
-          -lglog	# lglog must come after ldmlc, which depends on glog.
-		  		#-Wl,-rpath=$(LIBJVM) \
-          #-L$(LIBJVM) -ljvm \
-          #-lhdfs
+	          	   -ldmlc \
+          -lglog 
+          # lglog must come after ldmlc, which depends on glog.
           #-lrocksdb
+LDFLAGS += $(HDFS_LDFLAGS)
 
 HB_SRC = $(shell find src -type f -name "*.cpp")
 HB_PROTO = $(shell find src -type f -name "*.proto")
@@ -88,7 +86,8 @@ $(PROTO_HDRS): $(BUILD)/%.pb.h: $(SRC_DIR)/%.proto
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
 	$(PROTOC) --cpp_out=$(BUILD) --python_out=$(BUILD) --proto_path=$(SRC_DIR) $<
 	
-$(HB_LIB): $(PROTO_OBJS) $(HB_OBJS)
+	
+$(HB_LIB): $(PROTO_OBJS) $(HB_OBJS) 
 	@echo HB_LIB_
 	mkdir -p $(@D)
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
@@ -106,11 +105,11 @@ $(HB_OBJS): $(BUILD)/%.o: $(SRC_DIR)/%.cpp $(PROTO_OBJS)
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c $< -o $@
 
-$(HB_SHARED_LIB): $(HB_OBJS) $(PROTO_OBJS)
+$(HB_SHARED_LIB): $(HB_OBJS) $(PROTO_OBJS) 
 	@echo HB_LIB_SHARED_
 	mkdir -p $(@D)
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
-	$(CXX) -shared -o $@ $(HB_LIB_OBJS) $(LDFLAGS)
+	$(CXX) -shared -o $@ $(filter %.o, $?) $(LDFLAGS)
 
 proto:$(PROTO_HDRS)
 
@@ -120,8 +119,16 @@ proto:$(PROTO_HDRS)
 spark_exp_server: experiment/spark_exp/server/server.cpp $(HB_LIB)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) experiment/spark_exp/server/server.cpp $(HB_LIB) $(LDFLAGS) -o spark_exp_server
 
-hotbox_lib: path proto $(HB_LIB)
+hotbox_lib: path proto dmlc_hdfs $(HB_LIB) 
 
-hotbox_sharedlib: path proto $(HB_SHARED_LIB)
+hotbox_sharedlib: path proto dmlc_hdfs $(HB_SHARED_LIB) 
 
+dmlc_hdfs: $(PROJECT)/config.mk
+	cd $(THIRD_PARTY_LIB); \
+	rm libdmlc.a
+	cd $(THIRD_PARTY); \
+	make dmlc
+
+ifeq ($(BUILD_TEST), 1)
 include $(PROJECT)/test/test.mk
+endif
