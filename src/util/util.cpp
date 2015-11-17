@@ -71,8 +71,6 @@ std::string ReadCompressedString(const void* data, const int size,
   return "";
 }
 
-
-
 size_t WriteCompressedString(std::string& input,
     Compressor compressor) {
   if (compressor != Compressor::NO_COMPRESS) {

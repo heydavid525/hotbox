@@ -2,7 +2,7 @@
 BUILD_TEST = 1
 # Build Shared Lib? 0 for static only, 1 for shared only
 # 2 for both.
-USE_SHARED_LIB = 0
+USE_SHARED_LIB = 1
 # Configure whether to use HDFS.
 USE_HDFS = 0
 

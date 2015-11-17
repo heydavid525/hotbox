@@ -25,10 +25,10 @@ FlexiDatum&& DataIterator::GetDatum() {
     int32_t file_begin, file_end;
     if(next_ == 0) {
       file_begin = 0;
-      file_end = session_proto_.file_map().data_idx(data_idx);
+      file_end = session_proto_.file_map().global_bytes_offset(data_idx);
     } else {
-      file_begin = session_proto_.file_map().data_idx(data_idx - 1);
-      file_end = session_proto_.file_map().data_idx(data_idx);
+      file_begin = session_proto_.file_map().global_bytes_offset(data_idx - 1);
+      file_end = session_proto_.file_map().global_bytes_offset(data_idx);
     }
     LOG(INFO) << "data_idx: " << data_idx << ". "
               << "file_begin: " << file_begin << ". "
@@ -49,7 +49,7 @@ FlexiDatum&& DataIterator::GetDatum() {
 
 void DataIterator::ReadSizeLimitedAtomAndTransform(BigInt file_begin,
     BigInt file_end) {
-  int32_t size_limit = _ATOM_SIZE_MB;
+  int32_t size_limit = kATOM_SIZE_MB;
   int32_t atom_idx_begin = file_begin / size_limit;
   int32_t atom_idx_end = file_end / size_limit;
   LOG(INFO) << "Which Atom: [" << atom_idx_begin << " - " << atom_idx_end << "]." ;

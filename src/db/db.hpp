@@ -59,9 +59,19 @@ private:
 
   void GenerateDBAtom(const DBAtom& atom, const ReadFileReq& req);
 
+  // Infer Current Atom.# according to file_map globl_offset.
   int32_t GetCurrentAtomID();
+
+  // Update related metadata after file ingestion.
+  // Namely #global_byte_offset, #datam_records, #records total
   void UpdateReadMetaData(const DBAtom& atom, const int32_t compressed_size);
-  size_t WriteToAtomFiles(const DBAtom& atom, int32_t* ori_sizes, int32_t* comp_size);
+
+  // Write ‘atom’ data to Atom files. Return bytes written.
+  // ori_sizes & comp_sizes totals uncompressed & compressed data size.
+  size_t WriteToAtomFiles(const DBAtom& atom, int32_t* ori_sizes, 
+            int32_t* comp_sizes);
+
+  // Heuristic method and return #records to read in one batch.
   int32_t GuessBatchSize(const int32_t size);
 
   //std::vector<Epoch> epochs_;
