@@ -47,6 +47,18 @@ DataIterator Session::NewDataIterator(BigInt data_begin,
   return DataIterator(session_proto_, transforms_, data_begin, data_end);
 }
 
+MTTransformer* Session::NewMTTransformer(BigInt data_begin,
+      BigInt data_end, int io_threads, int transform_threads,
+      int buffer_limit, int batch_limit) const {
+      if (data_end == -1)
+        data_end = GetNumData();
+      LOG(INFO) << "NewMTTransformer [" << data_begin << ", " << data_end << ")";
+      return new MTTransformer(session_proto_,transforms_,
+        data_begin, data_end, io_threads, transform_threads,
+        buffer_limit, batch_limit);
+}
+
+
 Status Session::GetStatus() const {
   return status_;
 }

@@ -25,10 +25,21 @@ namespace hotbox {
 
 class MTTransformer {
  public:
+
   // @files will be added to io_queue
+  // deprecated since atom files are not independent from each other for now
   MTTransformer(const SessionProto &session_proto,
                 const std::vector<std::string> &files,
                 std::vector<std::function<void(TransDatum * )>> transforms,
+                int io_threads,
+                int transform_threads,
+                int buffer_limit,
+                int batch_limit) = delete;
+
+  //
+  MTTransformer(const SessionProto &session_proto,
+                std::vector<std::function<void(TransDatum * )>> transforms,
+                BigInt data_begin, BigInt data_end,
                 int io_threads,
                 int transform_threads,
                 int buffer_limit,
@@ -47,7 +58,25 @@ class MTTransformer {
   void Start();
 
  private:
-  
+
+  struct IoTask {
+    // data_idx ranges within a atom file (maybe two)
+    BigInt file_begin;
+    BigInt file_end;
+    BigInt data_idx_begin;
+    BigInt data_idx_end;
+  };
+  // a IoTask may generate many TfTasks
+  struct TfTask {
+    BigInt idx;
+    std::shared_ptr<std::string> shared_buf; // shared buffer
+    BigInt offset; // offset within shared_buf
+    BigInt length; // buffer length
+  };
+
+  void
+  Translate(BigInt data_begin, BigInt data_end);
+
   void Destory();
 
   void IoTaskLoop();
@@ -60,8 +89,8 @@ class MTTransformer {
   std::vector<std::thread> io_workers_;
   std::vector<std::thread> tf_workers_;
   std::vector<std::function<void(TransDatum * )>> transforms_;
-  std::queue<std::string> io_queue_; // io files queue
-  std::queue<std::string> bf_queue_; // buffer queue
+  std::queue<IoTask> io_queue_; // io files queue
+  std::queue<TfTask> bf_queue_; // buffer queue
   std::queue<std::vector<FlexiDatum> *> bt_queue_; //batch queue
 
   // mutex
@@ -74,10 +103,10 @@ class MTTransformer {
   std::condition_variable bf_cv_;
   std::condition_variable bt_cv_;
 
-  std::condition_variable io_wait_cv_; // used for io limit
-  std::condition_variable tf_wait_cv_; // used for transform limit
+  std::condition_variable io_wait_cv_; // used for io limit, simulate Semaphore
+  std::condition_variable tf_wait_cv_; // used for transform limit, simulated Semaphore
 
-  std::atomic_bool stop_flag_{false}; // 
+  std::atomic_bool stop_flag_{false}; //
 
   std::atomic_int total_batches_; //
   std::atomic_int total_buffers_; //
@@ -89,6 +118,11 @@ class MTTransformer {
 
   BigInt bf_limit_;
   BigInt bt_limit_;
+  //
+  BigInt data_begin_;
+  BigInt data_end_;
+  std::vector<BigInt> datum_ids_;
+  std::vector<BigInt> data_idx_;
 };
 
 } // namespace hotbox

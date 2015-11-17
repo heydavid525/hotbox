@@ -4,6 +4,8 @@
 #include <algorithm>
 
 namespace hotbox {
+
+/*
 MTTransformer::MTTransformer(const SessionProto &session_proto,
                              const std::vector<std::string> &files,
                              std::vector<std::function<void(TransDatum * )>> transforms,
@@ -20,30 +22,107 @@ MTTransformer::MTTransformer(const SessionProto &session_proto,
   for(auto &file : files)
     io_queue_.push(file);
 }
+*/
+
+MTTransformer::MTTransformer(const SessionProto &session_proto,
+                             std::vector<std::function<void(TransDatum * )>> transforms,
+                             BigInt data_begin, BigInt data_end,
+                             int io_threads,
+                             int transform_threads,
+                             int buffer_limit,
+                             int batch_limit) : session_proto_(session_proto),
+  transforms_(transforms),
+  data_begin_(data_begin), data_end_(data_end),
+  io_workers_count_(io_threads), tf_workers_count_(transform_threads),
+  bf_limit_(buffer_limit), bt_limit_(batch_limit),
+  datum_ids_(session_proto_.file_map().datum_ids().cbegin(),
+             session_proto_.file_map().datum_ids().cend()),
+  data_idx_(session_proto_.file_map().data_idx().cbegin(),
+            session_proto_.file_map().data_idx().cend()) {
+  Start();
+}
+
+
+MTTransformer::~MTTransformer() {
+  Destory();
+}
 
 void MTTransformer::IoTaskLoop() {
+  LOG(INFO) << "IoTaskLoop " << std::this_thread::get_id() << " Starts...";
   while (true) {
-    std::string path;
-
+    IoTask iotask;
     // get file from io_queue
     {
       std::lock_guard<std::mutex> lock(io_mtx_);
       if (io_queue_.empty() || stop_flag_) {
         break;
       }
-      path = std::move(io_queue_.front());
+      iotask = std::move(io_queue_.front());
       io_queue_.pop();
     }
 
-    std::string content = io::ReadCompressedFile(
-                            path, session_proto_.compressor());
-
+    LOG(INFO) << "IoTaskLoop " << std::this_thread::get_id() << " read file ["
+              << iotask.file_begin << ", " << iotask.file_end << ")";
+    // read buffer
+    auto file_size = _ATOM_SIZE_MB;
+    auto atom_id_begin = iotask.file_begin / file_size;
+    auto atom_id_end = iotask.file_end / file_size;
+    int offset, length;
+    std::string *content = new std::string; // to make it shared
+    // we will read at most two files
+    for(auto atom_id = atom_id_begin; atom_id <= atom_id_end; atom_id++) {
+      std::string path = session_proto_.file_map().atom_path() + std::to_string(atom_id);
+      if(atom_id == atom_id_begin) {
+        offset = iotask.file_begin % file_size;
+      } else {
+        offset = 0;
+      }
+      if(atom_id == atom_id_end) {
+        length = iotask.file_end % file_size - offset;
+      } else {
+        length = file_size - offset;
+      }
+      /*
+      LOG(INFO) << "IoTaskLoop " << std::this_thread::get_id() << " read atom "
+                << atom_id << ": offset " << offset << ", length " << length;
+      */
+      // Comment (Yangyang):
+      if (atom_id  == atom_id_begin)
+        *content = std::move(io::ReadCompressedFile(path,
+                             Compressor::NO_COMPRESS,
+                             offset, length));
+      else
+        content->append(io::ReadCompressedFile(path,
+                                               Compressor::NO_COMPRESS,
+                                               offset, length));
+    }
+    /*
+    LOG(INFO) << "IoTaskLoop " << std::this_thread::get_id()
+              << " Buffer size: " << content->size();
+    */
+    // generate TfTasks sharing shared_buf
+    std::shared_ptr<std::string> shared_buf(content);
     {
       std::lock_guard<std::mutex> lock(bf_mtx_);
-      bf_queue_.push(std::move(content));
+      auto offset = 0;
+      for(auto idx = iotask.data_idx_begin; idx <= iotask.data_idx_end; idx++) {
+        TfTask task;
+        task.shared_buf = shared_buf;
+        task.idx = idx;
+        task.offset = offset;
+        task.length = data_idx_[idx] - iotask.file_begin - offset;
+        offset = data_idx_[idx] - iotask.file_begin;
+
+        bf_queue_.push(task);
+        bf_size_++;
+        /*
+        LOG(INFO) << "IoTaskLoop " << std::this_thread::get_id()
+          << " Push TfTask " << task.idx << ": off " << task.offset
+          << ", len " << task.length;
+        */
+      }
     }
-    bf_size_++;
-    bf_cv_.notify_one();
+    bf_cv_.notify_all();
 
     {
       // speed limit
@@ -55,12 +134,13 @@ void MTTransformer::IoTaskLoop() {
         break;
     }
   }
+  LOG(INFO) << "IoTaskLoop " << std::this_thread::get_id() << " ends...";
 }
 
 void MTTransformer::TransformTaskLoop() {
+  LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id() << " Starts...";
   while(true) {
-    std::string content;
-
+    TfTask task;
     // get content buffer from bf_queue
     {
       std::unique_lock<std::mutex> lock(bf_mtx_);
@@ -71,27 +151,73 @@ void MTTransformer::TransformTaskLoop() {
       });
       if(stop_flag_)
         break;
-      content = std::move(bf_queue_.front());
+      task = std::move(bf_queue_.front());
       bf_queue_.pop();
       lock.unlock();
     }
     bf_size_--;
     total_buffers_--;
-    io_wait_cv_.notify_one();
+    if (bf_size_ < bf_limit_)
+      io_wait_cv_.notify_one();
+    /*
+    LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id()
+          << " Get TfTask " << task.idx << ": off " << task.offset
+          << ", len " << task.length
+          << std::endl;
+    LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id()
+              << " decompress TfTask "
+              << task.idx;
+    */
+    // decompress buffer
+    std::string content = ReadCompressedString(task.shared_buf.get()->c_str() + task.offset,
+                          task.length,
+                          session_proto_.compressor());
+    /*
+    LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id()
+                  << " decompressed size: " << content.size();
 
+
+    LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id()
+              << " deserialize TfTask "
+              << task.idx;
+    */
     // deserialize buffer
     DBAtom atom_proto;
     atom_proto.ParseFromString(content);
-
-    std::vector<FlexiDatum> *vec = new std::vector<FlexiDatum>;
+    /*
+    LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id()
+              << " transform TfTask "
+              << task.idx;
+    */
+    std::vector<FlexiDatum> *vec = new std::vector<FlexiDatum>();
     vec->reserve(atom_proto.datum_protos_size());
     FeatureFamily internal_family(session_proto_.internal_family_proto());
     auto output_store_type = session_proto_.output_store_type();
     auto output_dim = session_proto_.output_dim();
 
-    std::vector<FlexiDatum> &batch = *vec;
     // do transform
-    for (int i = atom_proto.datum_protos_size() - 1; i >= 0; --i) {
+    BigInt datum_begin, datum_end, datum_base;
+    datum_begin = datum_ids_[task.idx];
+    datum_end = datum_ids_[task.idx + 1];
+    datum_base = datum_begin;
+    if(datum_begin < data_begin_)
+      datum_begin = data_begin_;
+    if (datum_end > data_end_ || datum_end == 0)
+      datum_end = data_end_;
+    /*
+    LOG(INFO) << "TfTask " << task.idx << " proto_size " << atom_proto.datum_protos_size()
+              << " datum_begin " << datum_begin
+              << " datum_end " << datum_end;
+    */
+    datum_begin -= datum_base;
+    datum_end -= datum_base;
+    BigInt count = 0;
+    for (int i = atom_proto.datum_protos_size() - 1; i >= datum_begin; --i) {
+      //check if datum i is in required
+      if(i > datum_end) {
+        delete atom_proto.mutable_datum_protos()->ReleaseLast();
+        continue;
+      }
       DatumBase* datum_base = new DatumBase(
         atom_proto.mutable_datum_protos()->ReleaseLast());
       TransDatum trans_datum(datum_base, internal_family, output_store_type,
@@ -100,7 +226,9 @@ void MTTransformer::TransformTaskLoop() {
         trans_datum.ReadyTransform(session_proto_.transform_output_ranges(t));
         transforms_[t](&trans_datum);
       }
-      batch[i] = std::move(trans_datum.GetFlexiDatum());
+      //(*vec)[i - datum_begin] = std::move(trans_datum.GetFlexiDatum());
+      vec->push_back(std::move(trans_datum.GetFlexiDatum()));
+      count++;
     }
 
     // push vec to bt_queue
@@ -122,9 +250,11 @@ void MTTransformer::TransformTaskLoop() {
         break;
     }
   }
+  LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id() << " ends...";
 }
 
 void MTTransformer::Destory() {
+  LOG(INFO) << "Destory...";
   // set stop flag
   stop_flag_ = true;
 
@@ -153,6 +283,7 @@ void MTTransformer::Destory() {
       delete batch;
     }
   }
+  LOG(INFO) << "Done! Bye~";
 }
 
 std::vector<FlexiDatum> *MTTransformer::NextBatch() {
@@ -173,9 +304,57 @@ std::vector<FlexiDatum> *MTTransformer::NextBatch() {
   return vec;
 }
 
+// split data range into subrange group by atom file
+void
+MTTransformer::Translate(BigInt data_begin, BigInt data_end) {
+  // data_begin should < data_end
+  auto low = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(), data_begin);
+  auto high = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(), data_end);
+  auto data_idx_begin = low - datum_ids_.cbegin() - 1;
+  auto data_idx_end = high - datum_ids_.cbegin() - 1;
+  auto file_begin = data_begin ? data_idx_[data_idx_begin] : 0;
+  auto file_end = data_idx_[data_idx_end];
+  LOG(INFO) << "File range [" << file_begin << ", " << file_end << ")";
+  auto file_size = _ATOM_SIZE_MB;
+  auto data_idx = data_idx_begin;
+  for (auto offset = file_begin; offset < file_end; data_idx++) {
+    IoTask task;
+    task.file_begin = offset;
+    task.data_idx_begin = data_idx;
+    offset += file_size - offset % file_size;
+    auto upper = std::lower_bound(data_idx_.cbegin(), data_idx_.cend(), offset);
+    if (upper == data_idx_.cend())
+      upper --;
+    data_idx = upper - data_idx_.cbegin();
+    task.file_end = *(upper);
+    task.data_idx_end = data_idx;
+    if (task.file_end > file_end) {
+      task.file_end = file_end;
+      task.data_idx_end = data_idx_end;
+    }
+    offset = task.file_end;
+    io_queue_.push(task);
+    /*
+    LOG(INFO) << "IoTask: file [" << task.file_begin << ", " << task.file_end
+              << "], idx [" << task.data_idx_begin << ", "
+              << task.data_idx_end
+              << "]" << std::endl;
+    */
+  }
+
+  total_buffers_ = data_idx_end - data_idx_begin + 1;
+  total_batches_ = data_idx_end - data_idx_begin + 1;
+
+  // LOG(INFO) << "Total Buffers :" << total_buffers_;
+  LOG(INFO) << "Total Batches :" << total_batches_;
+
+}
+
+
 void MTTransformer::Start() {
-  total_batches_ = this->io_queue_.size();
-  total_buffers_ = this->io_queue_.size();
+  // translate data range into io tasks
+  Translate(data_begin_, data_end_);
+
   bt_size_ = 0;
   bf_size_ = 0;
   for (int i = 0; i < io_workers_count_; i++) {
@@ -189,6 +368,9 @@ void MTTransformer::Start() {
       this->TransformTaskLoop();
     }));
   }
+}
+bool MTTransformer::HasNextBatch() const {
+  return total_batches_;
 }
 
 }
