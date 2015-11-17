@@ -3,17 +3,25 @@ PROJECT := $(shell readlink $(dir $(lastword $(MAKEFILE_LIST))) -f)
 
 include $(PROJECT)/config.mk
 
-#BUILD := $(PROJECT)/build
-BUILD :=build
-#BUILD_SHARED := build_shared
-
 SRC_DIR:=$(PROJECT)/src
-
+BUILD :=build
 LIB = $(BUILD)/lib
 
 NEED_MKDIR = $(BUILD) $(LIB)
 
+
+ifeq ($(USE_SHARED_LIB), 0)
+all: proto hotbox_lib test
+HB_LIB_LINK = $(HB_LIB)
+endif
+ifeq ($(USE_SHARED_LIB), 1)
+all: proto hotbox_sharedlib test
+HB_LIB_LINK = $(HB_SHARED_LIB)
+endif
+ifeq ($(USE_SHARED_LIB), 2)	
 all: proto hotbox_lib hotbox_sharedlib test
+HB_LIB_LINK = $(HB_SHARED_LIB)
+endif
 
 path: $(NEED_MKDIR)
 
@@ -77,6 +85,7 @@ HB_HEADERS = $(shell find src -type f -name "*.hpp")
 PROTO_HDRS = $(patsubst src/%.proto, $(BUILD)/%.pb.h, $(HB_PROTO))
 PROTO_OBJS = $(patsubst src/%.proto, $(BUILD)/%.pb.o, $(HB_PROTO))
 HB_OBJS = $(patsubst src/%.cpp, $(BUILD)/%.o, $(HB_SRC))
+HB_LIB_OBJS = $(shell find $(BUILD) -type f -name "*.o")
 
 
 PROTOC = $(THIRD_PARTY_BIN)/protoc
@@ -109,7 +118,7 @@ $(HB_SHARED_LIB): $(HB_OBJS) $(PROTO_OBJS)
 	@echo HB_LIB_SHARED_
 	mkdir -p $(@D)
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
-	$(CXX) -shared -o $@ $(filter %.o, $?) $(LDFLAGS)
+	$(CXX) -shared -o $@ $(HB_LIB_OBJS) $(LDFLAGS)
 
 proto:$(PROTO_HDRS)
 
@@ -119,15 +128,9 @@ proto:$(PROTO_HDRS)
 spark_exp_server: experiment/spark_exp/server/server.cpp $(HB_LIB)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) experiment/spark_exp/server/server.cpp $(HB_LIB) $(LDFLAGS) -o spark_exp_server
 
-hotbox_lib: path proto dmlc_hdfs $(HB_LIB) 
+hotbox_lib: path proto $(HB_LIB) 
 
-hotbox_sharedlib: path proto dmlc_hdfs $(HB_SHARED_LIB) 
-
-dmlc_hdfs: $(PROJECT)/config.mk
-	cd $(THIRD_PARTY_LIB); \
-	rm libdmlc.a
-	cd $(THIRD_PARTY); \
-	make dmlc
+hotbox_sharedlib: path proto $(HB_SHARED_LIB) 
 
 ifeq ($(BUILD_TEST), 1)
 include $(PROJECT)/test/test.mk

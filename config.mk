@@ -1,7 +1,8 @@
 # Build Test?
 BUILD_TEST = 1
-# Build Shared Lib?
-USE_SHARED_LIB = 1
+# Build Shared Lib? 0 for static only, 1 for shared only
+# 2 for both.
+USE_SHARED_LIB = 0
 # Configure whether to use HDFS.
 USE_HDFS = 0
 
@@ -35,9 +36,4 @@ else
   HDFS_INCFLAGS =
 endif
 
-ifeq ($(USE_SHARED_LIB), 1)
-	HB_LIB_LINK = $(HB_SHARED_LIB)
-else
-	HB_LIB_LINK = $(HB_LIB)
-endif
 
