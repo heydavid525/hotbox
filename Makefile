@@ -18,10 +18,6 @@ ifeq ($(USE_SHARED_LIB), 1)
 all: proto hotbox_sharedlib test
 HB_LIB_LINK = $(HB_SHARED_LIB)
 endif
-ifeq ($(USE_SHARED_LIB), 2)	
-all: proto hotbox_lib hotbox_sharedlib test
-HB_LIB_LINK = $(HB_SHARED_LIB)
-endif
 
 path: $(NEED_MKDIR)
 
@@ -119,6 +115,8 @@ $(HB_SHARED_LIB): $(HB_OBJS) $(PROTO_OBJS)
 	mkdir -p $(@D)
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
 	$(CXX) -shared -o $@ $(HB_LIB_OBJS) $(LDFLAGS)
+	# Make $(BUILD)/ into a python module.
+	python $(PROJECT)/python/util/modularize.py $(BUILD)
 
 proto:$(PROTO_HDRS)
 
