@@ -11,12 +11,27 @@ std::string SnappyCompressor::Compress(const std::string& in)
   return compressed;
 }
 
+std::string SnappyCompressor::Compress(const void* data, const int& len)
+  const noexcept {
+  	std::string compressed;
+  	snappy::Compress((const char*)data, len, &compressed);
+  	return compressed;
+  }
+
 std::string SnappyCompressor::Uncompress(const std::string& in) const {
   std::string uncompressed;
   if (!snappy::Uncompress(in.c_str(), in.size(), &uncompressed)) {
     throw FailedToUncompressException("Snappy uncompress failed.");
   }
   return uncompressed;
+}
+
+std::string SnappyCompressor::Uncompress(const void* data, const int& len) const {
+	std::string uncompressed;
+	if(!snappy::Uncompress((const char*)data, len, &uncompressed)) {
+		throw FailedToUncompressException("Snappy uncompress failed.");
+	}
+	return uncompressed;
 }
 
 }  // namespace hotbox

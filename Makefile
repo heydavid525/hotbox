@@ -3,18 +3,21 @@ PROJECT := $(shell readlink $(dir $(lastword $(MAKEFILE_LIST))) -f)
 
 include $(PROJECT)/config.mk
 
-#BUILD := $(PROJECT)/build
-BUILD :=build
-#BUILD_SHARED := build_shared
-
 SRC_DIR:=$(PROJECT)/src
-
+BUILD :=build
 LIB = $(BUILD)/lib
-#LIB_SHARED = $(BUILD_SHARED)/lib
 
-NEED_MKDIR = $(BUILD) $(LIB) $(LIB_SHARED)
+NEED_MKDIR = $(BUILD) $(LIB)
 
-all: proto hotbox_lib hotbox_sharedlib test
+
+ifeq ($(USE_SHARED_LIB), 0)
+all: proto hotbox_lib test
+HB_LIB_LINK = $(HB_LIB)
+endif
+ifeq ($(USE_SHARED_LIB), 1)
+all: proto hotbox_sharedlib test
+HB_LIB_LINK = $(HB_SHARED_LIB)
+endif
 
 path: $(NEED_MKDIR)
 
@@ -65,12 +68,11 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
 					-lpthread \
 					-lyaml-cpp \
 					-lsnappy \
-          -ldmlc \
-          -lglog	# lglog must come after ldmlc, which depends on glog.
-		  		#-Wl,-rpath=$(LIBJVM) \
-          #-L$(LIBJVM) -ljvm \
-          #-lhdfs
+	          	   -ldmlc \
+          -lglog 
+          # lglog must come after ldmlc, which depends on glog.
           #-lrocksdb
+LDFLAGS += $(HDFS_LDFLAGS)
 
 HB_SRC = $(shell find src -type f -name "*.cpp")
 HB_PROTO = $(shell find src -type f -name "*.proto")
@@ -79,6 +81,7 @@ HB_HEADERS = $(shell find src -type f -name "*.hpp")
 PROTO_HDRS = $(patsubst src/%.proto, $(BUILD)/%.pb.h, $(HB_PROTO))
 PROTO_OBJS = $(patsubst src/%.proto, $(BUILD)/%.pb.o, $(HB_PROTO))
 HB_OBJS = $(patsubst src/%.cpp, $(BUILD)/%.o, $(HB_SRC))
+HB_LIB_OBJS = $(shell find $(BUILD) -type f -name "*.o")
 
 
 PROTOC = $(THIRD_PARTY_BIN)/protoc
@@ -88,7 +91,8 @@ $(PROTO_HDRS): $(BUILD)/%.pb.h: $(SRC_DIR)/%.proto
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
 	$(PROTOC) --cpp_out=$(BUILD) --python_out=$(BUILD) --proto_path=$(SRC_DIR) $<
 	
-$(HB_LIB): $(PROTO_OBJS) $(HB_OBJS)
+	
+$(HB_LIB): $(PROTO_OBJS) $(HB_OBJS) 
 	@echo HB_LIB_
 	mkdir -p $(@D)
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
@@ -106,11 +110,13 @@ $(HB_OBJS): $(BUILD)/%.o: $(SRC_DIR)/%.cpp $(PROTO_OBJS)
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c $< -o $@
 
-$(HB_SHARED_LIB): $(HB_OBJS) $(PROTO_OBJS)
+$(HB_SHARED_LIB): $(HB_OBJS) $(PROTO_OBJS) 
 	@echo HB_LIB_SHARED_
 	mkdir -p $(@D)
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
 	$(CXX) -shared -o $@ $(HB_LIB_OBJS) $(LDFLAGS)
+	# Make $(BUILD)/ into a python module.
+	python $(PROJECT)/python/util/modularize.py $(BUILD)
 
 proto:$(PROTO_HDRS)
 
@@ -120,8 +126,10 @@ proto:$(PROTO_HDRS)
 spark_exp_server: experiment/spark_exp/server/server.cpp $(HB_LIB)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) experiment/spark_exp/server/server.cpp $(HB_LIB) $(LDFLAGS) -o spark_exp_server
 
-hotbox_lib: path proto $(HB_LIB)
+hotbox_lib: path proto $(HB_LIB) 
 
-hotbox_sharedlib: path proto $(HB_SHARED_LIB)
+hotbox_sharedlib: path proto $(HB_SHARED_LIB) 
 
+ifeq ($(BUILD_TEST), 1)
 include $(PROJECT)/test/test.mk
+endif
