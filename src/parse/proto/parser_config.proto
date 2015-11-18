@@ -19,9 +19,9 @@ message LibSVMParserConfig {
 
 message CSVParserConfig {
   // True if feature indices starts from 1.
-  bool has_header = 3;
+  int32 has_header = 1;
 
   // True if label indices starts from 0.
-  bool label_front = 4;
+  bool label_front = 2;
  // bool label_end = false;
 }

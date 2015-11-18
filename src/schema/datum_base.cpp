@@ -97,7 +97,6 @@ float DatumBase::GetFeatureVal(const Feature& f) const {
     default:
       LOG(FATAL) << "Unrecognized store_type: " << f.store_type();
     }
-  }
   return 0.;
 }
 
@@ -124,7 +123,7 @@ void DatumBase::SetFeatureVal(const Feature& f, float val) {
       default:
       LOG(FATAL) << "Unrecognized store_type: " << f.store_type();
     }
-  }
+}
   
 //Oct 20  dense and sparse string set value
 void DatumBase::SetFeatureValString(const Feature& f,const  char* str, int length){
@@ -151,11 +150,13 @@ void DatumBase::SetDenseStrFeatureVal(BigInt offset,const char* str_val,int leng
 }
   
 //Oct 20 set sparse string val
-void DatumBase::SetSparseStrFeatureVal(BigInt offset,const char* str_val,int length){
+void DatumBase::SetSparseStrFeatureVal(BigInt store_offset,const char* str_val,int length){
     for(int i = 0 ;i < length ; i++){
-      (*(proto_->mutable_sparse_bytes_store()))[offset+i] = str_val[i];
+   //   (*(proto_->mutable_sparse_bytes_store()))[offset+i] = str_val[i];
+      proto_->add_sparse_bytes_store_idxs(store_offset+i);
+      proto_->add_sparse_bytes_store_vals(str_val+i);
     }
-  }
+}
   
 
 void DatumBase::SetDenseCatFeatureVal(BigInt store_offset, int val) {

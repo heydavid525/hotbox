@@ -42,6 +42,10 @@ void CSVParser::SetConfig(const ParserConfig& config) {
 //DatumBase* datum
 
 void CSVParser::Parse(const std::string& line,Schema* schema,DatumBase* datum)  const {
+  if(has_header_ > 0){
+    has_header_--;
+    return;
+  }
   LOG(INFO) << "parsing: " << line;
   char* ptr = nullptr, *endptr = nullptr;
   
@@ -56,7 +60,7 @@ void CSVParser::Parse(const std::string& line,Schema* schema,DatumBase* datum)  
  
   std::string myline (line);
 
-  if(!label_front_){
+  if(label_front_){
     label = strtof(line.data(), &endptr);
     //std::cout << "label: " << label << endl;
     //check
@@ -70,7 +74,13 @@ void CSVParser::Parse(const std::string& line,Schema* schema,DatumBase* datum)  
   else{
     std::size_t found = line.find_last_of(",");
     label = strtof(line.substr(found+1).c_str(),NULL);
-     myline = myline.substr(0,found);
+    LOG(INFO) << "Myline before: " << myline;
+    myline = myline.substr(0,found);
+    this->SetLabelAndWeight(schema, datum, label);
+    myline.insert(myline.begin(),',');
+    endptr = &myline.at(0);
+    ptr = &myline.at(1);
+    LOG(INFO) << "Myline after: " << myline ;
   }
   
   // Where is kDefaultFamily
@@ -82,8 +92,10 @@ void CSVParser::Parse(const std::string& line,Schema* schema,DatumBase* datum)  
   while (std::isspace(*ptr) && ptr - myline.data() < myline.size()) ++ptr;
   
   //feature_id represents the column number from CSV file
-  int32_t feature_id = 1;
-  
+  int32_t feature_id = 2;
+ // if(!label_front_){
+ //   feature_id = 0;
+ // }
   char comma;
   int index = 0;
   bool innerComma = false;
@@ -93,6 +105,7 @@ void CSVParser::Parse(const std::string& line,Schema* schema,DatumBase* datum)  
   //case 1 ptr is pointing to comma, nan value
   //case 2 ptr is pointing to " ,string with comma inside !!!Only support ,"string content",-->comma must follow double quote
   //case 3 ptr is pointing to other char ,normal string
+  LOG(INFO) << "*PTR: " << *ptr ;
   while(*ptr!='\0'){
     if(*ptr == ','){
       //nan value
@@ -124,19 +137,34 @@ void CSVParser::Parse(const std::string& line,Schema* schema,DatumBase* datum)  
     else{
       //case 3
       //read until the next , to appear
+    // if(label_front_){
+     LOG(INFO) << "case3 ptr: " << *ptr;
       comma = *ptr;
-      
+    // }else{
+    //   for(index = 0; comma!=','&&comma!='\0';index++){
+    //     comma = *(ptr+index);
+    //   }
+    // }
+     //find next comma 
       for (index = 0; comma!=','&& comma !='\0'; index++) {
         comma = *(ptr+index);
       }
+    //  if(*ptr==','){
+    //    ptr+=index;
+    //  }
       
       endptr = ptr+index;
       strncpy(str_val, ptr, index-1);
       str_val[index] = ',';
       std::string str(str_val,0,index-1);
       str.erase(str.find_last_not_of(" \n\r\t")+1);
+      
       str.erase(0,str.find_first_not_of("0 \n\r\t"));
       
+      if(str.length()==0){
+        str.append("0");
+      }
+
       str.append(",");
       const char* tempCharStr = str.c_str();
       int strLength = str.length();
@@ -159,6 +187,7 @@ void CSVParser::Parse(const std::string& line,Schema* schema,DatumBase* datum)  
       LOG(INFO) << "Setting feature: " << feature.global_offset() << " val: " << str_val[0];    
     //need to modify this API (datum->SetFeatureValString) to assign an bytes value to the datum
     
+
       if(*conversionFlagNumerical==','){
         //feature is numerical or categorical byte type
         if(*conversionFlagCategorical==','){
@@ -173,7 +202,7 @@ void CSVParser::Parse(const std::string& line,Schema* schema,DatumBase* datum)  
       }
       else{
         //feature is string
-        //std::cout << "String: ";
+      //std::cout << "String: ";
         int length;
         if(innerComma){
           length = index - 2;
@@ -198,7 +227,9 @@ void CSVParser::Parse(const std::string& line,Schema* schema,DatumBase* datum)  
       }
     }
     catch (const FeatureNotFoundException& e) {
-     TypedFeatureFinder typed_finder(e.GetNotFoundFeature(),
+      LOG(INFO) << "not found feature";
+
+      TypedFeatureFinder typed_finder(e.GetNotFoundFeature(),
      this->InferType(val));
      not_found_features.push_back(typed_finder);
     }

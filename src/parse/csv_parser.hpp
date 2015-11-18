@@ -15,9 +15,10 @@ protected:
                DatumBase* datum) const override;
     
 private:
-  bool has_header_{false};
+  mutable int has_header_{0};
   bool label_front_{false};
- // bool label_end{false};
+ // int myHasHeader{0};
+  // bool label_end{false};
 };
 
 }  // namespace hotbox
