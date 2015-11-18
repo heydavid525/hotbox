@@ -74,13 +74,13 @@ void CSVParser::Parse(const std::string& line,Schema* schema,DatumBase* datum)  
   else{
     std::size_t found = line.find_last_of(",");
     label = strtof(line.substr(found+1).c_str(),NULL);
-    LOG(INFO) << "Myline before: " << myline;
+   // LOG(INFO) << "Myline before: " << myline;
     myline = myline.substr(0,found);
     this->SetLabelAndWeight(schema, datum, label);
     myline.insert(myline.begin(),',');
     endptr = &myline.at(0);
     ptr = &myline.at(1);
-    LOG(INFO) << "Myline after: " << myline ;
+   // LOG(INFO) << "Myline after: " << myline ;
   }
   
   // Where is kDefaultFamily
@@ -105,7 +105,7 @@ void CSVParser::Parse(const std::string& line,Schema* schema,DatumBase* datum)  
   //case 1 ptr is pointing to comma, nan value
   //case 2 ptr is pointing to " ,string with comma inside !!!Only support ,"string content",-->comma must follow double quote
   //case 3 ptr is pointing to other char ,normal string
-  LOG(INFO) << "*PTR: " << *ptr ;
+ // LOG(INFO) << "*PTR: " << *ptr ;
   while(*ptr!='\0'){
     if(*ptr == ','){
       //nan value
@@ -137,21 +137,11 @@ void CSVParser::Parse(const std::string& line,Schema* schema,DatumBase* datum)  
     else{
       //case 3
       //read until the next , to appear
-    // if(label_front_){
-     LOG(INFO) << "case3 ptr: " << *ptr;
       comma = *ptr;
-    // }else{
-    //   for(index = 0; comma!=','&&comma!='\0';index++){
-    //     comma = *(ptr+index);
-    //   }
-    // }
      //find next comma 
       for (index = 0; comma!=','&& comma !='\0'; index++) {
         comma = *(ptr+index);
       }
-    //  if(*ptr==','){
-    //    ptr+=index;
-    //  }
       
       endptr = ptr+index;
       strncpy(str_val, ptr, index-1);
