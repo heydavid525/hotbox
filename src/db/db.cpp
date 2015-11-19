@@ -22,14 +22,29 @@ const std::string kDBProto = "DBProto";
 
 }  // anonymous namespace
 
-DB::DB(const std::string& db_path) {
+void DB::InitRocksdb(const std::string db_path) {
+  LOG(INFO) << "Open DB db_path: " << db_path;
   auto metadb_file_path = db_path + kDBMeta;
-  auto recorddb_file_path = db_path + kDBFile;
+  meta_db_.reset(io::OpenRocksMetaDB(metadb_file_path));
+}
+
+DB::DB(const std::string& db_path) {
+  
+  InitRocksdb(db_path);
+  std::string rocks_str;
+  io::GetKey(meta_db_.get(), kDBProto, &rocks_str);
+  LOG(INFO) << "Get Key (" << kDBProto << ") from DB (" << meta_db_->GetName() << ")";
+  std::string db_str = ReadCompressedString(rocks_str);
+  /*
+  auto metadb_file_path = db_path + kDBMeta;
   std::string db_str = io::ReadCompressedFile(metadb_file_path);
+  */
   DBProto proto;
   proto.ParseFromString(db_str);
   meta_data_ = proto.meta_data();
   schema_ = make_unique<Schema>(proto.schema_proto());
+  
+  auto recorddb_file_path = db_path + kDBFile;
 
   // Take over DBProto::stats.
   StatProto* released_stat = nullptr;
@@ -41,9 +56,9 @@ DB::DB(const std::string& db_path) {
     stats_.emplace_back(&released_stat[i]);
   }
 
-  LOG(INFO) << "DB " << meta_data_.db_config().db_name() << " is initialized "
-            << " from " << metadb_file_path << ". "
-            << "# features in schema: "  << schema_->GetNumFeatures();
+  LOG(INFO) << "DB " << meta_data_.db_config().db_name() << " is initialized ";
+            // << " from " << metadb_file_path << ". "
+  LOG(INFO) << "# features in schema: "  << schema_->GetNumFeatures();
   // TODO(wdai): Throw exception and catch and handle it in DBServer.
   if (kFeatureIndexType == FeatureIndexType::INT32 &&
       meta_data_.feature_index_type() == FeatureIndexType::INT64) {
@@ -56,6 +71,7 @@ DB::DB(const std::string& db_path) {
 DB::DB(const DBConfig& config) : schema_(new Schema(config.schema_config())) {
   auto db_config = meta_data_.mutable_db_config();
   *db_config = config;
+  InitRocksdb(meta_data_.db_config().db_dir());
 
   std::time_t read_timestamp = meta_data_.creation_time();
   LOG(INFO) << "Creating DB " << config.db_name() << ". Creation time: "
@@ -155,7 +171,7 @@ std::string DB::ReadFile(const ReadFileReq& req) {
       int32_t batch_size = 100;
       for (int i=0; i < batch_size && std::getline(in, line); i++) {
         ++rec_counter;
-         LOG(INFO) << "Parsing DatumBase. ";
+        // LOG(INFO) << "Parsing DatumBase. ";
         CHECK_NOTNULL(parser.get());
         DatumBase datum = parser->ParseAndUpdateSchema(line, 
           schema_.get(), &stat_collector);
@@ -167,7 +183,7 @@ std::string DB::ReadFile(const ReadFileReq& req) {
           //          << "Interval: " << batch_size << ".";
         }
         // Let DBAtom take the ownership of DatumProto release from datum.
-         LOG(INFO) << "Inserting Datum. ";
+        // LOG(INFO) << "Inserting Datum. ";
         atom.mutable_datum_protos()->AddAllocated(datum.ReleaseProto());
       }
       // LOG(INFO) << "DBAtom Created. ";
@@ -214,7 +230,11 @@ void DB::CommitDB() {
   std::string serialized_db = SerializeProto(GetProto());
   auto original_size = serialized_db.size();
 
+  auto compressed_size = WriteCompressedString(serialized_db);
+  io::PutKey(meta_db_.get(), kDBProto, serialized_db);
+  /* // File Storage
   auto compressed_size = io::WriteCompressedFile(db_file, serialized_db);
+  */
   float db_compression_ratio = static_cast<float>(compressed_size)
     / original_size;
   LOG(INFO) << "Committed DB " << meta_data_.db_config().db_name()

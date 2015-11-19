@@ -7,6 +7,7 @@
 #include "db/proto/db.pb.h"
 #include "util/proto/warp_msg.pb.h"
 #include "schema/all.hpp"
+#include "util/rocksdb_util.hpp"
 
 namespace hotbox {
 
@@ -54,8 +55,14 @@ private:
   // TODO(wdai): Allows multiple schemas (schema evolution).
   std::unique_ptr<Schema> schema_;
 
+  // Smart Pointer to rocksdb.
+  std::unique_ptr<rocksdb::DB> meta_db_;
+
   // We only support a single Stat
   std::vector<Stat> stats_;
+
+  // Initialize Rocksdb
+  void InitRocksdb(const std::string db_path);
 
   void GenerateDBAtom(const DBAtom& atom, const ReadFileReq& req);
 

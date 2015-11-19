@@ -68,6 +68,7 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
 					-lyaml-cpp \
 					-lsnappy \
 	          	   -ldmlc \
+	          	   -lrocksdb \
           -lglog 
           # lglog must come after ldmlc, which depends on glog.
           #-lrocksdb
