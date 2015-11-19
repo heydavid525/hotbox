@@ -60,11 +60,11 @@ class MTTransformer {
  private:
 
   struct IoTask {
-    // data_idx ranges within a atom file (maybe two)
+    // global_bytes_offset ranges within a atom file (maybe two)
     BigInt file_begin;
     BigInt file_end;
-    BigInt data_idx_begin;
-    BigInt data_idx_end;
+    BigInt global_bytes_offset_begin;
+    BigInt global_bytes_offset_end;
   };
   // a IoTask may generate many TfTasks
   struct TfTask {
@@ -122,7 +122,7 @@ class MTTransformer {
   BigInt data_begin_;
   BigInt data_end_;
   std::vector<BigInt> datum_ids_;
-  std::vector<BigInt> data_idx_;
+  std::vector<BigInt> global_bytes_offset_;
 };
 
 } // namespace hotbox
