@@ -9,7 +9,6 @@ LIB = $(BUILD)/lib
 
 NEED_MKDIR = $(BUILD) $(LIB)
 
-
 ifeq ($(USE_SHARED_LIB), 0)
 all: proto hotbox_lib test
 HB_LIB_LINK = $(HB_LIB)
@@ -48,7 +47,6 @@ THIRD_PARTY_INCLUDE = $(THIRD_PARTY)/include
 THIRD_PARTY_LIB = $(THIRD_PARTY)/lib
 THIRD_PARTY_BIN = $(THIRD_PARTY)/bin
 
-#INCFLAGS =  -Isrc/ -I$(THIRD_PARTY_INCLUDE)
 INCFLAGS =  -I$(SRC_DIR) -I$(THIRD_PARTY_INCLUDE)
 INCFLAGS += -Ibuild/ # include generated *pb.h
 INCFLAGS += -I$(JAVA_HOME)/include # include java for HDFS/DMLC access
@@ -56,6 +54,8 @@ INCFLAGS += $(HDFS_INCFLAGS)
 
 LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
           -L$(THIRD_PARTY_LIB) \
+					-Wl,-rpath,$(BUILD)/lib \
+          -L$(BUILD)/lib \
           -lpthread -lrt -lnsl \
           -lzmq \
           -lgflags \

@@ -139,6 +139,7 @@ std::string FeatureFamily::GetFamilyName() const {
 
 void FeatureFamily::CheckFeatureExist(BigInt family_idx) const {
   if (!this->HasFeature(family_idx)) {
+   LOG(INFO) << "Family feature not exist";
     FeatureFinder not_found_feature;
     not_found_feature.family_name = family_name_;
     not_found_feature.family_idx = family_idx;

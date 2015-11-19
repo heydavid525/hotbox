@@ -92,10 +92,16 @@ size_t WriteSizeLimitedFiles(const std::string& file_dir, int32_t& file_idx,
       size_written += AppendFile(curr_file_path, data.substr(0, data_offset));
     }
     // Write whole size_limit files.
-    else if(i < loop_size - 1) {
+    else if (i < loop_size - 1) {
       curr_file_path = file_dir + std::to_string(curr_atom_idx);
+<<<<<<< Updated upstream
       size_written += AppendFile(curr_file_path, data.substr(data_offset, kATOM_SIZE_MB));
       data_offset += kATOM_SIZE_MB;
+=======
+      size_written += AppendFile(curr_file_path,
+          data.substr(data_offset, atom_size_mb));
+      data_offset += atom_size_mb;
+>>>>>>> Stashed changes
       LOG(INFO) << "Data String Seeking Position: " << data_offset;
     }
     // Write the left data to a new file.
@@ -155,7 +161,8 @@ size_t WriteCompressedFile(const std::string& file_path,
 size_t AppendFile(const std::string& file_path,
     const std::string& data) {
   // We do own this pointer.
-  std::unique_ptr<dmlc::Stream> os(dmlc::Stream::Create(file_path.c_str(), "a"));
+  std::unique_ptr<dmlc::Stream> os(dmlc::Stream::Create(file_path.c_str(),
+        "a"));
   if (!os) {
     throw FailedFileOperationException("Failed to open " + file_path
         + " for write.");

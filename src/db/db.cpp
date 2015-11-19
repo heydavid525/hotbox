@@ -40,7 +40,7 @@ DB::DB(const std::string& db_path) {
   std::string db_str = io::ReadCompressedFile(metadb_file_path);
   */
   DBProto proto;
-  proto.ParseFromString(db_str);
+  CHECK(proto.ParseFromString(db_str));
   meta_data_ = proto.meta_data();
   schema_ = make_unique<Schema>(proto.schema_proto());
   
@@ -66,6 +66,7 @@ DB::DB(const std::string& db_path) {
       << meta_data_.db_config().db_name();
   }
   LOG(INFO) << "Set atom path: " << meta_data_.file_map().atom_path();
+  LOG(INFO) << "Restart: filemap: " << meta_data_.file_map().DebugString();
 }
 
 DB::DB(const DBConfig& config) : schema_(new Schema(config.schema_config())) {
@@ -297,6 +298,7 @@ std::string DB::PrintMetaData() const {
     << "num_data: " << meta_data_.file_map().num_data() << "\n";
   ss << "Feature family details:\n"
     "FeatureFamily: NumFeatures / MaxFeatureId\n";
+
   for (const auto& p : schema_->GetFamilies()) {
     ss << p.first << ": " << p.second.GetNumFeatures() << " / "
       <<  p.second.GetMaxFeatureId() << std::endl;
