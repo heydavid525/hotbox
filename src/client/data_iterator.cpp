@@ -25,10 +25,10 @@ FlexiDatum&& DataIterator::GetDatum() {
     int32_t file_begin, file_end;
     if(next_ == 0) {
       file_begin = 0;
-      file_end = session_proto_.file_map().global_bytes_offset(data_idx);
+      file_end = session_proto_.file_map().global_bytes_offsets(data_idx);
     } else {
-      file_begin = session_proto_.file_map().global_bytes_offset(data_idx - 1);
-      file_end = session_proto_.file_map().global_bytes_offset(data_idx);
+      file_begin = session_proto_.file_map().global_bytes_offsets(data_idx - 1);
+      file_end = session_proto_.file_map().global_bytes_offsets(data_idx);
     }
     LOG(INFO) << "data_idx: " << data_idx << ". "
               << "file_begin: " << file_begin << ". "

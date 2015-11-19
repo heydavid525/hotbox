@@ -13,8 +13,7 @@ NEED_MKDIR = $(BUILD) $(LIB)
 ifeq ($(USE_SHARED_LIB), 0)
 all: proto hotbox_lib test
 HB_LIB_LINK = $(HB_LIB)
-endif
-ifeq ($(USE_SHARED_LIB), 1)
+else
 all: proto hotbox_sharedlib test
 HB_LIB_LINK = $(HB_SHARED_LIB)
 endif

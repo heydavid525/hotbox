@@ -99,8 +99,8 @@ message FileMap {
   // Full path is atom_path + atom_id.
   string atom_path = 3;
   // global data offset in bytes, e.g. 64MB file limit and a atom in Atom.X
-  // The global_bytes_offset = X * 64MB + offset_in_file.
-  repeated int64 global_bytes_offset = 4;
+  // The global_bytes_offsets = X * 64MB + offset_in_file.
+  repeated int64 global_bytes_offsets = 4;
   //repeated int64 data_idx = 4;
   // datum range corresponding to data offset range. 
   // [data_idx(i), data_idx(i+1)) <-> [datum_id(i), datum_id(i+1))

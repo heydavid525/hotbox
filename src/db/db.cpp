@@ -79,10 +79,10 @@ int32_t DB::GetCurrentAtomID() {
   // meta_data_.file_map().datum_ids_size() is the number of atom files.
   int32_t atom_size_mb = kATOM_SIZE_MB;
   int32_t curr_global_bytes_offset_size = meta_data_.file_map()
-            .global_bytes_offset_size();
+            .global_bytes_offsets_size();
   int64_t curr_global_bytes_offset = (curr_global_bytes_offset_size == 0) ? 0 :
             meta_data_.file_map().
-            global_bytes_offset(curr_global_bytes_offset_size - 1);
+            global_bytes_offsets(curr_global_bytes_offset_size - 1);
   //LOG(INFO) << "curr_global_bytes_offset_size: " 
   //          << curr_global_bytes_offset_size << ". ";
   //LOG(INFO) << "curr_global_bytes_offset: " 
@@ -107,11 +107,11 @@ size_t DB::WriteToAtomFiles(const DBAtom& atom, int32_t* ori_sizes,
 
 void DB::UpdateReadMetaData(const DBAtom& atom, const int32_t new_len) {
   int32_t curr_global_bytes_offset_size = meta_data_.file_map()
-          .global_bytes_offset_size();
+          .global_bytes_offsets_size();
   int64_t curr_global_bytes_offset = (curr_global_bytes_offset_size == 0) ? 0 :
                meta_data_.file_map().
-                    global_bytes_offset(curr_global_bytes_offset_size - 1);
-  meta_data_.mutable_file_map()->add_global_bytes_offset(
+                    global_bytes_offsets(curr_global_bytes_offset_size - 1);
+  meta_data_.mutable_file_map()->add_global_bytes_offsets(
       curr_global_bytes_offset + new_len);
   LOG(INFO) << "Total data offset: " << curr_global_bytes_offset + new_len;
   
@@ -155,7 +155,7 @@ std::string DB::ReadFile(const ReadFileReq& req) {
       int32_t batch_size = 100;
       for (int i=0; i < batch_size && std::getline(in, line); i++) {
         ++rec_counter;
-        // LOG(INFO) << "Parsing DatumBase. ";
+         LOG(INFO) << "Parsing DatumBase. ";
         CHECK_NOTNULL(parser.get());
         DatumBase datum = parser->ParseAndUpdateSchema(line, 
           schema_.get(), &stat_collector);
@@ -167,8 +167,8 @@ std::string DB::ReadFile(const ReadFileReq& req) {
           //          << "Interval: " << batch_size << ".";
         }
         // Let DBAtom take the ownership of DatumProto release from datum.
+         LOG(INFO) << "Inserting Datum. ";
         atom.mutable_datum_protos()->AddAllocated(datum.ReleaseProto());
-        // LOG(INFO) << "Datum Inserted. ";
       }
       // LOG(INFO) << "DBAtom Created. ";
       size_t len = WriteToAtomFiles(atom, &ori_size, &compressed_size);
@@ -178,7 +178,7 @@ std::string DB::ReadFile(const ReadFileReq& req) {
     CommitDB();
   }
 
-// Print Log.
+  // Print Log.
   std::string output_file_dir = meta_data_.file_map().atom_path();
   BigInt num_features_after = schema_->GetNumFeatures();
   float compress_ratio = static_cast<float>(compressed_size)
