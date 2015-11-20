@@ -26,7 +26,7 @@ std::string SizeToReadableString(size_t size) {
 
 std::string SerializeProto(const google::protobuf::Message& msg) {
   std::string data;
-  msg.SerializeToString(&data);
+  CHECK(msg.SerializeToString(&data));
   return data;
 }
 

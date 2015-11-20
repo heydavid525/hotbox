@@ -32,7 +32,7 @@ DB::DB(const std::string& db_path) {
   
   InitRocksdb(db_path);
   std::string rocks_str;
-  io::GetKey(meta_db_.get(), kDBProto, &rocks_str);
+  io::Get(meta_db_.get(), kDBProto, &rocks_str);
   LOG(INFO) << "Get Key (" << kDBProto << ") from DB (" << meta_db_->GetName() << ")";
   std::string db_str = ReadCompressedString(rocks_str);
   /*
@@ -232,7 +232,7 @@ void DB::CommitDB() {
   auto original_size = serialized_db.size();
 
   auto compressed_size = WriteCompressedString(serialized_db);
-  io::PutKey(meta_db_.get(), kDBProto, serialized_db);
+  io::Put(meta_db_.get(), kDBProto, serialized_db);
   /* // File Storage
   auto compressed_size = io::WriteCompressedFile(db_file, serialized_db);
   */

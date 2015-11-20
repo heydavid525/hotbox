@@ -68,7 +68,7 @@ void DBServer::InitFromDBRootFile() {
   auto db_root_file = io::ReadCompressedFile(db_root_file_path,
       Compressor::NO_COMPRESS);
   DBRootFile db_root;
-  db_root.ParseFromString(db_root_file);
+  CHECK(db_root.ParseFromString(db_root_file));
   std::stringstream ss;
   for (int i = 0; i < db_root.db_names_size(); ++i) {
     std::string db_name = db_root.db_names(i);

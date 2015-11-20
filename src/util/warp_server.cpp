@@ -63,7 +63,7 @@ ClientMsg WarpServer::Recv(int* client_id) {
       auto handshake_msg = server_msg.mutable_handshake_msg();
       handshake_msg->set_client_id(*client_id);
       std::string data;
-      server_msg.SerializeToString(&data);
+      CHECK(server_msg.SerializeToString(&data));
       CHECK(Send(*client_id, data));
     }
   } while (client_msg.has_handshake_msg());

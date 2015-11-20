@@ -1,4 +1,3 @@
-
 #include <util/rocksdb_util.hpp>
 #include "test/facility/test_facility.hpp"
 
@@ -21,9 +20,9 @@ TEST(StreamTest, SmokeTest) {
 
   { // Use this method to read the full file, once.
     std::unique_ptr<rocksdb::DB> db(io::OpenRocksMetaDB(kTestPath));
-    io::PutKey(db.get(), "Hello", kContent);
+    io::Put(db.get(), "Hello", kContent);
     std::string value;
-    io::GetKey(db.get(), "Hello", &value);
+    io::Get(db.get(), "Hello", &value);
     EXPECT_EQ(kContent, value);
   }
   LOG(INFO) << "rocksdb_util interface test passed";

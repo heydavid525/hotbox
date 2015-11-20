@@ -36,7 +36,7 @@ hotbox_client_main: $(PROJECT)/test/client/hotbox_client_main.cpp $(HB_LIB_LINK)
 		$< -o $(TEST_DIR)/client/hotbox_client_main\
 		-lgtest  $(TEST_LDFLAGS) $(LDFLAGS) 
 
-test: $(TEST_BIN) class_registry_test stream_test db_server_main rocks_if_test
+test: $(TEST_BIN) class_registry_test stream_test db_server_main rocks_db_test rocks_if_test
 
 class_registry_test: $(TEST_BIN)
 	$(TEST_DIR)/util/class_registry_test
@@ -45,4 +45,7 @@ stream_test: $(TEST_BIN)
 	$(TEST_DIR)/io/stream_test
 
 rocks_if_test: $(TEST_BIN)
-	$(TEST_DIR)/db/rocksdb/rocksdb_if_test
+	$(TEST_DIR)/util/rocksdb_if_test
+
+rocks_db_test: $(TEST_BIN)
+	$(TEST_DIR)/util/rocks_db_test

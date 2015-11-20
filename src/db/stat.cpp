@@ -36,9 +36,12 @@ void Stat::AddFeatureStat(const Feature& feature) {
 
 int Stat::UpdateStat(const Feature& feature, float val) {
   auto global_offset = feature.global_offset();
+  CHECK_LT(global_offset, proto_->stats_size()) << " feature: "
+    << feature.DebugString() << " feature val: " << val
+    << " num data: " << proto_->num_data();
   auto stat = proto_->mutable_stats(global_offset);
   if (feature.is_factor()) {
-    LOG(INFO) << "feature " << feature.global_offset() << " is factor";
+    // LOG(INFO) << "feature " << feature.global_offset() << " is factor";
     bool exist = false;
     for (int i = 0; i < stat->unique_cat_values_size(); ++i) {
       if (val == stat->unique_cat_values(i)) {
@@ -47,7 +50,7 @@ int Stat::UpdateStat(const Feature& feature, float val) {
       }
     }
     if (!exist) {
-      LOG(INFO) << "Adding to unique values";
+      // LOG(INFO) << "Adding to unique values";
       stat->add_unique_cat_values(static_cast<int>(val));
     }
   }
