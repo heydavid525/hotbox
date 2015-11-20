@@ -13,7 +13,7 @@ namespace hotbox {
 namespace {
 
 const std::string kContent{"Hello World!\n"};
-std::string kTestPath = GetResourceDir() + "/rocksdb_if_test";
+std::string kTestPath = GetTestDir() + "/rocksdb_if_test";
 
 }  // anonymous namespace
 
