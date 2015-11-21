@@ -22,18 +22,21 @@ const std::string kDBProto = "DBProto";
 
 }  // anonymous namespace
 
+/*
 void DB::InitRocksdb(const std::string db_path) {
   LOG(INFO) << "Open DB db_path: " << db_path;
   auto metadb_file_path = db_path + kDBMeta;
   meta_db_ = make_unique<RocksDB>(metadb_file_path);
 }
+*/
 
-DB::DB(const std::string& db_path) {
-  
-  InitRocksdb(db_path);
-  std::string rocks_str = meta_db_->Get(kDBProto);
-  LOG(INFO) << "Get Key (" << kDBProto << ") from DB (" << meta_db_->GetDBName() << ")";
-  std::string db_str = ReadCompressedString(rocks_str);
+DB::DB(const std::string& db_path) : meta_db_(db_path + kDBMeta) {
+  // InitRocksdb(db_path);
+  std::string meta_proto_str = meta_db_.Get(kDBProto);
+  // io::Get(meta_db_.get(), kDBProto, &rocks_str);
+  LOG(INFO) << "Get Key (" << kDBProto << ") from DB ("
+    << meta_db_.GetName() << ")";
+  std::string db_str = ReadCompressedString(meta_proto_str);
   /*
   auto metadb_file_path = db_path + kDBMeta;
   std::string db_str = io::ReadCompressedFile(metadb_file_path);

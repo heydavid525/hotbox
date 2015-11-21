@@ -29,8 +29,7 @@ public:
     return val;
   }
 
-  // Get the name of the database.
-  inline std::string GetDBName() {
+  inline std::string GetName() const {
     return db_->GetName();
   }
 
