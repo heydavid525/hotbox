@@ -25,15 +25,14 @@ const std::string kDBProto = "DBProto";
 void DB::InitRocksdb(const std::string db_path) {
   LOG(INFO) << "Open DB db_path: " << db_path;
   auto metadb_file_path = db_path + kDBMeta;
-  meta_db_.reset(io::OpenRocksMetaDB(metadb_file_path));
+  meta_db_ = make_unique<RocksDB>(metadb_file_path);
 }
 
 DB::DB(const std::string& db_path) {
   
   InitRocksdb(db_path);
-  std::string rocks_str;
-  io::Get(meta_db_.get(), kDBProto, &rocks_str);
-  LOG(INFO) << "Get Key (" << kDBProto << ") from DB (" << meta_db_->GetName() << ")";
+  std::string rocks_str = meta_db_->Get(kDBProto);
+  LOG(INFO) << "Get Key (" << kDBProto << ") from DB (" << meta_db_->GetDBName() << ")";
   std::string db_str = ReadCompressedString(rocks_str);
   /*
   auto metadb_file_path = db_path + kDBMeta;
@@ -232,7 +231,7 @@ void DB::CommitDB() {
   auto original_size = serialized_db.size();
 
   auto compressed_size = WriteCompressedString(serialized_db);
-  io::Put(meta_db_.get(), kDBProto, serialized_db);
+  meta_db_->Put(kDBProto, serialized_db);
   /* // File Storage
   auto compressed_size = io::WriteCompressedFile(db_file, serialized_db);
   */

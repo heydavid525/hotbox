@@ -13,19 +13,7 @@ namespace hotbox {
 class RocksDB {
 public:
   // 'db_path' is a file system directory to create / read a DB.
-  RocksDB(const std::string& db_path) {
-    rocksdb::DB* db;
-    rocksdb::Options options;
-    options.IncreaseParallelism();
-    options.OptimizeLevelStyleCompaction();
-    // create the DB if it's not already present
-    options.create_if_missing = true;
-    // Set Level-1 file size to 64 MB.
-    options.target_file_size_base = 64 * 1024 * 1024;
-    rocksdb::Status s = rocksdb::DB::Open(options, db_path, &db);
-    db_.reset(db);
-    CHECK(s.ok());
-  }
+  RocksDB(const std::string& db_path);
 
   // Put a key-value pair. Fails the program if incurring any error.
   inline void Put(const std::string& key, const std::string& val) {
@@ -39,6 +27,11 @@ public:
     rocksdb::Status s = db_->Get(rocksdb::ReadOptions(), key, &val);
     CHECK(s.ok());
     return val;
+  }
+
+  // Get the name of the database.
+  inline std::string GetDBName() {
+    return db_->GetName();
   }
 
 private:
