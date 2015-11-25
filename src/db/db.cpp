@@ -71,10 +71,12 @@ DB::DB(const std::string& db_path) : meta_db_(db_path + kDBMeta) {
   LOG(INFO) << "Restart: filemap: " << meta_data_.file_map().DebugString();
 }
 
-DB::DB(const DBConfig& config) : schema_(new Schema(config.schema_config())) {
+DB::DB(const DBConfig& config) 
+      : schema_(new Schema(config.schema_config()))
+      , meta_db_(config.db_dir() + kDBMeta) {
   auto db_config = meta_data_.mutable_db_config();
   *db_config = config;
-  InitRocksdb(meta_data_.db_config().db_dir());
+  // InitRocksdb(meta_data_.db_config().db_dir());
 
   std::time_t read_timestamp = meta_data_.creation_time();
   LOG(INFO) << "Creating DB " << config.db_name() << ". Creation time: "
@@ -234,7 +236,7 @@ void DB::CommitDB() {
   auto original_size = serialized_db.size();
 
   auto compressed_size = WriteCompressedString(serialized_db);
-  meta_db_->Put(kDBProto, serialized_db);
+  meta_db_.Put(kDBProto, serialized_db);
   /* // File Storage
   auto compressed_size = io::WriteCompressedFile(db_file, serialized_db);
   */
