@@ -60,10 +60,47 @@ std::string DecompressString(const void* data, const int size,
 size_t WriteCompressedString(std::string& input,
     Compressor compressor = Compressor::SNAPPY);
 
-// Deserialize stream up to std::numeric_limits<int>::max() bytes to PROTO
-// (a proto message).
+// Deserialize stream up to std::numeric_limits<int>::max()
+// bytes to PROTO (a proto message). No streaming decompression.
 template<typename PROTO>
 PROTO StreamDeserialize(const std::string& proto_str) {
+  // Read back to another FloatContainer
+  SnappyCompressor compressor;
+  std::string uncompressed = compressor.Uncompress(proto_str);
+  google::protobuf::io::ArrayInputStream istream_arr(
+      uncompressed.data(), uncompressed.size());
+  google::protobuf::io::CodedInputStream istream_coded(
+      &istream_arr);
+  istream_coded.SetTotalBytesLimit(buffer_limit, buffer_limit);
+  LOG(INFO) << "StreamDeserialize to size: " << proto_str.size();
+
+  PROTO proto;
+  CHECK(proto.ParseFromCodedStream(&istream_coded));
+  return proto;
+}
+
+// Serialize and snappy compress proto using stream. No streaming
+// compression.
+template<typename PROTO>
+std::string StreamSerialize(const PROTO& proto) {
+  std::string buffer;
+  {
+    // Write to buffer
+    google::protobuf::io::StringOutputStream ostream_str(&buffer);
+    google::protobuf::io::CodedOutputStream ostream_coded(
+        &ostream_str);
+    CHECK(proto.SerializeToCodedStream(&ostream_coded));
+  }
+  SnappyCompressor compressor;
+  std::string compressed = compressor.Compress(buffer);
+  LOG(INFO) << "StreamSerialize to size: " << compressed.size();
+  return compressed;
+}
+
+// Deserialize and decompress stream up to std::numeric_limits<int>::max()
+// bytes to PROTO (a proto message).
+template<typename PROTO>
+PROTO CompressedStreamDeserialize(const std::string& proto_str) {
   // Read back to another FloatContainer
   google::protobuf::io::ArrayInputStream istream_arr(
       proto_str.data(), proto_str.size());
@@ -81,7 +118,7 @@ PROTO StreamDeserialize(const std::string& proto_str) {
 
 // Serialize and snappy compress proto using stream.
 template<typename PROTO>
-std::string StreamSerialize(const PROTO& proto) {
+std::string CompressedStreamSerialize(const PROTO& proto) {
   std::string buffer;
   {
     // Write to buffer
@@ -93,8 +130,8 @@ std::string StreamSerialize(const PROTO& proto) {
     CHECK(proto.SerializeToCodedStream(&ostream_coded));
     ostream_snappy->Flush();
   }
-  LOG(INFO) << "StreamSerialize to size: " << buffer.size()
-    return buffer;
+  LOG(INFO) << "StreamSerialize to size: " << buffer.size();
+  return buffer;
 }
 
 // Convert float/double to limited precision string.

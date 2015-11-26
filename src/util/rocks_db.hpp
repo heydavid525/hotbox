@@ -17,15 +17,19 @@ public:
 
   // Put a key-value pair. Fails the program if incurring any error.
   inline void Put(const std::string& key, const std::string& val) {
-    rocksdb::Status s = db_->Put(rocksdb::WriteOptions(), key, val);
+    rocksdb::WriteOptions write_options;
+    write_options.sync = true;
+    rocksdb::Status s = db_->Put(write_options, key, val);
     CHECK(s.ok());
+    LOG(INFO) << "Put " << key;
   }
 
   // Read the value for key. Fail the program if not found or other error.
   inline std::string Get(const std::string& key) {
     std::string val;
     rocksdb::Status s = db_->Get(rocksdb::ReadOptions(), key, &val);
-    CHECK(s.ok());
+    CHECK(s.ok()) << "RocksDB::Get " << key
+      << (s.IsNotFound() ? " not found" : "");
     return val;
   }
 

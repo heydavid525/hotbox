@@ -6,28 +6,28 @@
 #include "io/filesys.hpp"
 
 // Use this to define file block size.
-const int32_t kATOM_SIZE_MB = 64*1024*1024;
+const int32_t kAtomSizeInBytes = 64*1024*1024;
 
 namespace hotbox {
-	namespace io {
+namespace io {
 
 // Comment(wdai): We need to use a default compression algorithm for DBFile so
 // that we know what compression we use for each DB's atom file.
 
-// Read full file and uncompress to string. Throws FailedToReadFileException.
-// Implementation using zero_copy_stream_impl of protobuf.
-// Designate file_begin position & length of data to read.
-// By default start from beginning of file & read through.		
+// Read part/whole file and uncompress to string. Throws
+// FailedToReadFileException. Implementation using zero_copy_stream_impl of
+// protobuf. Designate read_offset position & length of data to read. By
+// default start from beginning of file & read through.
 std::string ReadCompressedFile(const std::string& file_path,
 	Compressor compressor = Compressor::SNAPPY,
-	int32_t file_begin = 0, 
-	int32_t len = 0);
+	int32_t read_offset = 0, size_t len = 0);
 
 // Read whole data file directly and return the data string.
 std::string ReadFile(const std::string& file_path);
 
 // Open a file and Return a smart pointer to a std::istream compatible stream.
-std::unique_ptr<dmlc::SeekStream> OpenFileStream(const std::string& file_path);
+std::unique_ptr<dmlc::SeekStream> OpenFileStream(
+    const std::string& file_path);
 
 // Compress and write data to file_path. Return compressed bytes.
 size_t WriteCompressedFile(const std::string& file_path,

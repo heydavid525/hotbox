@@ -30,10 +30,25 @@ message StatProto {
   // The beginning epoch for the stat.
   uint32 epoch_begin = 3;
 
+  // # of FeatureStatProtoSegment. This must be set when committing to disk.
+  int32 num_segments = 5;
+
+  // # of stats. Must be set when committing to disk.
+  int64 num_stats = 6;
+
   // Should have the same # of features as in schema.
   repeated FeatureStatProto stats = 2;
 
   repeated bool initialized = 4;
+}
+
+// A sequence of stats starting from feature id_begin. This breaks up
+// StatProto::stats when committing to disk to avoid hitting proto
+// message size limit 64MB.
+message FeatureStatProtoSegment {
+  uint64 id_begin = 1;
+  repeated FeatureStatProto stats = 2;
+  repeated bool initialized = 3;
 }
 
 /*
@@ -135,10 +150,10 @@ message DBAtom {
 // All DB info except atom files.
 message DBProto {
   DBMetaData meta_data = 1;
-  SchemaProto schema_proto = 2;
+  // SchemaProto schema_proto = 2;
 
   // Multiple epoch_stats starting from various epoch.
-  repeated StatProto stats = 3;
+  // repeated StatProto stats = 3;
 }
 
 // This file is saved at the root of a db_dir for finding all the DB under a

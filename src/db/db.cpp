@@ -19,36 +19,54 @@ namespace {
 const std::string kDBMeta = "/DBMeta";
 const std::string kDBFile = "/DBRecord";
 const std::string kDBProto = "DBProto";
+const std::string kStatProtoSeqPrefix = "stat";
+
+// Similar to kStatBatchSize, but for feature_ vector in Schema.
+const int kFeatureBatchSize = 1e6;
 
 }  // anonymous namespace
 
-/*
-void DB::InitRocksdb(const std::string db_path) {
-  LOG(INFO) << "Open DB db_path: " << db_path;
-  auto metadb_file_path = db_path + kDBMeta;
-  meta_db_ = make_unique<RocksDB>(metadb_file_path);
-}
-*/
-
 DB::DB(const std::string& db_path) : meta_db_(db_path + kDBMeta) {
-  // InitRocksdb(db_path);
-  std::string meta_proto_str = meta_db_.Get(kDBProto);
-  // io::Get(meta_db_.get(), kDBProto, &rocks_str);
+  std::string db_proto_str = meta_db_.Get(kDBProto);
   LOG(INFO) << "Get Key (" << kDBProto << ") from DB ("
     << meta_db_.GetName() << ")";
-  std::string db_str = ReadCompressedString(meta_proto_str);
   /*
-  auto metadb_file_path = db_path + kDBMeta;
-  std::string db_str = io::ReadCompressedFile(metadb_file_path);
-  */
+  std::string db_str = DecompressString(db_proto_str);
   DBProto proto;
   CHECK(proto.ParseFromString(db_str));
+  */
+  DBProto proto = StreamDeserialize<DBProto>(db_proto_str);
   meta_data_ = proto.meta_data();
-  schema_ = make_unique<Schema>(proto.schema_proto());
-  
-  auto recorddb_file_path = db_path + kDBFile;
+  schema_.reset(new Schema(&meta_db_));
+  // const auto& intern_family = schema_->GetFamily(kInternalFamily);
+  // const Feature& feature = intern_family.GetFeature(kLabelFamilyIdx);
+  // LOG(INFO) << "label feature: " << feature.DebugString();
+
+  // Assume only 1 stat.
+  stats_.emplace_back(0, &meta_db_);
+  // schema_ = make_unique<Schema>(proto.schema_proto());
+
+  /*
+  for (int i = 0; i < proto.num_stat_proto_seqs(); ++i) {
+    std::string stat_key = kStatProtoSeqPrefix + std::to_string(i);
+    std::string stat_proto_seq_str = meta_db_.Get(stat_key);
+    FeatureStatProtoSeq proto_seq;
+    proto_seq.ParseFromString(stat_proto_seq_str);
+    StatProto* released_stat = nullptr;
+    int num_stats = proto_seq.stats_size();
+    CHECK_EQ(1, num_stats) << "Only support single stats for now";
+    proto_seq.mutable_stats()->ExtractSubrange(0, num_stats, &released_stat);
+    CHECK_NOTNULL(released_stat);
+    for (BigInt j = 0; j < proto_seq.stats_size(); ++j) {
+      stats_.emplace_back(&released_stat[i]);
+    }
+  }
+  */
+
+  //auto recorddb_file_path = db_path + kDBFile;
 
   // Take over DBProto::stats.
+  /*
   StatProto* released_stat = nullptr;
   int num_stats = proto.stats_size();
   CHECK_EQ(1, num_stats) << "Only support single stats for now";
@@ -57,6 +75,7 @@ DB::DB(const std::string& db_path) : meta_db_(db_path + kDBMeta) {
   for (int i = 0; i < num_stats; ++i) {
     stats_.emplace_back(&released_stat[i]);
   }
+  */
 
   LOG(INFO) << "DB " << meta_data_.db_config().db_name() << " is initialized ";
             // << " from " << metadb_file_path << ". "
@@ -71,12 +90,10 @@ DB::DB(const std::string& db_path) : meta_db_(db_path + kDBMeta) {
   LOG(INFO) << "Restart: filemap: " << meta_data_.file_map().DebugString();
 }
 
-DB::DB(const DBConfig& config) 
-      : schema_(new Schema(config.schema_config()))
-      , meta_db_(config.db_dir() + kDBMeta) {
+DB::DB(const DBConfig& config) : schema_(new Schema(config.schema_config())),
+meta_db_(config.db_dir() + kDBMeta) {
   auto db_config = meta_data_.mutable_db_config();
   *db_config = config;
-  // InitRocksdb(meta_data_.db_config().db_dir());
 
   std::time_t read_timestamp = meta_data_.creation_time();
   LOG(INFO) << "Creating DB " << config.db_name() << ". Creation time: "
@@ -92,18 +109,15 @@ DB::DB(const DBConfig& config)
   stats_.emplace_back(0);
 }
 
-void DB::GenerateDBAtom(const DBAtom& atom, const ReadFileReq& req) {
-
-}
-
 int32_t DB::GetCurrentAtomID() {
   // meta_data_.file_map().datum_ids_size() is the number of atom files.
-  int32_t atom_size_mb = kATOM_SIZE_MB;
+  int32_t atom_size_mb = kAtomSizeInBytes;
   int32_t curr_global_bytes_offset_size = meta_data_.file_map()
             .global_bytes_offsets_size();
-  int64_t curr_global_bytes_offset = (curr_global_bytes_offset_size == 0) ? 0 :
-            meta_data_.file_map().
-            global_bytes_offsets(curr_global_bytes_offset_size - 1);
+  int64_t curr_global_bytes_offset = (curr_global_bytes_offset_size == 0)
+    ? 0 : meta_data_.file_map().global_bytes_offsets(
+        curr_global_bytes_offset_size - 1);
+
   //LOG(INFO) << "curr_global_bytes_offset_size: " 
   //          << curr_global_bytes_offset_size << ". ";
   //LOG(INFO) << "curr_global_bytes_offset: " 
@@ -147,9 +161,8 @@ void DB::UpdateReadMetaData(const DBAtom& atom, const int32_t new_len) {
                                       << ". ";
 }
 
-int32_t DB::GuessBatchSize(const int32_t size) {
-  int32_t limit = kATOM_SIZE_MB;
-  return limit / (size * 1.3) ;
+size_t DB::GuessBatchSize(size_t size) {
+  return kAtomSizeInBytes / (size * 1.3) ;
 }
 
 // With Atom sized to 64MB (or other size) limited chunks.
@@ -221,30 +234,67 @@ std::string DB::ReadFile(const ReadFileReq& req) {
 DBProto DB::GetProto() const {
   DBProto proto;
   *(proto.mutable_meta_data()) = meta_data_;
-  *(proto.mutable_schema_proto()) = schema_->GetProto();
+  // bool with_features = false;
+  // *(proto.mutable_schema_proto()) = schema_->GetProto(with_features);
+  // proto.set_num_seqs();
+  // proto.set_num_features(schema_->GetFeatures()->size());
+  /*
   for (const auto& stat : stats_) {
     *(proto.add_stats()) = stat.GetProto();
   }
+  */
   return proto;
 }
 
+  /*
+void DB::CommitStats() {
+  int num_stat_batches = std::ceil(static_cast<float>(stats_.size())
+      / kStatBatchSize);
+  for (int i = 0; i < num_stat_batches; ++i) {
+    BigInt id_begin = kStatBatchSize * i;
+    BigInt id_end = std::min(id_begin + kStatBatchSize,
+        static_cast<BigInt>(stats_.size()));
+    FeatureStatProtoSeq stat_proto_seq;
+    stat_proto_seq.set_id_begin(id_begin);
+    stat_proto_seq.mutable_stats()->Reserve(kStatBatchSize);
+    for (BigInt j = id_begin; j < id_end; ++j) {
+      *stat_proto_seq.add_stats() = stats_[j].GetProto();
+    }
+    std::string stat_key = kStatProtoSeqPrefix + std::to_string(i);
+    meta_db_.Put(stat_key, SerializeProto(stat_proto_seq));
+  }
+}
+  */
+
 void DB::CommitDB() {
   std::string db_file = meta_data_.db_config().db_dir() + kDBMeta;
-  //CHECK(io::Exists(db_file));
-  auto db_proto = GetProto();
+  DBProto db_proto = GetProto();
+  std::string db_proto_str = StreamSerialize(db_proto);
+  ////
+  DBProto db_proto2 = StreamDeserialize<DBProto>(db_proto_str);
+  /*
   std::string serialized_db = SerializeProto(GetProto());
   auto original_size = serialized_db.size();
-
+  LOG(INFO) << "DBProto size: " << SizeToReadableString(original_size);
   auto compressed_size = WriteCompressedString(serialized_db);
-  meta_db_.Put(kDBProto, serialized_db);
+  */
+  meta_db_.Put(kDBProto, db_proto_str);
+  schema_->Commit(&meta_db_);
+
+  // Commit Stats.
+  for (int i = 0; i < stats_.size(); ++i) {
+    stats_[i].Commit(i, &meta_db_);
+  }
+
   /* // File Storage
   auto compressed_size = io::WriteCompressedFile(db_file, serialized_db);
   */
+  /*
   float db_compression_ratio = static_cast<float>(compressed_size)
     / original_size;
+    */
   LOG(INFO) << "Committed DB " << meta_data_.db_config().db_name()
-    << " to DBfile: " << SizeToReadableString(compressed_size) << " ("
-    << std::to_string(db_compression_ratio) << " of uncompressed size)\n";
+    << " to DBfile: " << SizeToReadableString(db_proto_str.size()) << "\n";
 }
 
 SessionProto DB::CreateSession(const SessionOptionsProto& session_options) {

@@ -16,6 +16,9 @@ public:
   // Takes the ownership of proto.
   Stat(StatProto* proto);
 
+  // Reading off the id-th stat from db, the inverse of Commit().
+  Stat(int id, RocksDB* db);
+
   // Get FeatureStat
   const FeatureStatProto& GetFeatureStat(const Feature& feature) const;
 
@@ -38,6 +41,9 @@ public:
   inline const StatProto& GetProto() const {
     return *proto_;
   }
+
+  // Save to RocksDB db as the id-th stat.
+  void Commit(int id, RocksDB* db) const;
 
 private:
   void UpdateStatCommon(FeatureStatProto* stat, float val);

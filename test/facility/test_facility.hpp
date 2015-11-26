@@ -6,21 +6,18 @@ namespace hotbox {
 
 // Path to hotbox/db_testbed.
 std::string GetTestBedDir() {
-	return 
-  io::ParentPath(io::ParentPath(
+	return io::ParentPath(io::ParentPath(
   	io::Path(__FILE__))).append("/db_testbed");
 }
 
 // Path to hotbox/test.
 std::string GetTestDir() {
-	return 
-  io::ParentPath(io::ParentPath(
+	return io::ParentPath(io::ParentPath(
       io::Path(__FILE__))).append("/test");
 }
 
 std::string GetResourceDir() {
-	return 
-	io::ParentPath(io::ParentPath(
+	return io::ParentPath(io::ParentPath(
 		io::Path(__FILE__))).append("/test/resource");
 }
 

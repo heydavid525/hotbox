@@ -1,6 +1,7 @@
 #pragma once
 
-#include "util/hotbox_exceptions.hpp"
+// #include "util/hotbox_exceptions.hpp"
+#include "util/all.hpp"
 #include "schema/proto/schema.pb.h"
 #include "schema/feature_family.hpp"
 #include <cstdint>
@@ -20,6 +21,11 @@ public:
 
   Schema(const SchemaProto& proto);
 
+  // Initialize from Schema committed to db (Commit()).
+  Schema(RocksDB* db);
+
+  void Init(const SchemaProto& proto);
+
   // new_feature needs to have FeatureStoreType set, but not offset.
   // 'new_feature' will have offset set correctly after the call. This call
   // invokes map-lookup for family based on family_name. Use another
@@ -33,8 +39,8 @@ public:
   void AddFeature(FeatureFamily* family, Feature* new_feature,
       BigInt family_idx = -1);
 
-  const Feature& GetFeature(const std::string& family_name, BigInt family_idx)
-    const;
+  const Feature& GetFeature(const std::string& family_name,
+      BigInt family_idx) const;
   Feature& GetMutableFeature(const std::string& family_name,
       BigInt family_idx);
 
@@ -70,9 +76,17 @@ public:
 
   SchemaConfig GetConfig() const;
 
-  SchemaProto GetProto() const;
+  // with_features = true to store features_ in the schema proto.
+  // SchemaProto GetProto(bool with_features = true) const;
 
-  std::string Serialize() const;
+  // std::string Serialize(bool with_features = true) const;
+
+  inline const std::shared_ptr<std::vector<Feature>> GetFeatures() const {
+    return features_;
+  }
+
+  // Commit Schema to DB, chopping up repeated features.
+  void Commit(RocksDB* db) const;
 
 private:
   // if store_offset == -1 (default), increment the appropriate

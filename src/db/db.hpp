@@ -42,12 +42,13 @@ public:
   // client to use directly.
   SessionProto CreateSession(const SessionOptionsProto& session_options);
 
-  // Write all the states of DB to /DB file.
-  void CommitDB();
-
   DBProto GetProto() const;
 
   std::string PrintMetaData() const;
+
+private:
+  // Write all the states of DB to /DB file.
+  void CommitDB();
 
 private:
   DBMetaData meta_data_;
@@ -57,13 +58,8 @@ private:
 
   RocksDB meta_db_;
 
-  // We only support a single Stat
+  // Currently we only support a single Stat
   std::vector<Stat> stats_;
-
-  // Initialize Rocksdb
-  //void InitRocksdb(const std::string db_path);
-
-  void GenerateDBAtom(const DBAtom& atom, const ReadFileReq& req);
 
   // Infer Current Atom.# according to file_map globl_offset.
   int32_t GetCurrentAtomID();
@@ -78,7 +74,7 @@ private:
             int32_t* comp_sizes);
 
   // Heuristic method and return #records to read in one batch.
-  int32_t GuessBatchSize(const int32_t size);
+  size_t GuessBatchSize(size_t size);
 
   //std::vector<Epoch> epochs_;
 

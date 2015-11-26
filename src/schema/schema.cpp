@@ -5,8 +5,20 @@
 #include "schema/schema.hpp"
 #include "schema/constants.hpp"
 #include "schema/schema_util.hpp"
+#include <google/protobuf/text_format.h>
+#include <fstream>
 
 namespace hotbox {
+
+namespace {
+
+const std::string kSchemaPrefix = "schema_";
+
+std::string MakeSegmentKey(int seg_id) {
+  return kSchemaPrefix + "seg_" + std::to_string(seg_id);
+}
+
+}  // anonymous namespace
 
 Schema::Schema(const SchemaConfig& config) :
   features_(new std::vector<Feature>),
@@ -30,7 +42,10 @@ Schema::Schema(const SchemaConfig& config) :
 Schema::Schema(const SchemaProto& proto) {
   features_.reset(new std::vector<Feature>(proto.features().cbegin(),
         proto.features().cend()));
+  Init(proto);
+}
 
+void Schema::Init(const SchemaProto& proto) {
   for (const auto& p : proto.families()) {
     LOG(INFO) << "Initializing schema, family: " << p.first;
     if (p.first == kInternalFamily) {
@@ -45,6 +60,33 @@ Schema::Schema(const SchemaProto& proto) {
     output_families_[i] = proto.output_families(i);
   }
   append_store_offset_ = proto.append_store_offset();
+}
+
+Schema::Schema(RocksDB* db) {
+  std::string schema_proto_str = db->Get(kSchemaPrefix);
+  SchemaProto proto = StreamDeserialize<SchemaProto>(schema_proto_str);
+
+  // Need to initialize features_ before families_. Fill in features_ from
+  // FeatureSegment.
+  features_.reset(new std::vector<Feature>(proto.num_features()));
+  for (int i = 0; i < proto.num_segments(); ++i) {
+    std::string seg_key = MakeSegmentKey(i);
+    LOG(INFO) << "seg_key: " << seg_key;
+    std::string seg_proto_str = db->Get(seg_key);
+    LOG(INFO) << "schema cp1: seg_proto_str size: " << seg_proto_str.size();
+    FeatureSegment seg_proto =
+      DeserializeAndUncompressProto<FeatureSegment>(seg_proto_str);
+    LOG(INFO) << "schema cp2 seg_proto num_Features: "
+      << seg_proto.features_size();
+    BigInt id_begin = seg_proto.id_begin();
+    for (int j = 0; j < seg_proto.features_size(); ++j) {
+      (*features_)[j + id_begin] = seg_proto.features(j);
+    }
+  }
+  LOG(INFO) << "Schema reads " << proto.num_segments() << " segments";
+
+  // Init() after features_ is initialized.
+  Init(proto);
 }
 
 void Schema::AddFeature(const std::string& family_name,
@@ -228,7 +270,8 @@ SchemaConfig Schema::GetConfig() const {
   return config_;
 }
 
-SchemaProto Schema::GetProto() const {
+/*
+SchemaProto Schema::GetProto(bool with_features) const {
   SchemaProto proto;
   auto families = proto.mutable_families();
   for (const auto& p : families_) {
@@ -240,16 +283,74 @@ SchemaProto Schema::GetProto() const {
   for (int i = 0; i < output_families_.size(); ++i) {
     *(proto.add_output_families()) = output_families_[i];
   }
-  proto.mutable_features()->Reserve(features_->size());
-  for (BigInt i = 0; i < features_->size(); ++i) {
-    *(proto.add_features()) = (*features_)[i];
+  if (with_features) {
+    proto.mutable_features()->Reserve(features_->size());
+    for (BigInt i = 0; i < features_->size(); ++i) {
+      *(proto.add_features()) = (*features_)[i];
+    }
   }
   return proto;
 }
 
-std::string Schema::Serialize() const {
-  auto proto = GetProto();
+std::string Schema::Serialize(bool with_features) const {
+  auto proto = GetProto(with_features);
   return SerializeProto(proto);
+}
+*/
+
+void Schema::Commit(RocksDB* db) const {
+  // proto contains everything in SchemaProto except features.
+  SchemaProto proto;
+  auto families = proto.mutable_families();
+  for (const auto& p : families_) {
+    (*families)[p.first] = p.second.GetProto();
+  }
+  (*families)[kInternalFamily] = internal_family_.GetProto();
+  *(proto.mutable_append_store_offset()) = append_store_offset_;
+  proto.mutable_output_families()->Reserve(output_families_.size());
+  for (int i = 0; i < output_families_.size(); ++i) {
+    *(proto.add_output_families()) = output_families_[i];
+  }
+  int num_segments = std::ceil(static_cast<float>(features_->size())
+      / kSeqBatchSize);
+  proto.set_num_segments(num_segments);
+  proto.set_num_features(features_->size());
+  //std::string schema_proto_str = StreamSerialize(proto);
+  std::string schema_proto_str = SerializeAndCompressProto(proto);
+  db->Put(kSchemaPrefix, schema_proto_str);
+  /////
+  //LOG(INFO) << "Verifying schema StreamSerialize";
+  //SchemaProto proto2 = StreamDeserialize<SchemaProto>(schema_proto_str);
+
+  // Chop repeated features to FeatureSegment.
+  for (int i = 0; i < num_segments; ++i) {
+    BigInt id_begin = kSeqBatchSize * i;
+    BigInt id_end = std::min(id_begin + kSeqBatchSize,
+        static_cast<BigInt>(features_->size()));
+    FeatureSegment seg;
+    seg.set_id_begin(id_begin);
+    seg.mutable_features()->Reserve(id_end - id_begin);
+    for (BigInt j = id_begin; j < id_end; ++j) {
+      *(seg.add_features()) = (*features_)[j];
+    }
+    // LOG(INFO) << "seg has num features: " << seg.features_size();
+    std::string output_str;
+    std::string seg_key = MakeSegmentKey(i);
+    std::string seg_proto_str = SerializeAndCompressProto(seg);
+
+    // TODO(wdai): Figure out why StreamDeserialize and StreamDeserialize
+    // doesn't work.
+    //std::string seg_proto_str = StreamSerialize(seg);
+    //FeatureSegment seg2 = StreamDeserialize<FeatureSegment>(seg_proto_str);
+    // FeatureSegment seg2 = DeserializeProto<FeatureSegment>(seg_proto_str);
+    db->Put(seg_key, seg_proto_str);
+    LOG(INFO) << "Commit: writing feature key: " << seg_key
+      << " feature range: ["
+      << id_begin << ", " << id_end << ") proto size: "
+      << seg_proto_str.size();
+  }
+  LOG(INFO) << "Schema commit " << num_segments << " segments";
+
 }
 
 }  // namespace hotbox

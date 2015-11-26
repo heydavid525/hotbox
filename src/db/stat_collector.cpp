@@ -3,8 +3,7 @@
 
 namespace hotbox {
 
-StatCollector::StatCollector(std::vector<Stat>* stats) : stats_(stats),
-  num_unique_(stats->size()) { }
+StatCollector::StatCollector(std::vector<Stat>* stats) : stats_(stats) { }
 
 std::vector<Stat>& StatCollector::GetStats() {
   return *stats_;
