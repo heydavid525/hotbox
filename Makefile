@@ -3,8 +3,8 @@ PROJECT := $(shell readlink $(dir $(lastword $(MAKEFILE_LIST))) -f)
 
 include $(PROJECT)/config.mk
 
-SRC_DIR:=$(PROJECT)/src
-BUILD :=build
+SRC_DIR := $(PROJECT)/src
+BUILD := build
 LIB = $(BUILD)/lib
 
 NEED_MKDIR = $(BUILD) $(LIB)
@@ -89,16 +89,8 @@ PROTOC = $(THIRD_PARTY_BIN)/protoc
 $(PROTO_HDRS): $(BUILD)/%.pb.h: $(SRC_DIR)/%.proto
 	@mkdir -p $(@D)
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
-	$(PROTOC) --cpp_out=$(BUILD) --python_out=$(BUILD) --proto_path=$(SRC_DIR) $<
-	
-	
-$(HB_LIB): $(PROTO_OBJS) $(HB_OBJS) 
-	@echo HB_LIB_
-	mkdir -p $(@D)
-	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
-	ar csrv $@ $(filter %.o, $?) $(THIRD_PARTY_LIB)/libdmlc.a
-	# Make $(BUILD)/ into a python module.
-	python $(PROJECT)/python/util/modularize.py $(BUILD)
+	$(PROTOC) --cpp_out=$(BUILD) --python_out=$(BUILD) \
+	--proto_path=$(SRC_DIR) $<
 
 $(PROTO_OBJS): $(BUILD)/%.pb.o: $(BUILD)/%.pb.cc
 	@echo PROTO_OBJS_
@@ -110,6 +102,14 @@ $(HB_OBJS): $(BUILD)/%.o: $(SRC_DIR)/%.cpp $(PROTO_OBJS)
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c $< -o $@
 
+$(HB_LIB): $(PROTO_OBJS) $(HB_OBJS) 
+	@echo HB_LIB_
+	mkdir -p $(@D)
+	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
+	ar csrv $@ $(filter %.o, $?) $(THIRD_PARTY_LIB)/libdmlc.a
+	# Make $(BUILD)/ into a python module.
+	python $(PROJECT)/python/util/modularize.py $(BUILD)
+
 $(HB_SHARED_LIB): $(HB_OBJS) $(PROTO_OBJS) 
 	@echo HB_LIB_SHARED_
 	mkdir -p $(@D)
@@ -118,7 +118,7 @@ $(HB_SHARED_LIB): $(HB_OBJS) $(PROTO_OBJS)
 	# Make $(BUILD)/ into a python module.
 	python $(PROJECT)/python/util/modularize.py $(BUILD)
 
-proto:$(PROTO_HDRS)
+proto: $(PROTO_HDRS)
 
 #$PY_CLIENT_SRC=$(shell find src/client/py_client -type f -name "*.cpp")
 #py_hb_client: $(HB_LIB)

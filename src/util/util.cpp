@@ -7,6 +7,7 @@
 #include "util/compressor/all.hpp"
 #include "util/file_util.hpp"
 #include "util/hotbox_exceptions.hpp"
+
 namespace hotbox {
 
 std::string SizeToReadableString(size_t size) {
@@ -27,11 +28,18 @@ std::string SizeToReadableString(size_t size) {
 std::string SerializeProto(const google::protobuf::Message& msg) {
   std::string data;
   CHECK(msg.SerializeToString(&data));
+  CHECK_LT(data.size(), kProtoSizeLimitInBytes) << "Exceeds proto "
+    "message size limit " << SizeToReadableString(kProtoSizeLimitInBytes);
   return data;
 }
 
+std::string SerializeAndCompressProto(const google::protobuf::Message& msg) {
+  SnappyCompressor compressor;
+  return compressor.Compress(SerializeProto(msg));
+}
 
-std::string ReadCompressedString(std::string input,
+
+std::string DecompressString(const std::string& input,
     Compressor compressor) {
   // Uncompress
   if (compressor == Compressor::NO_COMPRESS) {
@@ -51,7 +59,7 @@ std::string ReadCompressedString(std::string input,
 }
 
 
-std::string ReadCompressedString(const void* data, const int size,
+std::string DecompressString(const void* data, const int size,
     Compressor compressor) {
   // Uncompress
   if (compressor == Compressor::NO_COMPRESS) {

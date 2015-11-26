@@ -11,7 +11,7 @@ std::string SnappyCompressor::Compress(const std::string& in)
   return compressed;
 }
 
-std::string SnappyCompressor::Compress(const void* data, const int& len)
+std::string SnappyCompressor::Compress(const void* data, size_t len)
   const noexcept {
   	std::string compressed;
   	snappy::Compress((const char*)data, len, &compressed);
@@ -26,7 +26,7 @@ std::string SnappyCompressor::Uncompress(const std::string& in) const {
   return uncompressed;
 }
 
-std::string SnappyCompressor::Uncompress(const void* data, const int& len) const {
+std::string SnappyCompressor::Uncompress(const void* data, size_t len) const {
 	std::string uncompressed;
 	if(!snappy::Uncompress((const char*)data, len, &uncompressed)) {
 		throw FailedToUncompressException("Snappy uncompress failed.");
