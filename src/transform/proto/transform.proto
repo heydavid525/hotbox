@@ -38,6 +38,7 @@ message TransformConfig {
     LogitTransformConfig logit_transform = 5;
     ConstantTransformConfig constant_transform = 6;
     SelectTransformConfig select_transform = 7;
+    TreeTransformConfig tree_transform = 8;
   }
 }
 
@@ -129,6 +130,16 @@ message LogitTransformConfig {
   double upper_bound = 3;
   double lower_bound = 4;
 }
+
+
+
+// yuzhu: add tree transform config, right now use base transform config nov16
+message TreeTransformConfig{
+}
+
+
+
+
 
 // Select input features (supporting *:* wildcard) and perform no transform.
 message SelectTransformConfig {

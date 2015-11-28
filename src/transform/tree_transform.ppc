@@ -9,8 +9,9 @@ namespace hotbox {
 
 void TreeTransform::TransformSchema(const TransformParam& param,
     TransformWriter* writer) const {
-  const BucketizeTransformConfig& config =
-    param.GetConfig().bucketize_transform();
+  
+  const TreeTransformConfig& config =
+    param.GetConfig().tree_transform();
   const std::vector<Feature>& input_features = param.GetInputFeatures();
   const std::vector<std::string>& input_features_desc =
     param.GetInputFeaturesDesc();

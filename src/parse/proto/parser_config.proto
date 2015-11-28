@@ -18,10 +18,10 @@ message LibSVMParserConfig {
 }
 
 message CSVParserConfig {
-  // True if feature indices starts from 1.
-  int32 has_header = 1;
+  // the positon of the column name, 0 means no column name.
+  int32 header_position = 1;
 
   // True if label indices starts from 0.
-  bool label_front = 2;
+  bool first_column_label = 2;
  // bool label_end = false;
 }

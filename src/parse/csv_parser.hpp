@@ -15,8 +15,8 @@ protected:
                DatumBase* datum) const override;
     
 private:
-  mutable int has_header_{0};
-  bool label_front_{false};
+  mutable int header_position_{0};
+  bool first_column_label_{false};
  // int myHasHeader{0};
   // bool label_end{false};
 };
