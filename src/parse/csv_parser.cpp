@@ -7,9 +7,9 @@
 #include <utility>
 #include <cstdint>
 #include <string>
-#include <cctype>
-#include <utility>
-#include <cstdint>
+// #include <cctype>
+// #include <utility>
+// #include <cstdint>
 #include <stdlib.h>
 #include <iostream>
 #include <cstddef>
@@ -34,7 +34,8 @@ void CSVParser::SetConfig(const ParserConfig& config) {
     // LOG(INFO) << "label_end: " << lable_end;
 }
 
-void CSVParser::Parse(const std::string& line, Schema* schema, DatumBase* datum) const {
+void CSVParser::Parse(const std::string& line, Schema* schema,
+    DatumBase* datum) const {
   if (header_position_ > 0) {
     header_position_--;
     return;
@@ -58,7 +59,7 @@ void CSVParser::Parse(const std::string& line, Schema* schema, DatumBase* datum)
     // G(INFO) << "parsing: " << line;
     // first char after read label is comma, skip it wrong!!!!
     ++ptr;
-  }else {
+  } else {
     std::size_t found = line.find_last_of(",");
     label = strtof(line.substr(found+1).c_str(), NULL);
     // LOG(INFO) << "Myline before: " << myline;
@@ -71,26 +72,26 @@ void CSVParser::Parse(const std::string& line, Schema* schema, DatumBase* datum)
   }
   // Where is kDefaultFamily
   const auto& family = schema->GetOrCreateFamily(kDefaultFamily);
-  
+
   std::vector<TypedFeatureFinder> not_found_features;
-  
+
   // escape all blank char until reach first token
   while (std::isspace(*ptr) && ptr - myline.data() < myline.size()) ++ptr;
-  
+
   // feature_id represents the column number from CSV file
-  int32_t feature_id = 2;
+  int32_t feature_id = 0 ;
   char comma;
   int index = 0;
   bool innerComma = false;
   bool nan = false;
-  
+
   // For the next char
   // case 1 ptr is pointing to comma, nan value
-  
+  //
   // case 2 ptr is pointing to " ,
   // string with comma inside !!!Only support ,
   // "string content",-->comma must follow double quote
-  
+  //
   // case 3 ptr is pointing to other char ,normal string
   while (*ptr != '\0') {
     if (*ptr == ',') {
@@ -98,43 +99,43 @@ void CSVParser::Parse(const std::string& line, Schema* schema, DatumBase* datum)
       str_val[0] =  '\0';
       endptr = ptr+1;
       nan = true;
-    }else if (*ptr == '\"') {
+    } else if (*ptr == '\"') {
       innerComma = true;
       // this string has comma inside, read until find end flag(".)
       // case 2
       // wait until the next ", to appear
       char double_quote = *(ptr+1);
       char comma = *(ptr+2);
-      
+
       index = 1;
-      
-      while ( (double_quote != '\"' || comma != ',') && comma != '\0') {
+
+      while ((double_quote != '\"' || comma != ',') && comma != '\0') {
         double_quote = *(ptr+index);
         comma = *(ptr+index+1);
         index++;
       }
-      
+
       endptr = ptr+index+1;
-      
+
       strncpy(str_val, ptr+1, index-2);
       str_val[index-2] = ',';
     } else {
       // case 3
       // read until the next , to appear
       comma = *ptr;
-      // find next comma 
+      // find next comma
       for (index = 0; comma != ',' && comma != '\0'; index++) {
         comma = *(ptr+index);
       }
-      
+
       endptr = ptr+index;
       strncpy(str_val, ptr, index-1);
       str_val[index] = ',';
       std::string str(str_val, 0, index-1);
       str.erase(str.find_last_not_of(" \n\r\t")+1);
-      
+
       str.erase(0, str.find_first_not_of("0 \n\r\t"));
-      
+
       if (str.length() == 0) {
         str.append("0");
       }
@@ -142,25 +143,26 @@ void CSVParser::Parse(const std::string& line, Schema* schema, DatumBase* datum)
       str.append(",");
       const char* tempCharStr = str.c_str();
       int strLength = str.length();
-      
+
       strncpy(str_val, tempCharStr, strLength);
     }
     // detect whether conversion is successful
     char *conversionFlagNumerical;
     char *conversionFlagCategorical;
-    
+
     float val = strtof(str_val, &conversionFlagNumerical);
     long catVal = strtol(str_val, &conversionFlagCategorical, 10);
-    
-    // std::cout << "conversionFlagNumerical: " 
+
+    // std::cout << "conversionFlagNumerical: "
     // << *conversionFlagNumerical << '\t';
-    // std::cout << "conversionFlagCategorical: " 
+    // std::cout << "conversionFlagCategorical: "
     // << *conversionFlagCategorical << '\t';
     try {
-    
-    // if this throws an exception, put the unkonw feature type into not_found_features
+    // if this throws an exception,
+    // put the unkonw feature type into not_found_features
       const Feature& feature = family.GetFeature(feature_id);
-      LOG(INFO) << "Setting feature: " << feature.global_offset() << " val: " << str_val[0];    
+      LOG(INFO) << "Setting feature: "
+        << feature.global_offset() << " val: " << str_val[0];
 
       if (*conversionFlagNumerical == ',') {
         // feature is numerical or categorical byte type
@@ -211,6 +213,7 @@ void CSVParser::Parse(const std::string& line, Schema* schema, DatumBase* datum)
     innerComma = false;
     nan = false;
     feature_id++;
+    LOG(INFO) << "feature_id: " << feature_id;
   }
   if (not_found_features.size() > 0) {
     TypedFeaturesNotFoundException e;
