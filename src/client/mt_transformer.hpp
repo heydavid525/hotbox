@@ -61,17 +61,17 @@ class MTTransformer {
 
   struct IoTask {
     // global_bytes_offset ranges within a atom file (maybe two)
-    BigInt file_begin;
-    BigInt file_end;
-    BigInt global_bytes_offset_begin;
-    BigInt global_bytes_offset_end;
+    std::size_t file_begin;
+    std::size_t file_end;
+    std::size_t global_bytes_offsets_begin;
+    std::size_t global_bytes_offsets_end;
   };
   // a IoTask may generate many TfTasks
   struct TfTask {
     BigInt idx;
     std::shared_ptr<std::string> shared_buf; // shared buffer
-    BigInt offset; // offset within shared_buf
-    BigInt length; // buffer length
+    std::size_t offset; // offset within shared_buf
+    std::size_t length; // buffer length
   };
 
   void
@@ -122,7 +122,7 @@ class MTTransformer {
   BigInt data_begin_;
   BigInt data_end_;
   std::vector<BigInt> datum_ids_;
-  std::vector<BigInt> global_bytes_offset_;
+  std::vector<BigInt> global_bytes_offsets_;
 };
 
 } // namespace hotbox

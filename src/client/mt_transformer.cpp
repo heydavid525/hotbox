@@ -37,8 +37,8 @@ MTTransformer::MTTransformer(const SessionProto &session_proto,
   bf_limit_(buffer_limit), bt_limit_(batch_limit),
   datum_ids_(session_proto_.file_map().datum_ids().cbegin(),
              session_proto_.file_map().datum_ids().cend()),
-  global_bytes_offset_(session_proto_.file_map().global_bytes_offset().cbegin(),
-            session_proto_.file_map().global_bytes_offset().cend()) {
+  global_bytes_offsets_(session_proto_.file_map().global_bytes_offsets().cbegin(),
+            session_proto_.file_map().global_bytes_offsets().cend()) {
   Start();
 }
 
@@ -64,7 +64,7 @@ void MTTransformer::IoTaskLoop() {
     LOG(INFO) << "IoTaskLoop " << std::this_thread::get_id() << " read file ["
               << iotask.file_begin << ", " << iotask.file_end << ")";
     // read buffer
-    auto file_size = kATOM_SIZE_MB;
+    auto file_size = kAtomSizeInBytes;
     auto atom_id_begin = iotask.file_begin / file_size;
     auto atom_id_end = iotask.file_end / file_size;
     int offset, length;
@@ -105,13 +105,13 @@ void MTTransformer::IoTaskLoop() {
     {
       std::lock_guard<std::mutex> lock(bf_mtx_);
       auto offset = 0;
-      for(auto idx = iotask.global_bytes_offset_begin; idx <= iotask.global_bytes_offset_end; idx++) {
+      for(auto idx = iotask.global_bytes_offsets_begin; idx <= iotask.global_bytes_offsets_end; idx++) {
         TfTask task;
         task.shared_buf = shared_buf;
         task.idx = idx;
         task.offset = offset;
-        task.length = global_bytes_offset_[idx] - iotask.file_begin - offset;
-        offset = global_bytes_offset_[idx] - iotask.file_begin;
+        task.length = global_bytes_offsets_[idx] - iotask.file_begin - offset;
+        offset = global_bytes_offsets_[idx] - iotask.file_begin;
 
         bf_queue_.push(task);
         bf_size_++;
@@ -169,7 +169,7 @@ void MTTransformer::TransformTaskLoop() {
               << task.idx;
     */
     // decompress buffer
-    std::string content = ReadCompressedString(task.shared_buf.get()->c_str() + task.offset,
+    std::string content = DecompressString(task.shared_buf.get()->c_str() + task.offset,
                           task.length,
                           session_proto_.compressor());
     /*
@@ -308,44 +308,42 @@ std::vector<FlexiDatum> *MTTransformer::NextBatch() {
 void
 MTTransformer::Translate(BigInt data_begin, BigInt data_end) {
   // data_begin should < data_end
-  LOG(INFO) << "global_bytes_offset_[0]" << global_bytes_offset_[0]
-            << "data_ids_[0]" << datum_ids_[0];
   auto low = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(), data_begin);
   auto high = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(), data_end);
-  auto global_bytes_offset_begin = low - datum_ids_.cbegin() - 1;
-  auto global_bytes_offset_end = high - datum_ids_.cbegin() - 1;
-  auto file_begin = data_begin ? global_bytes_offset_[global_bytes_offset_begin] : 0;
-  auto file_end = global_bytes_offset_[global_bytes_offset_end];
+  auto global_bytes_offsets_begin = low - datum_ids_.cbegin() - 1;
+  auto global_bytes_offsets_end = high - datum_ids_.cbegin() - 1;
+  auto file_begin = data_begin ? global_bytes_offsets_[global_bytes_offsets_begin] : 0;
+  auto file_end = global_bytes_offsets_[global_bytes_offsets_end];
   LOG(INFO) << "File range [" << file_begin << ", " << file_end << ")";
-  auto file_size = kATOM_SIZE_MB;
-  auto global_bytes_offset = global_bytes_offset_begin;
-  for (auto offset = file_begin; offset < file_end; global_bytes_offset++) {
+  auto file_size = kAtomSizeInBytes;
+  auto global_bytes_offsets = global_bytes_offsets_begin;
+  for (auto offset = file_begin; offset < file_end; global_bytes_offsets++) {
     IoTask task;
     task.file_begin = offset;
-    task.global_bytes_offset_begin = global_bytes_offset;
+    task.global_bytes_offsets_begin = global_bytes_offsets;
     offset += file_size - offset % file_size;
-    auto upper = std::lower_bound(global_bytes_offset_.cbegin(), global_bytes_offset_.cend(), offset);
-    if (upper == global_bytes_offset_.cend())
+    auto upper = std::lower_bound(global_bytes_offsets_.cbegin(), global_bytes_offsets_.cend(), offset);
+    if (upper == global_bytes_offsets_.cend())
       upper --;
-    global_bytes_offset = upper - global_bytes_offset_.cbegin();
+    global_bytes_offsets = upper - global_bytes_offsets_.cbegin();
     task.file_end = *(upper);
-    task.global_bytes_offset_end = global_bytes_offset;
+    task.global_bytes_offsets_end = global_bytes_offsets;
     if (task.file_end > file_end) {
       task.file_end = file_end;
-      task.global_bytes_offset_end = global_bytes_offset_end;
+      task.global_bytes_offsets_end = global_bytes_offsets_end;
     }
     offset = task.file_end;
     io_queue_.push(task);
     /*
     LOG(INFO) << "IoTask: file [" << task.file_begin << ", " << task.file_end
-              << "], idx [" << task.global_bytes_offset_begin << ", "
-              << task.global_bytes_offset_end
+              << "], idx [" << task.global_bytes_offsets_begin << ", "
+              << task.global_bytes_offsets_end
               << "]" << std::endl;
     */
   }
 
-  total_buffers_ = global_bytes_offset_end - global_bytes_offset_begin + 1;
-  total_batches_ = global_bytes_offset_end - global_bytes_offset_begin + 1;
+  total_buffers_ = global_bytes_offsets_end - global_bytes_offsets_begin + 1;
+  total_batches_ = global_bytes_offsets_end - global_bytes_offsets_begin + 1;
 
   // LOG(INFO) << "Total Buffers :" << total_buffers_;
   LOG(INFO) << "Total Batches :" << total_batches_;
