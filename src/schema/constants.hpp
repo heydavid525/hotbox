@@ -23,4 +23,8 @@ typedef int32_t BigInt;
 const FeatureIndexType kFeatureIndexType = FeatureIndexType::INT32;
 #endif
 
+// Batch size to break up StatsProto and Schema::features into
+// FeatureStatProtoSeq messages that cannot exceeds proto size limit (2GB).
+const int kSeqBatchSize = 1e6;
+
 }  // namespace hotbox

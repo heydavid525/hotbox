@@ -7,13 +7,7 @@
 #include "db/proto/db.pb.h"
 #include "util/proto/warp_msg.pb.h"
 #include "schema/all.hpp"
-
-
-#define USE_ROCKS_
-
-#ifdef USE_ROCKS
-#include "util/rocksdb_util.hpp"
-#endif
+#include "util/rocks_db.hpp"
 
 namespace hotbox {
 
@@ -48,15 +42,13 @@ public:
   // client to use directly.
   SessionProto CreateSession(const SessionOptionsProto& session_options);
 
-#ifdef USE_ROCKS
-  void InitDB(const std::string& db_path
-#endif  
-// Write all the states of DB to /DB file.
-  void CommitDB();
-
   DBProto GetProto() const;
 
   std::string PrintMetaData() const;
+
+private:
+  // Write all the states of DB to /DB file.
+  void CommitDB();
 
 private:
   DBMetaData meta_data_;
@@ -64,10 +56,25 @@ private:
   // TODO(wdai): Allows multiple schemas (schema evolution).
   std::unique_ptr<Schema> schema_;
 
-#ifdef USE_ROCKS
-  std::unique_ptr<rocksdb::DB> meta_db_;
-  std::unique_ptr<rocksdb::DB> record_db_;
-#endif
+  RocksDB meta_db_;
+
+  // Currently we only support a single Stat
+  std::vector<Stat> stats_;
+
+  // Infer Current Atom.# according to file_map globl_offset.
+  int32_t GetCurrentAtomID();
+
+  // Update related metadata after file ingestion.
+  // Namely #global_byte_offset, #datam_records, #records total
+  void UpdateReadMetaData(const DBAtom& atom, const int32_t compressed_size);
+
+  // Write ‘atom’ data to Atom files. Return bytes written.
+  // ori_sizes & comp_sizes totals uncompressed & compressed data size.
+  size_t WriteToAtomFiles(const DBAtom& atom, int32_t* ori_sizes, 
+            int32_t* comp_sizes);
+
+  // Heuristic method and return #records to read in one batch.
+  size_t GuessBatchSize(size_t size);
 
   //std::vector<Epoch> epochs_;
 

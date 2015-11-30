@@ -11,8 +11,9 @@ void BucketizeTransform::TransformSchema(const TransformParam& param,
     TransformWriter* writer) const {
   const BucketizeTransformConfig& config =
     param.GetConfig().bucketize_transform();
-  const auto& input_features = param.GetInputFeatures();
-  const auto& input_features_desc = param.GetInputFeaturesDesc();
+  const std::vector<Feature>& input_features = param.GetInputFeatures();
+  const std::vector<std::string>& input_features_desc =
+    param.GetInputFeaturesDesc();
   for (int i = 0; i < input_features.size(); ++i) {
     const auto& input_feature = input_features[i];
     CHECK(IsNumber(input_feature));

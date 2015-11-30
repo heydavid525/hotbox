@@ -74,12 +74,34 @@ std::vector<float>&& FlexiDatum::MoveSparseVals() {
   return std::move(sparse_vals_);
 }
 
-std::string FlexiDatum::ToString() const {
+std::string FlexiDatum::ToString(bool libsvm_string) const {
+  if (libsvm_string) {
+    return ToLibsvmString();
+  }
+  return ToFullString();
+}
+
+std::string FlexiDatum::ToFullString() const {
   std::stringstream ss;
   ss << (store_type_ == OutputStoreType::SPARSE ?  "sparse" : "dense")
     << " dim: " << feature_dim_
     << " label: " << label_
     << " weight: " << weight_ << " |";
+  if (store_type_ == OutputStoreType::SPARSE) {
+    for (int i = 0; i < sparse_idx_.size(); ++i) {
+      ss << " " << sparse_idx_[i] << ":" << sparse_vals_[i];
+    }
+  } else {
+    for (int i = 0; i < dense_vals_.size(); ++i) {
+      ss << " " << i << ":" << dense_vals_[i];
+    }
+  }
+  return ss.str();
+}
+
+std::string FlexiDatum::ToLibsvmString() const {
+  std::stringstream ss;
+  ss << label_;
   if (store_type_ == OutputStoreType::SPARSE) {
     for (int i = 0; i < sparse_idx_.size(); ++i) {
       ss << " " << sparse_idx_[i] << ":" << sparse_vals_[i];

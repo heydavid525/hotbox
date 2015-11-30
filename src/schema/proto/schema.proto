@@ -2,7 +2,8 @@ syntax = "proto3";
 
 package hotbox;
 
-// FeatureType is used in parsing only.
+// FeatureType is used in parsing only (where store type like dense
+// and sparse aren't defined yet).
 enum FeatureType {
   UNKNOWN_FEATURE_TYPE = 0;  // if we can't infer the feature type.
   CATEGORICAL = 1;  // int32
@@ -18,18 +19,18 @@ enum OutputStoreType {
   DENSE = 1;
 }
 
-/*
-// FeatureStoreType should be determined by the frequency of a feature in
-// a dataset. This can be inferred at first ingest (schema creation) or
-// explicitly/manually determined by user.
-//
-// Comment(wdai): See Dato's nice column type inference from data.
-enum FeatureStoreType {
-  DYNAMIC = 0;  // let the system decide.
-  SPARSE = 1;
-  DENSE = 2;
+// Current max proto sequence: 7.
+message FeatureStatProto {
+  //uint32 num_unique = 1;   // used only for is_factor feature.
+  // size of unique_cat_values / unique_bytes_values are num_unique_values.
+  repeated int32 unique_cat_values = 6;
+  repeated string unique_bytes_values = 7;
+  double min = 2;
+  double max = 3;
+  double sum = 4;   // sum / num_data = mean.
+  //double quantile_5 = 3;
+  //double quantile_95 = 4;
 }
-*/
 
 enum FeatureIndexType {
   INT64 = 0;
@@ -56,6 +57,14 @@ enum FeatureStoreType {
   NUM_STORE_TYPES = 7;
 }
 
+// For FeatureFamily that uses single store, we can directly access that
+// store (store_type) on range [offset_begin, offset_end).
+message StoreTypeAndOffset {
+  FeatureStoreType store_type = 1;
+  int64 offset_begin = 2;
+  int64 offset_end = 3;
+}
+
 // Locate which store in DatumProto a feature is stored.
 //message FeatureLocator {
   /*
@@ -79,7 +88,7 @@ enum FeatureStoreType {
 // identify the store in DatumRecord, and idx searches for the value in the
 // appropriate store.
 //
-// Current max proto sequence: 4.
+// Current max proto sequence: 6.
 message Feature {
   string name = 1;
   //FeatureLocator loc = 2;
@@ -90,10 +99,20 @@ message Feature {
   // Locate feature value in the store. It represents the global index for
   // dense store (vector) or global key in sparse store (map). For map lookup,
   // not found means 0. This index is determined at schema creation.
-  int64 offset = 3;
+  int64 store_offset = 3;
 
-  // TODO(wdai): is_factor = 7;
-  bool initialized = 4;
+  // Feature in a Schema across FeatureFamily are stored in a single vector
+  // (Schema::features_). global_offset finds the feature in that vector.
+  int64 global_offset = 6;
+
+  // A factor feature value space that's finite (usually very few).
+  // Categorical and bytes is assumed to be factor unless # of unique values
+  // exceeds 'num_unique_values_factor' in SchemaConfig.
+  bool is_factor = 5;
+
+  // Allow skipped features (i.e., feature 2 is initialized before
+  // feature 1), leaving some feature uninitialized.
+  //bool initialized = 4;
 }
 
 // Each data instance is stored as DatumProto, which has 6 data stores
@@ -105,20 +124,34 @@ message DatumProto {
 
   // Sparse stores are maps, each represented by an index array and a value
   // array.
-  map<uint32, int64> sparse_cat_store = 4;
-  map<uint32, float> sparse_num_store = 5;
-  map<uint32, bytes> sparse_bytes_store = 6;
+  //
+  // Comment(wdai): I choose two array representation over proto3's map for 2
+  // reasons: (1) To have ordered key-value pairs, which is important as write
+  // and read both happen in ascending order in index. (2) uint32 can be
+  // changed to int64 easily to support ultra-high dim beyond 2B.
+  repeated uint32 sparse_cat_store_idxs = 4;
+  repeated int64 sparse_cat_store_vals = 5;
+
+  repeated uint32 sparse_num_store_idxs = 6;
+  repeated float sparse_num_store_vals = 7;
+
+  repeated uint32 sparse_bytes_store_idxs = 8;
+  repeated bytes sparse_bytes_store_vals = 9;
+
+  //map<uint32, int64> sparse_cat_store = 4;
+  //map<uint32, float> sparse_num_store = 5;
+  //map<uint32, bytes> sparse_bytes_store = 6;
 }
 
 // FeatureFamily contains a set of offset to denote the start of family in
 // each store of DatumProto/DatumProto. Schema maintains these offsets for the
 // next family insertion.
-message DatumProtoOffset {
+message DatumProtoStoreOffset {
   // offsets(OutputStoreType) maps to the offset of the store.
   repeated int64 offsets = 1;
 }
 
-// Current max proto sequence: 5.
+// Current max proto sequence: 6.
 message FeatureFamilyProto {
   string family_name = 1;
 
@@ -128,7 +161,39 @@ message FeatureFamilyProto {
 
   // Index lookup on family (e.g., "mobile:0" will find the first entry in
   // features).
+  //repeated Feature features = 3;
+
+  // Maps to a global vector of Feature.
+  repeated int64 global_idx = 3;
+
+  // Assume each FeatureFamily has contiguous store range on all stores. This
+  // would be the case if all features in a family are added before the next
+  // feature.
+  DatumProtoStoreOffset offset_begin = 4;
+  DatumProtoStoreOffset offset_end = 5;
+
+  bool simple_family = 6;
+}
+
+// Similar to FeatureFamilyProto, but include Feature and thus does not
+// depend on the Feature in Schema.
+// Current max proto sequence: 3.
+message SelfContainedFeatureFamilyProto {
+  string family_name = 1;
+
+  // Map from feature name (string) to index on features, used in
+  // "mobile:num_clicks" type of lookup (name = "num_clicks").
+  map<string, int64> name_to_family_idx = 2;
+
+  // Index lookup on family (e.g., "mobile:0" will find the first entry in
+  // features).
   repeated Feature features = 3;
+
+  // See FeatureFamilyProto.
+  DatumProtoStoreOffset offset_begin = 4;
+  DatumProtoStoreOffset offset_end = 5;
+
+  bool simple_family = 6;
 }
 
 // Message to construct default Schema.
@@ -138,9 +203,13 @@ message SchemaConfig {
 
   // True to use dense weight, good if most data has non-zero weight.
   bool use_dense_weight = 2;
+
+  // CATEGORICAL and BYTES features with fewer than this many unique values
+  // are assumed to be factor by default.
+  int32 num_unique_values_factor = 3;
 }
 
-// Current max proto sequence: 5.
+// Current max proto sequence: 7.
 message SchemaProto {
   // (yuwr:) This should also be id?
   // uint32 schema_id = 1;
@@ -149,12 +218,17 @@ message SchemaProto {
   // TODO(wdai): Do we need another internal schema_id, as Weiren suggested?
   uint32 version = 1;
 
-  // name (string) --> FeatureFamilyProto. We support multi-weight and multi-labels
-  // through specially reserved families 'label' and 'weight'.
+  // name (string) --> FeatureFamilyProto. We support multi-weight and
+  // multi-labels through specially reserved families 'label' and 'weight'.
   //
   // Comment(wdai): This map lookup will only be done once during transform to
   // get the index on DatumRecord stores, thus not performance critical.
   map<string, FeatureFamilyProto> families = 2;
+
+  // # of sequences after chopping up repeated features. Must be set when
+  // committing to disk.
+  int32 num_segments = 6;
+  int64 num_features = 7;
 
   // Ordered list of output family names.
   repeated string output_families = 3;
@@ -165,7 +239,20 @@ message SchemaProto {
   // Comemnt: 'dim' can belong to DB level if we assume static schema.
   //int64 dim = 4;
 
-  DatumProtoOffset append_offset = 5;
+  DatumProtoStoreOffset append_store_offset = 5;
+
+  // Feature across all FeatureFamily.
+  // Comment(wdai): When serializing SchemaProto to disk we serialize
+  // features separately or the proto message size would easily exceeds
+  // the limit of 64MB.
+  repeated Feature features = 4;
+}
+
+// FeatureSegment is a segment of SchemaProto::features, used to reduce
+// SchemaProto size.
+message FeatureSegment {
+  uint64 id_begin = 1;
+  repeated Feature features = 2;
 }
 
 // OSchema only stores features in FeatureStoreType::OUTPUT.

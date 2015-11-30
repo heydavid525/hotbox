@@ -63,22 +63,12 @@ void DBServer::InitFromDBRootFile() {
   if (!io::Exists(db_root_file_path)) {
     LOG(INFO) << "DB File (" << db_root_file_path << ") doesn't exist yet. "
       "This must be a new DB";
-#ifdef USE_ROCKS
-    db_list_.reset(io::OpenRocksMetaDB(db_root_file_path));
-#endif
     return;
   }
-#ifdef USE_ROCKS
-  LOG(INFO) << "Load DB Root File (" << db_root_file_path << ") from rocksdb";
-  db_list_.reset(io::OpenRocksMetaDB(db_root_file_path));
-  std::string db_root_file;
-  io::GetKey(db_list_.get(), kDBRootFile, &db_root_file);
-#else
   auto db_root_file = io::ReadCompressedFile(db_root_file_path,
       Compressor::NO_COMPRESS);
-#endif
   DBRootFile db_root;
-  db_root.ParseFromString(db_root_file);
+  CHECK(db_root.ParseFromString(db_root_file));
   std::stringstream ss;
   for (int i = 0; i < db_root.db_names_size(); ++i) {
     std::string db_name = db_root.db_names(i);
@@ -93,7 +83,7 @@ void DBServer::InitFromDBRootFile() {
 
 void DBServer::CommitToDBRootFile() const {
   auto db_root_file_path = db_dir_ + kDBRootFile;
-  
+
   DBRootFile db_root;
   for (const auto& p : dbs_) {
     db_root.add_db_names(p.first);
@@ -101,17 +91,12 @@ void DBServer::CommitToDBRootFile() const {
   LOG(INFO) << "Write to " << db_root_file_path << " with compressor "
     << Compressor::NO_COMPRESS;
 
-#ifdef USE_ROCKS
-  // TODO(weiren): We should use rocksdb::Merge operator.
-  io::PutKey(db_list_.get(), kDBRootFile, SerializeProto(db_root));
-#else
   io::WriteCompressedFile(db_root_file_path, SerializeProto(db_root),
       Compressor::NO_COMPRESS);
-#endif
 }
 
 void DBServer::CreateDirectory(const std::string& dir) {
-  // Create directory if necessary. as we would need to a separate store 
+  // Create directory if necessary. as we would need to a separate store
   // for different users/sessions.
   CHECK(io::CreateDirectory(dir) == 0);
 }

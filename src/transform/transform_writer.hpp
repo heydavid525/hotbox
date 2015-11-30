@@ -13,8 +13,8 @@ public:
   TransformWriter(Schema* schema, const std::string& output_family_name,
       FeatureStoreType store_type = FeatureStoreType::OUTPUT) : schema_(schema),
   store_type_(store_type) {
-    InitializeOffset(&output_offset_begin_);
-    InitializeOffset(&output_offset_end_);
+    InitializeOffset(&output_store_offset_begin_);
+    InitializeOffset(&output_store_offset_end_);
     output_family_ = &(schema_->GetOrCreateMutableFamily(output_family_name,
         store_type_ == FeatureStoreType::OUTPUT));
   }
@@ -26,23 +26,23 @@ public:
     new_feature.set_store_type(store_type_);
     new_feature.set_name(feature_name);
     schema_->AddFeature(output_family_, &new_feature);
-    LOG(INFO) << "Add feature " << feature_name << " offset: " << new_feature.offset();
-    output_offset_end_.set_offsets(store_type_, new_feature.offset() + 1);
+    auto curr_end = output_store_offset_end_.offsets(store_type_);
+    output_store_offset_end_.set_offsets(store_type_,
+        std::max(curr_end, new_feature.store_offset() + 1));
   }
 
   // Get the output range for each transform to be sent to client.
   TransformOutputRange GetTransformOutputRange() const {
     TransformOutputRange range;
-    range.set_offset_begin(output_offset_begin_.offsets(store_type_));
-    range.set_offset_end(output_offset_end_.offsets(store_type_));
+    range.set_store_offset_begin(output_store_offset_begin_.offsets(store_type_));
+    range.set_store_offset_end(output_store_offset_end_.offsets(store_type_));
     range.set_store_type(store_type_);
-    LOG(INFO) << "GetTransformOutputRange: " << range.DebugString();
     return range;
   }
 
 private:
   // Replace -1 in output_offset_begin_ to current schema's offset value.
-  void InitializeOffset(DatumProtoOffset* offset) {
+  void InitializeOffset(DatumProtoStoreOffset* offset) {
     const auto& append_offset = schema_->GetAppendOffset();
     offset->mutable_offsets()->Resize(FeatureStoreType::NUM_STORE_TYPES, -1);
     for (int i = 0; i < FeatureStoreType::NUM_STORE_TYPES; ++i) {
@@ -55,10 +55,10 @@ private:
   Schema* schema_;
   FeatureFamily* output_family_;
 
-  // Transform output is only allowed between [output_offset_begin_,
-  // output_offset_end_).
-  DatumProtoOffset output_offset_begin_;
-  DatumProtoOffset output_offset_end_;
+  // Transform output is only allowed between [output_store_offset_begin_,
+  // output_store_offset_end_).
+  DatumProtoStoreOffset output_store_offset_begin_;
+  DatumProtoStoreOffset output_store_offset_end_;
 
   const FeatureStoreType store_type_;
 };

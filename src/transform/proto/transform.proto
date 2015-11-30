@@ -4,11 +4,26 @@ import "schema/proto/schema.proto";
 
 package hotbox;
 
+// Features in each family and their descriptor strings.
+//
+// Comment(wdai): TransformFamilyFeatureProto should be nested under
+// TransformParamProto, but that'd create C++ class called
+// TransformParamProto_TransformFamilyFeatureProto. Too ugly.
+message TransformFamilyFeatureProto {
+  repeated Feature input_features = 1;
+  repeated string input_features_desc = 2;
+}
+
 // TransformParamProto contains the member of TransformParam.
 message TransformParamProto {
   TransformConfig config = 1;
-  repeated Feature input_features = 2;
-  repeated string input_features_desc = 3;
+
+  // Keyed on family_name
+  map<string, TransformFamilyFeatureProto> input_families = 2;
+
+  // Wide families are families selected under family-wide selection
+  // and uses only single store.
+  map<string, StoreTypeAndOffset> wide_family_offsets = 3;
 }
 
 message TransformConfig {
@@ -22,6 +37,7 @@ message TransformConfig {
     NgramTransformConfig ngram_transform = 4;
     LogitTransformConfig logit_transform = 5;
     ConstantTransformConfig constant_transform = 6;
+    SelectTransformConfig select_transform = 7;
   }
 }
 
@@ -114,44 +130,48 @@ message LogitTransformConfig {
   double lower_bound = 4;
 }
 
+// Select input features (supporting *:* wildcard) and perform no transform.
+message SelectTransformConfig {
+}
+
 /*
 // Select raw features to include in the final output. Automatically drops
 // BYTES features and multinomial categorical features. The selected feature
 // is always not_in_final = false and appears in final output.
 message SelectTransformConfig {
-  // By default we drop multinomial categorical features as well but only
-  // include binary categorical feature.
-  bool include_multi_categorical = 2;
+// By default we drop multinomial categorical features as well but only
+// include binary categorical feature.
+bool include_multi_categorical = 2;
 
-  // Standardize numeric features by default.
-  bool standardize_numeric = 3;
+// Standardize numeric features by default.
+bool standardize_numeric = 3;
 }
 
 // Hash high dimensional (sparse) features to fixed low-dim.
 message HashTransformConfig {
-  // # of hashed dimension.
-  int32 num_buckets = 3;
+// # of hashed dimension.
+int32 num_buckets = 3;
 
-  // Dynamic just means dense for now.
-  //
-  // TODO(wdai): decide based on the sparsity of, say, the first 1000 data
-  // points.
-  FeatureStoreType output_store_type = 4;
+// Dynamic just means dense for now.
+//
+// TODO(wdai): decide based on the sparsity of, say, the first 1000 data
+// points.
+FeatureStoreType output_store_type = 4;
 
-  // TODO(wdai): Option for various hash functions.
+// TODO(wdai): Option for various hash functions.
 }
 
 // CustomTransformConfig calls a user-defined class for transform.
 message CustomTransformConfig {
-  // TODO(wdai): Use class registry to build transform class from string.
-  // TODO(wdai): Given input_feature_list, transform class needs to return
-  // the output dimension and FeatureStoreType.
-  string transform_name = 3;
+// TODO(wdai): Use class registry to build transform class from string.
+// TODO(wdai): Given input_feature_list, transform class needs to return
+// the output dimension and FeatureStoreType.
+string transform_name = 3;
 }
 
 // TODO(wdai): define Model message and ModelTransformConfig.
 message ModelTransformConfig {
-  // Full spec of model type and model configuration.
-  ModelSpec model = 1;
+// Full spec of model type and model configuration.
+ModelSpec model = 1;
 }
-*/
+ */

@@ -6,19 +6,11 @@ import "transform/proto/transform.proto";
 
 package hotbox;
 
-// Current max proto sequence: 6.
-message FeatureStatProto {
-  double max = 5;
-  double min = 6;
-  double mean = 1;
-  double std = 2;
-  //double quantile_5 = 3;
-  //double quantile_95 = 4;
-}
-
-
-/*
-message EpochProto {
+// Track stats starting from an epoch. Each DB has at least one
+// StatProto starting from the beginning of DB.
+//
+// Current max proto sequence: 2.
+message StatProto {
   // Comment (yuwr:) This should be a schema index? We might have many
   // schemas, each schema could have many versions.  Each epoch would
   // correspond to a schema, but not vice versa, hence the index.
@@ -33,20 +25,33 @@ message EpochProto {
   //uint32 schema_version = 1;   // for schema evolution (future work).
 
   // # data in this epoch.
-  uint64 num_data = 2;
+  uint64 num_data = 1;
 
-  // # of outlier data determined at read time.
-  uint64 num_outliers = 3;
+  // The beginning epoch for the stat.
+  uint32 epoch_begin = 3;
 
-  // Read period in unix time seconds.
-  uint64 read_time_begin = 4;
-  uint64 read_time_end = 5;
+  // # of FeatureStatProtoSegment. This must be set when committing to disk.
+  int32 num_segments = 5;
 
-  // We assue each epoch would have one single FileMap object to locate the files.
-  // We use the file map index to located the object, avoiding ojbect inconsistency.
-  uint32 file_map_id= 7;
+  // # of stats. Must be set when committing to disk.
+  int64 num_stats = 6;
+
+  // Should have the same # of features as in schema.
+  repeated FeatureStatProto stats = 2;
+
+  repeated bool initialized = 4;
 }
 
+// A sequence of stats starting from feature id_begin. This breaks up
+// StatProto::stats when committing to disk to avoid hitting proto
+// message size limit 64MB.
+message FeatureStatProtoSegment {
+  uint64 id_begin = 1;
+  repeated FeatureStatProto stats = 2;
+  repeated bool initialized = 3;
+}
+
+/*
 // File is assumed to be stored in file chunks of a user defined fixed size (e.g. HDFS).
 // Each file contains a number of data records.
 // (The record would start with a length descriptor (4 bytes) used to segment each compressed record.
@@ -108,10 +113,14 @@ message DBConfig {
 message FileMap {
   // Full path is atom_path + atom_id.
   string atom_path = 3;
-
-  // atom file i stores [datum_id(i), datum_id(i+1)) datum range. The
-  // last one (N-1) has range [datum_id(N-1), num_data).
+  // global data offset in bytes, e.g. 64MB file limit and a atom in Atom.X
+  // The global_bytes_offsets = X * 64MB + offset_in_file.
+  repeated int64 global_bytes_offsets = 4;
+  //repeated int64 data_idx = 4;
+  // datum range corresponding to data offset range. 
+  // [data_idx(i), data_idx(i+1)) <-> [datum_id(i), datum_id(i+1))
   repeated int64 datum_ids = 1;
+  // Total # of data 
   int64 num_data = 2;
 }
 
@@ -128,7 +137,6 @@ message DBMetaData {
   // by 32-bit index system.
   FeatureIndexType feature_index_type = 2;
 
-
   // Mapping datum to atom file.
   FileMap file_map = 6;
 }
@@ -139,23 +147,28 @@ message DBAtom {
   repeated DatumProto datum_protos = 1;
 }
 
+// All DB info except atom files.
 message DBProto {
   DBMetaData meta_data = 1;
-  SchemaProto schema_proto = 2;
+  // SchemaProto schema_proto = 2;
+
+  // Multiple epoch_stats starting from various epoch.
+  // repeated StatProto stats = 3;
 }
 
 // This file is saved at the root of a db_dir for finding all the DB under a
 // DBServer.
 //
 // Comment(wdai): DB in Hotbox is more like Table in SQL.
+// TODO(wdai): Remove this as we use RocksDB.
 message DBRootFile {
   repeated string db_names = 1;
 }
 
 message TransformOutputRange {
   // Transform writes to [offset_begin, offset_end) on store_type.
-  int64 offset_begin = 1;
-  int64 offset_end = 2;
+  int64 store_offset_begin = 1;
+  int64 store_offset_end = 2;
   FeatureStoreType store_type = 3;
 }
 
@@ -182,7 +195,7 @@ message SessionProto {
   repeated TransformOutputRange transform_output_ranges = 2;
   OSchemaProto o_schema = 3;
   // Need internal family to access label and weight.
-  FeatureFamilyProto internal_family_proto = 7;
+  SelfContainedFeatureFamilyProto internal_family_proto = 7;
 
   // All DB atom files are compressed by this compression mode. Default to
   // Compressr::SNAPPY.

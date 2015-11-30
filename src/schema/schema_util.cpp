@@ -14,12 +14,21 @@ Feature CreateFeature(FeatureStoreType store_type, const std::string& name) {
   Feature f;
   f.set_name(name);
   f.set_store_type(store_type);
+  switch (f.store_type()) {
+    case FeatureStoreType::DENSE_NUM:
+    case FeatureStoreType::SPARSE_NUM:
+      // Use default false value for is_factor().
+      return f;
+    default:
+      f.set_is_factor(true);
+  }
   return f;
 }
 
 std::vector<FeatureFinder> ParseFeatureDesc(const std::string& feature_desc) {
   std::vector<FeatureFinder> finders;
-  auto trimmed_desc = Trim(feature_desc, ",");  // remove trailing/leading commas
+  // remove trailing/leading commas
+  auto trimmed_desc = Trim(feature_desc, ",");
   std::vector<std::string> features = SplitString(trimmed_desc, ',');
 
   for (int i = 0; i < features.size(); ++i) {
@@ -44,7 +53,8 @@ std::vector<FeatureFinder> ParseFeatureDesc(const std::string& feature_desc) {
       // e.g., feat1 in the above example.
       feature_name = desc;
     }
-    if (Trim(feature_name).empty()) {
+    auto trimmed_feature_name = Trim(feature_name);
+    if (trimmed_feature_name.empty() || trimmed_feature_name == "*") {
       FeatureFinder finder;
       finder.family_name = family;
       finder.all_family = true;
@@ -74,6 +84,7 @@ bool IsNumber(const Feature& f) {
     case FeatureStoreType::DENSE_NUM:
     case FeatureStoreType::SPARSE_CAT:
     case FeatureStoreType::SPARSE_NUM:
+    case FeatureStoreType::OUTPUT:
       return true;
     default:
       return false;

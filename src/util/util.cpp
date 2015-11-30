@@ -7,6 +7,7 @@
 #include "util/compressor/all.hpp"
 #include "util/file_util.hpp"
 #include "util/hotbox_exceptions.hpp"
+
 namespace hotbox {
 
 std::string SizeToReadableString(size_t size) {
@@ -26,12 +27,19 @@ std::string SizeToReadableString(size_t size) {
 
 std::string SerializeProto(const google::protobuf::Message& msg) {
   std::string data;
-  msg.SerializeToString(&data);
+  CHECK(msg.SerializeToString(&data));
+  CHECK_LT(data.size(), kProtoSizeLimitInBytes) << "Exceeds proto "
+    "message size limit " << SizeToReadableString(kProtoSizeLimitInBytes);
   return data;
 }
 
+std::string SerializeAndCompressProto(const google::protobuf::Message& msg) {
+  SnappyCompressor compressor;
+  return compressor.Compress(SerializeProto(msg));
+}
 
-std::string ReadCompressedString(std::string input,
+
+std::string DecompressString(const std::string& input,
     Compressor compressor) {
   // Uncompress
   if (compressor == Compressor::NO_COMPRESS) {
@@ -49,6 +57,28 @@ std::string ReadCompressedString(std::string input,
   // Should never get here.
   return "";
 }
+
+
+std::string DecompressString(const void* data, const int size,
+    Compressor compressor) {
+  // Uncompress
+  if (compressor == Compressor::NO_COMPRESS) {
+    std::string ret((const char *)data, size);
+    return ret;
+  }
+  auto& registry = ClassRegistry<CompressorIf>::GetRegistry();
+  std::unique_ptr<CompressorIf> compressor_if =
+    registry.CreateObject(compressor);
+  try {
+    return compressor_if->Uncompress(data, size);
+  } catch (const FailedToUncompressException& e) {
+    throw FailedFileOperationException(std::string("Failed to uncompress ")
+        + "\n" + e.what());
+  }
+  // Should never get here.
+  return "";
+}
+
 size_t WriteCompressedString(std::string& input,
     Compressor compressor) {
   if (compressor != Compressor::NO_COMPRESS) {

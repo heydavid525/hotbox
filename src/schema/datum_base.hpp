@@ -3,6 +3,7 @@
 #include <string>
 #include "schema/proto/schema.pb.h"
 #include "schema/schema.hpp"
+#include "db/stat_collector.hpp"
 
 namespace hotbox {
 
@@ -12,8 +13,10 @@ namespace hotbox {
 // than range of int32_t
 class DatumBase {
 public:
-  // DatumBase takes the ownership of proto.
-  DatumBase(DatumProto* proto);
+  // DatumBase takes the ownership of proto. Optionally take in
+  // stat_collector that updates the stat in each SetFeatureVal, used in
+  // parse. Does not take ownership of stat_collector.
+  DatumBase(DatumProto* proto, StatCollector* stat_collector = 0);
 
   DatumBase(const DatumBase& other);
 
@@ -57,7 +60,17 @@ public:
   // Return the serialized bytes from proto_.
   std::string Serialize() const;
 
+  const DatumProto& GetDatumProto() const {
+    return *proto_;
+  }
+
+private:
+  // Verify that sparse idx in proto_ are in ascending order. Turn off in
+  // production.
+  void CheckInOrder() const;
+
 private:
   std::unique_ptr<DatumProto> proto_;
+  StatCollector* stat_collector_{nullptr};
 };
 }  // namespace hotbox

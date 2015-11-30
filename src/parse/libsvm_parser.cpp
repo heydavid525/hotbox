@@ -29,7 +29,11 @@ void LibSVMParser::Parse(const std::string& line, Schema* schema,
   this->SetLabelAndWeight(schema, datum, label);
   ptr = endptr;
 
-  const auto& family = schema->GetOrCreateFamily(kDefaultFamily);
+  bool output_family = false;
+  // Use only single store type.
+  bool simple_family = true;
+  const auto& family = schema->GetOrCreateFamily(kDefaultFamily, output_family,
+      simple_family);
 
   std::vector<TypedFeatureFinder> not_found_features;
 
@@ -47,10 +51,16 @@ void LibSVMParser::Parse(const std::string& line, Schema* schema,
     ptr = endptr;
     try {
       const Feature& feature = family.GetFeature(feature_id);
+      // LOG(INFO) << "Setting feature: global_offset: "
+      // << feature.global_offset() << " store offset: "
+      // << feature.store_offset() << " val: " << val;
       datum->SetFeatureVal(feature, val);
     } catch (const FeatureNotFoundException& e) {
+      //TypedFeatureFinder typed_finder(e.GetNotFoundFeature(),
+      //    this->InferType(val));
+      // Always use numerical (single store for faster read).
       TypedFeatureFinder typed_finder(e.GetNotFoundFeature(),
-          this->InferType(val));
+          FeatureType::NUMERICAL);
       // TODO(wdai): Remove these checks.
       CHECK_NE(-1, typed_finder.family_idx);
       CHECK_EQ(0, typed_finder.family_name.compare(kDefaultFamily));

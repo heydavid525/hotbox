@@ -32,6 +32,10 @@ public:
   // Get the output. Can only be called once.
   FlexiDatum GetFlexiDatum();
 
+  inline const DatumBase& GetDatumBase() const {
+    return *base_;
+  }
+
 private:
   std::unique_ptr<DatumBase> base_;
   const FeatureFamily& internal_family_;
