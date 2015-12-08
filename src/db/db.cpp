@@ -6,8 +6,7 @@
 #include <snappy.h>
 #include <cstdint>
 #include <sstream>
-#include "util/class_registry.hpp"
-#include "util/file_util.hpp"
+#include "util/all.hpp"
 #include "transform/all.hpp"
 #include "schema/all.hpp"
 
@@ -191,12 +190,12 @@ std::string DB::ReadFile(const ReadFileReq& req) {
         ++rec_counter;
         // LOG(INFO) << "Parsing DatumBase. ";
         CHECK_NOTNULL(parser.get());
-        DatumBase datum = parser->ParseAndUpdateSchema(line, 
+        DatumBase datum = parser->ParseAndUpdateSchema(line,
           schema_.get(), &stat_collector);
         // LOG(INFO) << "DatumBase Created. ";
         if (i == 0) {
           batch_size = GuessBatchSize(datum.GetDatumProto().SpaceUsed());
-          // LOG(INFO) << "Single Datum Size: " 
+          // LOG(INFO) << "Single Datum Size: "
           //          << datum.GetDatumProto().SpaceUsed() << ". "
           //          << "Interval: " << batch_size << ".";
         }
@@ -267,18 +266,21 @@ void DB::CommitStats() {
   */
 
 void DB::CommitDB() {
+  Timer timer;
   std::string db_file = meta_data_.db_config().db_dir() + kDBMeta;
   DBProto db_proto = GetProto();
   std::string db_proto_str = StreamSerialize(db_proto);
+  size_t total_size = db_proto_str.size();
   meta_db_.Put(kDBProto, db_proto_str);
-  schema_->Commit(&meta_db_);
+  total_size += schema_->Commit(&meta_db_);
 
   // Commit Stats.
   for (int i = 0; i < stats_.size(); ++i) {
-    stats_[i].Commit(i, &meta_db_);
+    total_size += stats_[i].Commit(i, &meta_db_);
   }
   LOG(INFO) << "Committed DB " << meta_data_.db_config().db_name()
-    << " to DBfile: " << SizeToReadableString(db_proto_str.size()) << "\n";
+    << " to DBfile: " << SizeToReadableString(total_size)
+    << ". Time: " << timer.elapsed() << "s\n";
 }
 
 SessionProto DB::CreateSession(const SessionOptionsProto& session_options) {

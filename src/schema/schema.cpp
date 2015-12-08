@@ -298,7 +298,7 @@ std::string Schema::Serialize(bool with_features) const {
 }
 */
 
-void Schema::Commit(RocksDB* db) const {
+size_t Schema::Commit(RocksDB* db) const {
   // proto contains everything in SchemaProto except features.
   SchemaProto proto;
   auto families = proto.mutable_families();
@@ -316,6 +316,7 @@ void Schema::Commit(RocksDB* db) const {
   proto.set_num_segments(num_segments);
   proto.set_num_features(features_->size());
   std::string schema_proto_str = StreamSerialize(proto);
+  size_t total_size = schema_proto_str.size();
   db->Put(kSchemaPrefix, schema_proto_str);
   /////
   //LOG(INFO) << "Verifying schema StreamSerialize";
@@ -342,14 +343,16 @@ void Schema::Commit(RocksDB* db) const {
     //std::string seg_proto_str = StreamSerialize(seg);
     //FeatureSegment seg2 = StreamDeserialize<FeatureSegment>(seg_proto_str);
     // FeatureSegment seg2 = DeserializeProto<FeatureSegment>(seg_proto_str);
+    total_size += seg_proto_str.size();
     db->Put(seg_key, seg_proto_str);
     LOG(INFO) << "Commit: writing feature key: " << seg_key
       << " feature range: ["
       << id_begin << ", " << id_end << ") proto size: "
-      << seg_proto_str.size();
+      << SizeToReadableString(seg_proto_str.size());
   }
-  LOG(INFO) << "Schema commit " << num_segments << " segments";
-
+  LOG(INFO) << "Schema commit " << num_segments << " segments. Total size: "
+    << SizeToReadableString(total_size);
+  return total_size;
 }
 
 }  // namespace hotbox

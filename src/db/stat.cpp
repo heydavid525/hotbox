@@ -3,6 +3,7 @@
 #include <glog/logging.h>
 #include <string>
 #include "schema/constants.hpp"
+#include "util/all.hpp"
 
 namespace hotbox {
 
@@ -99,7 +100,7 @@ void Stat::IncrementDataCount() {
   proto_->set_num_data(proto_->num_data() + 1);
 }
 
-void Stat::Commit(int id, RocksDB* db) const {
+size_t Stat::Commit(int id, RocksDB* db) const {
   // stat_proto contains the non-repeated fields of proto_.
   StatProto stat_proto;
   stat_proto.set_num_data(proto_->num_data());
@@ -108,7 +109,9 @@ void Stat::Commit(int id, RocksDB* db) const {
       / kSeqBatchSize);
   stat_proto.set_num_segments(num_segments);
   stat_proto.set_num_stats(proto_->stats_size());
-  db->Put(MakePrefix(id), StreamSerialize(stat_proto));
+  std::string serialized_str = StreamSerialize(stat_proto);
+  size_t total_size = serialized_str.size();
+  db->Put(MakePrefix(id), serialized_str);
 
   // Chop repeated stats and initialized in StatProto to FeatureStatProtoSegment.
   for (int i = 0; i < num_segments; ++i) {
@@ -124,11 +127,15 @@ void Stat::Commit(int id, RocksDB* db) const {
       segment.set_initialized(j - id_begin, proto_->initialized(j));
     }
     std::string seg_key = MakeSeqKey(id, i);
-    db->Put(seg_key, StreamSerialize(segment));
+    std::string serialized_segment = StreamSerialize(segment);
+    total_size += serialized_segment.size();
+    db->Put(seg_key, serialized_segment);
     LOG(INFO) << "Commit: writing stats key: " << seg_key << " stat range: ["
       << id_begin << ", " << id_end << ")";
   }
-  LOG(INFO) << "Stat commit " << num_segments << " segments";
+  LOG(INFO) << "Stat commit " << num_segments << " segments. Total size: "
+    << SizeToReadableString(total_size);
+  return total_size;
 }
 
 void Stat::UpdateStatCommon(FeatureStatProto* stat, float val) {

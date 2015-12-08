@@ -45,7 +45,6 @@ DatumBase ParserIf::ParseAndUpdateSchema(const std::string& line,
       // Add the missing features to schema.
       const auto& not_found_features = e.GetNotFoundTypedFeatures();
       for (const TypedFeatureFinder& finder : not_found_features) {
-        //LOG(INFO) << "feature " << finder.family_name << ":" << finder.family_idx << " not found";
         // Default to sparse store type.
         FeatureStoreType store_type;
         switch (finder.type) {

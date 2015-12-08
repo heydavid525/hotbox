@@ -42,8 +42,8 @@ public:
     return *proto_;
   }
 
-  // Save to RocksDB db as the id-th stat.
-  void Commit(int id, RocksDB* db) const;
+  // Save to RocksDB db as the id-th stat. Return number of bytes stored to disk.
+  size_t Commit(int id, RocksDB* db) const;
 
 private:
   void UpdateStatCommon(FeatureStatProto* stat, float val);

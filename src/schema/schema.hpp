@@ -85,8 +85,9 @@ public:
     return features_;
   }
 
-  // Commit Schema to DB, chopping up repeated features.
-  void Commit(RocksDB* db) const;
+  // Commit Schema to DB, chopping up repeated features. Return number of bytes
+  // stored to disk.
+  size_t Commit(RocksDB* db) const;
 
 private:
   // if store_offset == -1 (default), increment the appropriate

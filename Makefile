@@ -67,9 +67,9 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
 					-lpthread \
 					-lyaml-cpp \
 					-lsnappy \
-	          	   -ldmlc \
-	          	   -lrocksdb \
-          -lglog 
+	        -ldmlc \
+	        -lrocksdb \
+          -lglog
           # lglog must come after ldmlc, which depends on glog.
           #-lrocksdb
 LDFLAGS += $(HDFS_LDFLAGS)
