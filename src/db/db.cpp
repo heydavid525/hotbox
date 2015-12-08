@@ -270,14 +270,6 @@ void DB::CommitDB() {
   std::string db_file = meta_data_.db_config().db_dir() + kDBMeta;
   DBProto db_proto = GetProto();
   std::string db_proto_str = StreamSerialize(db_proto);
-  ////
-  DBProto db_proto2 = StreamDeserialize<DBProto>(db_proto_str);
-  /*
-  std::string serialized_db = SerializeProto(GetProto());
-  auto original_size = serialized_db.size();
-  LOG(INFO) << "DBProto size: " << SizeToReadableString(original_size);
-  auto compressed_size = WriteCompressedString(serialized_db);
-  */
   meta_db_.Put(kDBProto, db_proto_str);
   schema_->Commit(&meta_db_);
 
@@ -285,14 +277,6 @@ void DB::CommitDB() {
   for (int i = 0; i < stats_.size(); ++i) {
     stats_[i].Commit(i, &meta_db_);
   }
-
-  /* // File Storage
-  auto compressed_size = io::WriteCompressedFile(db_file, serialized_db);
-  */
-  /*
-  float db_compression_ratio = static_cast<float>(compressed_size)
-    / original_size;
-    */
   LOG(INFO) << "Committed DB " << meta_data_.db_config().db_name()
     << " to DBfile: " << SizeToReadableString(db_proto_str.size()) << "\n";
 }

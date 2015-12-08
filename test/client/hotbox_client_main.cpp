@@ -1,5 +1,6 @@
 #include "client/hb_client.hpp"
 #include "test/facility/test_facility.hpp"
+#include "util/timer.hpp"
 #include <glog/logging.h>
 #include <gflags/gflags.h>
 
@@ -25,12 +26,13 @@ int main(int argc, char *argv[]) {
   LOG(INFO) << "o_schema(4): family: " << p.first << " feature_name: "
                            << p.second;
   int i = 0;
-  for (hotbox::DataIterator it = session.NewDataIterator(0, 5); it.HasNext();
+  hotbox::Timer timer;
+  for (hotbox::DataIterator it = session.NewDataIterator(); it.HasNext();
       it.Next()) {
     hotbox::FlexiDatum datum = it.GetDatum();
-    LOG(INFO) << datum.ToString();
+    //LOG(INFO) << datum.ToString();
     i++;
   }
-  LOG(INFO) << "Read " << i << " data";
+  LOG(INFO) << "Read " << i << " data. Time: " << timer.elapsed();
   return 0;
 };

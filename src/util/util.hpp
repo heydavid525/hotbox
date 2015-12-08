@@ -97,6 +97,9 @@ std::string StreamSerialize(const PROTO& proto) {
   return compressed;
 }
 
+/*
+// Disable because SnappyCompressStream is buggy.
+// 
 // Deserialize and decompress stream up to std::numeric_limits<int>::max()
 // bytes to PROTO (a proto message).
 template<typename PROTO>
@@ -133,6 +136,7 @@ std::string CompressedStreamSerialize(const PROTO& proto) {
   LOG(INFO) << "StreamSerialize to size: " << buffer.size();
   return buffer;
 }
+*/
 
 // Convert float/double to limited precision string.
 // Comment(wdai): The impl isn't very efficient.

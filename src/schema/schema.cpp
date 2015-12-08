@@ -75,7 +75,7 @@ Schema::Schema(RocksDB* db) {
     std::string seg_proto_str = db->Get(seg_key);
     LOG(INFO) << "schema cp1: seg_proto_str size: " << seg_proto_str.size();
     FeatureSegment seg_proto =
-      DeserializeAndUncompressProto<FeatureSegment>(seg_proto_str);
+      StreamDeserialize<FeatureSegment>(seg_proto_str);
     LOG(INFO) << "schema cp2 seg_proto num_Features: "
       << seg_proto.features_size();
     BigInt id_begin = seg_proto.id_begin();
@@ -315,8 +315,7 @@ void Schema::Commit(RocksDB* db) const {
       / kSeqBatchSize);
   proto.set_num_segments(num_segments);
   proto.set_num_features(features_->size());
-  //std::string schema_proto_str = StreamSerialize(proto);
-  std::string schema_proto_str = SerializeAndCompressProto(proto);
+  std::string schema_proto_str = StreamSerialize(proto);
   db->Put(kSchemaPrefix, schema_proto_str);
   /////
   //LOG(INFO) << "Verifying schema StreamSerialize";
@@ -336,7 +335,7 @@ void Schema::Commit(RocksDB* db) const {
     // LOG(INFO) << "seg has num features: " << seg.features_size();
     std::string output_str;
     std::string seg_key = MakeSegmentKey(i);
-    std::string seg_proto_str = SerializeAndCompressProto(seg);
+    std::string seg_proto_str = StreamSerialize(seg);
 
     // TODO(wdai): Figure out why StreamDeserialize and StreamDeserialize
     // doesn't work.

@@ -91,6 +91,7 @@ TEST(UtilTest, PerfTest) {
   FloatContainer float_container2 = StreamDeserialize<FloatContainer>(proto_str);
   LOG(INFO) << "Stream-Deserialized in " << timer.elapsed() << " secs";
 
+  /*
   timer.restart();
   proto_str = CompressedStreamSerialize(float_container);
   LOG(INFO) << "proto_str size: " << proto_str.size()
@@ -100,6 +101,7 @@ TEST(UtilTest, PerfTest) {
     CompressedStreamDeserialize<FloatContainer>(proto_str);
   LOG(INFO) << "Compressed-Stream-Deserialized in " << timer.elapsed()
     << " secs";
+    */
 
   timer.restart();
   std::string serialized_str = SerializeAndCompressProto(float_container);
