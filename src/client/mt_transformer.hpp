@@ -31,8 +31,8 @@ class MTTransformer {
   MTTransformer(const SessionProto &session_proto,
                 const std::vector<std::string> &files,
                 std::vector<std::function<void(TransDatum * )>> transforms,
-                int io_threads,
-                int transform_threads,
+                int num_io_threads,
+                int num_transform_threads,
                 int buffer_limit,
                 int batch_limit) = delete;
 
@@ -40,8 +40,8 @@ class MTTransformer {
   MTTransformer(const SessionProto &session_proto,
                 std::vector<std::function<void(TransDatum * )>> transforms,
                 BigInt data_begin, BigInt data_end,
-                int io_threads,
-                int transform_threads,
+                int num_io_threads,
+                int num_transform_threads,
                 int buffer_limit,
                 int batch_limit);
 

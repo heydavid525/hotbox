@@ -1,6 +1,7 @@
 #pragma once
 #include "db/proto/db.pb.h"
 #include "schema/all.hpp"
+#include "client/mt_transformer.hpp"
 
 namespace hotbox {
 
@@ -23,15 +24,36 @@ public:
   }
 
   FlexiDatum&& GetDatum();
+  
+  ~DataIterator() {
+    if (use_multi_threads_ && mtt_engine_) {
+        delete mtt_engine_;
+    } 
+  }
 
+  DataIterator(DataIterator &&other);
+  
 private:
   // Can only be created by Session, and the parent Session needs to outlive
   // DataIterator.
   friend class Session;
-
+  /*
   DataIterator(const SessionProto& session_proto,
       std::vector<std::function<void(TransDatum*)>> transforms,
       BigInt data_begin, BigInt data_end);
+  */
+
+  /**
+   * If use_multi_threads is true, parameters after it will be used to create
+   * MTTransformer to load and transform data in a multi-threaded way.
+   * Otherwise, parameters after it will be ignored and DataIterator will load
+   * and transform data in a single thread.
+   */
+  DataIterator(const SessionProto& session_proto,
+    std::vector<std::function<void(TransDatum*)>> transforms,
+    BigInt data_begin, BigInt data_end, bool use_multi_threads,
+    BigInt num_io_threads, BigInt num_transform_threads,
+    BigInt buffer_limit, BigInt batch_limit);
 
   // Read an atom file and perform transform.
   void ReadAtomAndTransform(int atom_id);
@@ -51,6 +73,10 @@ private:
   std::vector<FlexiDatum> data_buffer_;
 
   std::vector<BigInt> datum_ids_;
+
+  bool use_multi_threads_;
+  
+  MTTransformer *mtt_engine_;
 };
 
 }  // namespace hotbox

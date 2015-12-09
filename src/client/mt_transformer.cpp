@@ -1,7 +1,9 @@
 #include "client/mt_transformer.hpp"
-#include "util/all.hpp"
 #include <glog/logging.h>
 #include <algorithm>
+#include <string>
+#include <vector>
+#include "util/all.hpp"
 
 namespace hotbox {
 
@@ -25,19 +27,21 @@ MTTransformer::MTTransformer(const SessionProto &session_proto,
 */
 
 MTTransformer::MTTransformer(const SessionProto &session_proto,
-                             std::vector<std::function<void(TransDatum * )>> transforms,
+                             std::vector<std::function<void(TransDatum *)>>
+                             transforms,
                              BigInt data_begin, BigInt data_end,
-                             int io_threads,
-                             int transform_threads,
+                             int num_io_threads,
+                             int num_transform_threads,
                              int buffer_limit,
                              int batch_limit) : session_proto_(session_proto),
   transforms_(transforms),
   data_begin_(data_begin), data_end_(data_end),
-  io_workers_count_(io_threads), tf_workers_count_(transform_threads),
+  io_workers_count_(num_io_threads), tf_workers_count_(num_transform_threads),
   bf_limit_(buffer_limit), bt_limit_(batch_limit),
   datum_ids_(session_proto_.file_map().datum_ids().cbegin(),
              session_proto_.file_map().datum_ids().cend()),
-  global_bytes_offsets_(session_proto_.file_map().global_bytes_offsets().cbegin(),
+  global_bytes_offsets_(
+            session_proto_.file_map().global_bytes_offsets().cbegin(),
             session_proto_.file_map().global_bytes_offsets().cend()) {
   Start();
 }
@@ -68,16 +72,17 @@ void MTTransformer::IoTaskLoop() {
     auto atom_id_begin = iotask.file_begin / file_size;
     auto atom_id_end = iotask.file_end / file_size;
     int offset, length;
-    std::string *content = new std::string; // to make it shared
+    std::string *content = new std::string;  // to make it shared
     // we will read at most two files
-    for(auto atom_id = atom_id_begin; atom_id <= atom_id_end; atom_id++) {
-      std::string path = session_proto_.file_map().atom_path() + std::to_string(atom_id);
-      if(atom_id == atom_id_begin) {
+    for (auto atom_id = atom_id_begin; atom_id <= atom_id_end; atom_id++) {
+      std::string path = session_proto_.file_map().atom_path()
+                          + std::to_string(atom_id);
+      if (atom_id == atom_id_begin) {
         offset = iotask.file_begin % file_size;
       } else {
         offset = 0;
       }
-      if(atom_id == atom_id_end) {
+      if (atom_id == atom_id_end) {
         length = iotask.file_end % file_size - offset;
       } else {
         length = file_size - offset;
@@ -105,7 +110,9 @@ void MTTransformer::IoTaskLoop() {
     {
       std::lock_guard<std::mutex> lock(bf_mtx_);
       auto offset = 0;
-      for(auto idx = iotask.global_bytes_offsets_begin; idx <= iotask.global_bytes_offsets_end; idx++) {
+      for (auto idx = iotask.global_bytes_offsets_begin;
+           idx <= iotask.global_bytes_offsets_end;
+           idx++) {
         TfTask task;
         task.shared_buf = shared_buf;
         task.idx = idx;
@@ -130,7 +137,7 @@ void MTTransformer::IoTaskLoop() {
       io_wait_cv_.wait(lock, [this]() {
         return stop_flag_ || (bf_size_ < bf_limit_);
       });
-      if(stop_flag_)
+      if (stop_flag_)
         break;
     }
   }
@@ -139,17 +146,17 @@ void MTTransformer::IoTaskLoop() {
 
 void MTTransformer::TransformTaskLoop() {
   LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id() << " Starts...";
-  while(true) {
+  while (true) {
     TfTask task;
     // get content buffer from bf_queue
     {
       std::unique_lock<std::mutex> lock(bf_mtx_);
-      if(stop_flag_ || total_buffers_ <= 0)
+      if (stop_flag_ || total_buffers_ <= 0)
         break;
       bf_cv_.wait(lock, [this]() {
         return stop_flag_ || bf_queue_.size();
       });
-      if(stop_flag_)
+      if (stop_flag_)
         break;
       task = std::move(bf_queue_.front());
       bf_queue_.pop();
@@ -169,12 +176,14 @@ void MTTransformer::TransformTaskLoop() {
               << task.idx;
     */
     // decompress buffer
-    std::string content = DecompressString(task.shared_buf.get()->c_str() + task.offset,
+    std::string content = DecompressString(
+                          task.shared_buf.get()->c_str() + task.offset,
                           task.length,
                           session_proto_.compressor());
     /*
     LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id()
-                  << " decompressed size: " << content.size();
+              << " TfTask " << task.idx
+              << " decompressed size: " << content.size();
 
 
     LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id()
@@ -200,12 +209,13 @@ void MTTransformer::TransformTaskLoop() {
     datum_begin = datum_ids_[task.idx];
     datum_end = datum_ids_[task.idx + 1];
     datum_base = datum_begin;
-    if(datum_begin < data_begin_)
+    if (datum_begin < data_begin_)
       datum_begin = data_begin_;
     if (datum_end > data_end_ || datum_end == 0)
       datum_end = data_end_;
     /*
-    LOG(INFO) << "TfTask " << task.idx << " proto_size " << atom_proto.datum_protos_size()
+    LOG(INFO) << "TfTask " << task.idx << " proto_size "
+              << atom_proto.datum_protos_size()
               << " datum_begin " << datum_begin
               << " datum_end " << datum_end;
     */
@@ -213,20 +223,20 @@ void MTTransformer::TransformTaskLoop() {
     datum_end -= datum_base;
     BigInt count = 0;
     for (int i = atom_proto.datum_protos_size() - 1; i >= datum_begin; --i) {
-      //check if datum i is in required
-      if(i > datum_end) {
-        delete atom_proto.mutable_datum_protos()->ReleaseLast();
+      // check if datum i is in required
+      if (i > datum_end) {
+        atom_proto.mutable_datum_protos()->ReleaseLast();
         continue;
       }
       DatumBase* datum_base = new DatumBase(
         atom_proto.mutable_datum_protos()->ReleaseLast());
       TransDatum trans_datum(datum_base, internal_family, output_store_type,
                              output_dim);
+      
       for (int t = 0; t < transforms_.size(); ++t) {
         trans_datum.ReadyTransform(session_proto_.transform_output_ranges(t));
         transforms_[t](&trans_datum);
       }
-      //(*vec)[i - datum_begin] = std::move(trans_datum.GetFlexiDatum());
       vec->push_back(std::move(trans_datum.GetFlexiDatum()));
       count++;
     }
@@ -246,7 +256,7 @@ void MTTransformer::TransformTaskLoop() {
         return stop_flag_ || (bt_size_ < bt_limit_);
       });
       lock.unlock();
-      if(stop_flag_)
+      if (stop_flag_)
         break;
     }
   }
@@ -263,21 +273,20 @@ void MTTransformer::Destory() {
   io_wait_cv_.notify_all();
   bt_cv_.notify_all();
   tf_wait_cv_.notify_all();
-  for(auto &worker : io_workers_) {
-    if(worker.joinable())
+  for (auto &worker : io_workers_) {
+    if (worker.joinable())
       worker.join();
   }
 
-  for(auto &worker : tf_workers_) {
-    if(worker.joinable())
+  for (auto &worker : tf_workers_) {
+    if (worker.joinable())
       worker.join();
   }
 
   // delete any held pointers
-
   {
     std::lock_guard<std::mutex> lock{bt_mtx_};
-    while(bt_queue_.size()) {
+    while (bt_queue_.size()) {
       auto batch = bt_queue_.front();
       bt_queue_.pop();
       delete batch;
@@ -293,7 +302,7 @@ std::vector<FlexiDatum> *MTTransformer::NextBatch() {
   std::vector<FlexiDatum> *vec = nullptr;
   std::unique_lock<std::mutex> lock(bt_mtx_);
   bt_cv_.wait(lock, [this]() {
-    return bt_queue_.size();
+    return bt_size_ > 0;
   });
   vec = bt_queue_.front();
   bt_queue_.pop();
@@ -308,11 +317,14 @@ std::vector<FlexiDatum> *MTTransformer::NextBatch() {
 void
 MTTransformer::Translate(BigInt data_begin, BigInt data_end) {
   // data_begin should < data_end
-  auto low = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(), data_begin);
-  auto high = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(), data_end);
+  auto low = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(),
+                                data_begin);
+  auto high = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(),
+                                data_end);
   auto global_bytes_offsets_begin = low - datum_ids_.cbegin() - 1;
   auto global_bytes_offsets_end = high - datum_ids_.cbegin() - 1;
-  auto file_begin = data_begin ? global_bytes_offsets_[global_bytes_offsets_begin] : 0;
+  auto file_begin = data_begin ?
+          global_bytes_offsets_[global_bytes_offsets_begin] : 0;
   auto file_end = global_bytes_offsets_[global_bytes_offsets_end];
   LOG(INFO) << "File range [" << file_begin << ", " << file_end << ")";
   auto file_size = kAtomSizeInBytes;
@@ -322,9 +334,10 @@ MTTransformer::Translate(BigInt data_begin, BigInt data_end) {
     task.file_begin = offset;
     task.global_bytes_offsets_begin = global_bytes_offsets;
     offset += file_size - offset % file_size;
-    auto upper = std::lower_bound(global_bytes_offsets_.cbegin(), global_bytes_offsets_.cend(), offset);
+    auto upper = std::lower_bound(global_bytes_offsets_.cbegin(),
+                            global_bytes_offsets_.cend(), offset);
     if (upper == global_bytes_offsets_.cend())
-      upper --;
+      upper--;
     global_bytes_offsets = upper - global_bytes_offsets_.cbegin();
     task.file_end = *(upper);
     task.global_bytes_offsets_end = global_bytes_offsets;
@@ -347,7 +360,6 @@ MTTransformer::Translate(BigInt data_begin, BigInt data_end) {
 
   // LOG(INFO) << "Total Buffers :" << total_buffers_;
   LOG(INFO) << "Total Batches :" << total_batches_;
-
 }
 
 
@@ -372,5 +384,4 @@ void MTTransformer::Start() {
 bool MTTransformer::HasNextBatch() const {
   return total_batches_;
 }
-
-}
+}  // namespace hotbox

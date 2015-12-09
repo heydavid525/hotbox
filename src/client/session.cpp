@@ -37,6 +37,7 @@ BigInt Session::GetNumData() const {
   return session_proto_.file_map().num_data();
 }
 
+/*
 DataIterator Session::NewDataIterator(BigInt data_begin,
     BigInt data_end) const {
   if (data_end == -1) {
@@ -45,6 +46,26 @@ DataIterator Session::NewDataIterator(BigInt data_begin,
   LOG(INFO) << "NewDataIterator [" << data_begin << ", " << data_end << ")";
   // TODO(wdai): Do checks on data_begin and data_end.
   return DataIterator(session_proto_, transforms_, data_begin, data_end);
+}
+*/
+
+DataIterator Session::NewDataIterator(BigInt data_begin,
+        BigInt data_end, bool use_multi_threads,
+      BigInt num_io_threads, BigInt num_transform_threads,
+      BigInt buffer_limit, BigInt batch_limit) const {
+  if (data_end == -1) {
+    data_end = GetNumData();
+  }
+  LOG(INFO) << "NewDataIterator [" << data_begin << ", " << data_end << ")";
+  
+  if (use_multi_threads) {
+    LOG(INFO) << "\twith " << num_io_threads << " io threads, "
+              << num_transform_threads << " transform threads";
+  }
+
+  return DataIterator(session_proto_, transforms_, data_begin, data_end,
+          use_multi_threads, num_io_threads, num_transform_threads,
+          buffer_limit, batch_limit);
 }
 
 MTTransformer* Session::NewMTTransformer(BigInt data_begin,

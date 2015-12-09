@@ -4,41 +4,67 @@
 #include <algorithm>
 
 namespace hotbox {
+/*
+DataIterator::DataIterator(const SessionProto& session_proto,
+      std::vector<std::function<void(TransDatum*)>> transforms,
+      BigInt data_begin, BigInt data_end)
+    : session_proto_(session_proto), transforms_(transforms),
+      data_begin_(data_begin), data_end_(data_end), next_(data_begin),
+      datum_ids_(session_proto_.file_map().datum_ids().cbegin(),
+      session_proto_.file_map().datum_ids().cend()) {
+  Restart();
+}
+*/
 
 DataIterator::DataIterator(const SessionProto& session_proto,
     std::vector<std::function<void(TransDatum*)>> transforms,
-    BigInt data_begin, BigInt data_end)
+    BigInt data_begin, BigInt data_end, bool use_multi_threads,
+    BigInt num_io_threads, BigInt num_transform_threads,
+    BigInt buffer_limit, BigInt batch_limit)
   : session_proto_(session_proto), transforms_(transforms),
   data_begin_(data_begin), data_end_(data_end), next_(data_begin),
   datum_ids_(session_proto_.file_map().datum_ids().cbegin(),
-      session_proto_.file_map().datum_ids().cend()) {
-    Restart();
+      session_proto_.file_map().datum_ids().cend()),
+      use_multi_threads_(use_multi_threads), mtt_engine_(nullptr){
+    
+  if (use_multi_threads_) {
+    mtt_engine_ = new MTTransformer(session_proto, transforms,
+      data_begin, data_end, num_io_threads, num_transform_threads,
+      buffer_limit, batch_limit);
   }
+  Restart();
+}
 
 FlexiDatum&& DataIterator::GetDatum() {
   // Get Datum from Size Limited Files.
   CHECK_LT(next_, data_end_);
   if (next_ == chunk_end_) {
-    // Read the next chunk.
-    auto high = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(), next_);
-    auto data_idx = high - datum_ids_.cbegin() - 1;
-    int32_t file_begin, file_end;
-    if(next_ == 0) {
-      file_begin = 0;
-      file_end = session_proto_.file_map().global_bytes_offsets(data_idx);
+    if (use_multi_threads_) {
+      auto *vec = mtt_engine_->NextBatch();
+      data_buffer_ = std::move(*vec);
+      delete vec;
     } else {
-      file_begin = session_proto_.file_map().global_bytes_offsets(data_idx - 1);
-      file_end = session_proto_.file_map().global_bytes_offsets(data_idx);
+      // Read the next chunk.
+      auto high = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(), next_);
+      auto data_idx = high - datum_ids_.cbegin() - 1;
+      int32_t file_begin, file_end;
+      if(next_ == 0) {
+        file_begin = 0;
+        file_end = session_proto_.file_map().global_bytes_offsets(data_idx);
+      } else {
+        file_begin = session_proto_.file_map().global_bytes_offsets(data_idx - 1);
+        file_end = session_proto_.file_map().global_bytes_offsets(data_idx);
+      }
+      LOG(INFO) << "data_idx: " << data_idx << ". "
+                << "file_begin: " << file_begin << ". "
+                << "file_end: " << file_end << ". "
+                << "Length: " << file_end - file_begin << ". "
+                << "next_: " << next_ << ". ";
+      CHECK_GE(data_idx, 0) << "Couldn't find atom file containing datum " << next_;
+      CHECK_LT(data_idx, datum_ids_.size());
+      CHECK_LT(file_begin, file_end);
+      ReadSizeLimitedAtomAndTransform(file_begin, file_end);
     }
-    LOG(INFO) << "data_idx: " << data_idx << ". "
-              << "file_begin: " << file_begin << ". "
-              << "file_end: " << file_end << ". "
-              << "Length: " << file_end - file_begin << ". "
-              << "next_: " << next_ << ". ";
-    CHECK_GE(data_idx, 0) << "Couldn't find atom file containing datum " << next_;
-    CHECK_LT(data_idx, datum_ids_.size());
-    CHECK_LT(file_begin, file_end);
-    ReadSizeLimitedAtomAndTransform(file_begin, file_end);
     chunk_begin_ = chunk_end_;
     chunk_end_ = chunk_begin_ + data_buffer_.size();
     LOG(INFO) << "Chunk Info: " << "[" << chunk_begin_ << " - " << chunk_end_ << ")";
@@ -141,5 +167,19 @@ void DataIterator::ReadAtomAndTransform(int atom_id) {
     data_buffer_[i] = std::move(trans_datum.GetFlexiDatum());
   }
 }
+
+DataIterator::DataIterator(DataIterator &&other)
+  : session_proto_(other.session_proto_),
+    transforms_(std::move(other.transforms_)),
+    data_begin_(other.data_begin_), data_end_(other.data_end_),
+    next_(other.next_), chunk_begin_(other.chunk_begin_),
+    chunk_end_(other.chunk_end_),
+    data_buffer_(std::move(other.data_buffer_)),
+    datum_ids_(std::move(other.datum_ids_)),
+    use_multi_threads_(other.use_multi_threads_),
+    mtt_engine_(other.mtt_engine_) {
+  other.mtt_engine_ = nullptr;
+}
+
 
 }  // namespace hotbox
