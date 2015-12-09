@@ -232,7 +232,7 @@ void MTTransformer::TransformTaskLoop() {
         atom_proto.mutable_datum_protos()->ReleaseLast());
       TransDatum trans_datum(datum_base, internal_family, output_store_type,
                              output_dim);
-      
+
       for (int t = 0; t < transforms_.size(); ++t) {
         trans_datum.ReadyTransform(session_proto_.transform_output_ranges(t));
         transforms_[t](&trans_datum);

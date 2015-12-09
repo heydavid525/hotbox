@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 #include "db/proto/db.pb.h"
 #include "schema/all.hpp"
 #include "client/mt_transformer.hpp"
@@ -24,15 +25,15 @@ public:
   }
 
   FlexiDatum&& GetDatum();
-  
+
   ~DataIterator() {
     if (use_multi_threads_ && mtt_engine_) {
-        delete mtt_engine_;
-    } 
+      delete mtt_engine_;
+    }
   }
 
   DataIterator(DataIterator &&other);
-  
+
 private:
   // Can only be created by Session, and the parent Session needs to outlive
   // DataIterator.
@@ -75,7 +76,7 @@ private:
   std::vector<BigInt> datum_ids_;
 
   bool use_multi_threads_;
-  
+
   MTTransformer *mtt_engine_;
 };
 

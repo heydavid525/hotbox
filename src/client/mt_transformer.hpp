@@ -1,7 +1,5 @@
 #pragma once
 
-#include "db/proto/db.pb.h"
-#include "schema/all.hpp"
 #include <vector>
 #include <thread>
 #include <string>
@@ -9,6 +7,8 @@
 #include <queue>
 #include <atomic>
 #include <condition_variable>
+#include "db/proto/db.pb.h"
+#include "schema/all.hpp"
 
 namespace hotbox {
 
@@ -25,12 +25,11 @@ namespace hotbox {
 
 class MTTransformer {
  public:
-
   // @files will be added to io_queue
   // deprecated since atom files are not independent from each other for now
   MTTransformer(const SessionProto &session_proto,
                 const std::vector<std::string> &files,
-                std::vector<std::function<void(TransDatum * )>> transforms,
+                std::vector<std::function<void(TransDatum *)>> transforms,
                 int num_io_threads,
                 int num_transform_threads,
                 int buffer_limit,
@@ -38,7 +37,7 @@ class MTTransformer {
 
   //
   MTTransformer(const SessionProto &session_proto,
-                std::vector<std::function<void(TransDatum * )>> transforms,
+                std::vector<std::function<void(TransDatum *)>> transforms,
                 BigInt data_begin, BigInt data_end,
                 int num_io_threads,
                 int num_transform_threads,
@@ -51,14 +50,14 @@ class MTTransformer {
   bool HasNextBatch() const;
 
   // will be blocked only if no batch is available
-  // will transfer the returned pointer's ownership to caller. The calller is responsible to release it
+  // will transfer the returned pointer's ownership to caller.
+  // The calller is responsible to release it
   // will return nullptr if HasNextBatch returns false
   std::vector<FlexiDatum> *NextBatch();
 
   void Start();
 
  private:
-
   struct IoTask {
     // global_bytes_offset ranges within a atom file (maybe two)
     std::size_t file_begin;
@@ -69,9 +68,9 @@ class MTTransformer {
   // a IoTask may generate many TfTasks
   struct TfTask {
     BigInt idx;
-    std::shared_ptr<std::string> shared_buf; // shared buffer
-    std::size_t offset; // offset within shared_buf
-    std::size_t length; // buffer length
+    std::shared_ptr<std::string> shared_buf;  // shared buffer
+    std::size_t offset;  // offset within shared_buf
+    std::size_t length;  // buffer length
   };
 
   void
@@ -88,28 +87,33 @@ class MTTransformer {
 
   std::vector<std::thread> io_workers_;
   std::vector<std::thread> tf_workers_;
-  std::vector<std::function<void(TransDatum * )>> transforms_;
-  std::queue<IoTask> io_queue_; // io files queue
-  std::queue<TfTask> bf_queue_; // buffer queue
-  std::queue<std::vector<FlexiDatum> *> bt_queue_; //batch queue
+  std::vector<std::function<void(TransDatum *)>> transforms_;
+  std::queue<IoTask> io_queue_;  // io files queue
+  std::queue<TfTask> bf_queue_;  // buffer queue
+  std::queue<std::vector<FlexiDatum> *> bt_queue_;  // batch queue
 
   // mutex
-  std::mutex io_mtx_; // io queue mutex
-  std::mutex bf_mtx_; // buffer queue mutex
-  std::mutex bt_mtx_; // batch queue mutex
-  std::mutex io_wait_mtx_; // used for io limit
-  std::mutex tf_wait_mtx_; // used for transform limit
+  std::mutex io_mtx_;  // io queue mutex
+  std::mutex bf_mtx_;  // buffer queue mutex
+  std::mutex bt_mtx_;  // batch queue mutex
 
   std::condition_variable bf_cv_;
   std::condition_variable bt_cv_;
 
-  std::condition_variable io_wait_cv_; // used for io limit, simulate Semaphore
-  std::condition_variable tf_wait_cv_; // used for transform limit, simulated Semaphore
+  // used for io limit, simulate Semaphore
+  std::mutex io_wait_mtx_;
+  std::condition_variable io_wait_cv_;
 
-  std::atomic_bool stop_flag_{false}; //
+  // used for transform limit, simulate Semaphore
+  std::mutex tf_wait_mtx_;
+  std::condition_variable tf_wait_cv_;
 
-  std::atomic_int total_batches_; //
-  std::atomic_int total_buffers_; //
+  // IoTaskLoop and TransformTaskLoop will check stop_flag_
+  // whether it should stop or not
+  std::atomic_bool stop_flag_{false};
+
+  std::atomic_int total_batches_;  //
+  std::atomic_int total_buffers_;  //
   std::atomic_int bf_size_;
   std::atomic_int bt_size_;
 
@@ -125,5 +129,5 @@ class MTTransformer {
   std::vector<BigInt> global_bytes_offsets_;
 };
 
-} // namespace hotbox
+}  // namespace hotbox
 

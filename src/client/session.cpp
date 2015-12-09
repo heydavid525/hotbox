@@ -1,6 +1,6 @@
 #include "client/session.hpp"
-#include "transform/all.hpp"
 #include <glog/logging.h>
+#include "transform/all.hpp"
 
 namespace hotbox {
 
@@ -57,7 +57,7 @@ DataIterator Session::NewDataIterator(BigInt data_begin,
     data_end = GetNumData();
   }
   LOG(INFO) << "NewDataIterator [" << data_begin << ", " << data_end << ")";
-  
+
   if (use_multi_threads) {
     LOG(INFO) << "\twith " << num_io_threads << " io threads, "
               << num_transform_threads << " transform threads";
@@ -73,8 +73,9 @@ MTTransformer* Session::NewMTTransformer(BigInt data_begin,
       int buffer_limit, int batch_limit) const {
       if (data_end == -1)
         data_end = GetNumData();
-      LOG(INFO) << "NewMTTransformer [" << data_begin << ", " << data_end << ")";
-      return new MTTransformer(session_proto_,transforms_,
+      LOG(INFO) << "NewMTTransformer [" << data_begin
+                << ", " << data_end << ")";
+      return new MTTransformer(session_proto_, transforms_,
         data_begin, data_end, io_threads, transform_threads,
         buffer_limit, batch_limit);
 }
