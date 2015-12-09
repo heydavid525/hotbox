@@ -4,12 +4,10 @@ import sys, os, time
 from os.path import dirname
 from os.path import join
 
-if len(sys.argv) != 2:
-  print "usage: %s <host-ip>" % sys.argv[0]
-  sys.exit(1)
-
 project_dir = dirname(dirname(os.path.realpath(__file__)))
-prog = join(project_dir, "build", "test", "util", "warp_client_main")
+db_testbed = join(project_dir, 'db_testbed')
+os.system('mkdir -p %s' % db_testbed)
+prog = join(project_dir, "build", "test", "client", "hotbox_client_mtt")
 
 env_params = (
   "GLOG_logtostderr=true "
@@ -18,7 +16,7 @@ env_params = (
   )
 
 params = {
-    "server_ip": sys.argv[1]
+    "transform_config": "select_transform.conf"
     }
 
 cmd = env_params + prog
