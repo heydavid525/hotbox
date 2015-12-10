@@ -28,8 +28,9 @@ endif
 ifeq ($(USE_HDFS), 1)
   HDFS_LDFLAGS = -Wl,-rpath=$(LIBJVM) \
 	          	   -L$(LIBJVM) -ljvm \
-	          	   -lhdfs 
-  HDFS_INCFLAGS = -I${HADOOP_HOME}/include
+	          	   -lhdfs
+  # -DUSE_HDFS is used by rocksdb_hdfs 
+  HDFS_INCFLAGS = -I${HADOOP_HOME}/include -DUSE_HDFS
 else
   HDFS_LDFLAGS =
   HDFS_INCFLAGS =
