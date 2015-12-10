@@ -316,7 +316,7 @@ std::vector<FlexiDatum> *MTTransformer::NextBatch() {
 // split data range into subrange group by atom file
 void
 MTTransformer::Translate(BigInt data_begin, BigInt data_end) {
-  // data_begin should < data_end
+  CHECK_LT(data_begin, data_end);
   auto low = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(),
                                 data_begin);
   auto high = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(),

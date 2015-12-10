@@ -52,13 +52,6 @@ hotbox_client_main: $(PROJECT)/test/client/hotbox_client_main.cpp \
 		$< -o $(TEST_DIR)/client/hotbox_client_main\
 		-lgtest  $(TEST_LDFLAGS) $(LDFLAGS)
 
-hotbox_client_mtt: $(PROJECT)/test/client/hotbox_client_mtt.cpp \
-	$(HB_LIB_LINK) test/facility/test_facility.hpp
-	mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
-		$< -o $(TEST_DIR)/client/hotbox_client_mtt\
-		-lgtest  $(TEST_LDFLAGS) $(LDFLAGS)
-
 test: test_proto $(TEST_BIN) class_registry_test stream_test db_server_main \
 	rocks_db_test rocks_if_test compressed_streams_test util_test
 
