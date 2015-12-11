@@ -32,12 +32,12 @@ MTTransformer::MTTransformer(const SessionProto &session_proto,
                              BigInt data_begin, BigInt data_end,
                              int num_io_threads,
                              int num_transform_threads,
-                             int buffer_limit,
+                             int transform_task_limit,
                              int batch_limit) : session_proto_(session_proto),
   transforms_(transforms),
   data_begin_(data_begin), data_end_(data_end),
   num_io_workers_(num_io_threads), num_tf_workers_(num_transform_threads),
-  tf_limit_(buffer_limit), bt_limit_(batch_limit),
+  tf_limit_(transform_task_limit), bt_limit_(batch_limit),
   datum_ids_(session_proto_.file_map().datum_ids().cbegin(),
              session_proto_.file_map().datum_ids().cend()),
   global_bytes_offsets_(
@@ -325,6 +325,7 @@ MTTransformer::Translate(BigInt data_begin, BigInt data_end) {
   auto global_bytes_offsets_begin = low - datum_ids_.cbegin() - 1;
   auto global_bytes_offsets_end = high - datum_ids_.cbegin() - 1;
   BigInt file_begin = 0;
+  // remember global_bytes_offsets_[0] not zero while datum_ids_[0] is!
   if (data_begin < global_bytes_offsets_[global_bytes_offsets_begin]) {
      if (global_bytes_offsets_begin == 0)
       file_begin = 0;
@@ -336,19 +337,19 @@ MTTransformer::Translate(BigInt data_begin, BigInt data_end) {
   auto file_end = global_bytes_offsets_[global_bytes_offsets_end];
   LOG(INFO) << "File range [" << file_begin << ", " << file_end << ")";
   auto file_size = kAtomSizeInBytes;
-  auto global_bytes_offsets = global_bytes_offsets_begin;
-  for (auto offset = file_begin; offset < file_end; global_bytes_offsets++) {
+  auto global_bytes_offsets_index = global_bytes_offsets_begin;
+  for (auto offset = file_begin; offset < file_end; global_bytes_offsets_index++) {
     IoTask task;
     task.file_begin = offset;
-    task.global_bytes_offsets_begin = global_bytes_offsets;
+    task.global_bytes_offsets_begin = global_bytes_offsets_index;
     offset += file_size - offset % file_size;
     auto upper = std::lower_bound(global_bytes_offsets_.cbegin(),
                             global_bytes_offsets_.cend(), offset);
     if (upper == global_bytes_offsets_.cend())
       upper--;
-    global_bytes_offsets = upper - global_bytes_offsets_.cbegin();
+    global_bytes_offsets_index = upper - global_bytes_offsets_.cbegin();
     task.file_end = *(upper);
-    task.global_bytes_offsets_end = global_bytes_offsets;
+    task.global_bytes_offsets_end = global_bytes_offsets_index;
     if (task.file_end > file_end) {
       task.file_end = file_end;
       task.global_bytes_offsets_end = global_bytes_offsets_end;

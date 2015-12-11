@@ -13,18 +13,27 @@
 namespace hotbox {
 
 /*
- MTTransformer works like this
- 1. new files will be added to file_queue_
- 2. io_workers will pick up file from file_queue_, load it into buffer and then
-    put the buffer into buffer_queue_
- 3. transform workers will pick up buffer from buffer_queue, decompress,
-    deserialize and transform it. Then transform worker will put the transformed
-    data to datum_batch_queue_
- 3. NextBatch() gets transformed data batch
+MTTransformer works as described below:
+
+                 num_io_threads                                 num_tf_threads
+ io task queue --> 2.IoTaskLoop --> transform task queue --> 3.TransformTaskLoop
+       |                                                           |
+ 1.Translate data range                  4.NextBatch     <--    batch queue
 */
+
+/** Some explaination:
+ *  tf. tf is short for transform
+ *  bt. bt is short for batch
+ *  Batch. In a atom file, there are many individual blocks that can be 
+ *    decompressed and transformed individually. I call the transformed data
+ *    from a block "batch". If some datums in a block if out of the requested
+ *    data range, such datums will be abandoned before transforming.
+ *  
+ */
 
 class MTTransformer {
  public:
+  /*
   // @files will be added to io_queue
   // deprecated since atom files are not independent from each other for now
   MTTransformer(const SessionProto &session_proto,
@@ -34,52 +43,67 @@ class MTTransformer {
                 int num_transform_threads,
                 int buffer_limit,
                 int batch_limit) = delete;
-
+  */
   //
   MTTransformer(const SessionProto &session_proto,
                 std::vector<std::function<void(TransDatum *)>> transforms,
                 BigInt data_begin, BigInt data_end,
                 int num_io_threads,
                 int num_transform_threads,
-                int buffer_limit,
+                int transform_task_limit,
                 int batch_limit);
 
   ~MTTransformer();
 
   // check if there is any transformed or untransformed data batch
   bool HasNextBatch() const;
-
-  // will be blocked only if no batch is available
-  // will transfer the returned pointer's ownership to caller.
-  // The calller is responsible to release it
-  // will return nullptr if HasNextBatch returns false
+  // NextBatch will take a batch from bt_queue_.
+  // It will be blocked only if no batch is available
+  // It will transfer the returned pointer's ownership to caller.
+  // It The calller is responsible to release it
+  // It will return nullptr if HasNextBatch returns false
   std::vector<FlexiDatum> *NextBatch();
 
   void Start();
 
  private:
+  // A IoTask contains a group of continuous atom blocks that may cross two atom
+  // files if the last block cross two atom files.
+  // IoTask is to optimize I/O because sequentially reading a file is faster
+  // than randomly reading each part of a file.
+  // Data range [data_begin_, data_end_) will be translated into IoTasks.
   struct IoTask {
-    // global_bytes_offset ranges within a atom file (maybe two)
     std::size_t file_begin;
     std::size_t file_end;
+    // first block index of global_bytes_offsets within this IoTask
     std::size_t global_bytes_offsets_begin;
+    // last block index of global_bytes_offsets within this IoTask
     std::size_t global_bytes_offsets_end;
   };
-  // a IoTask may generate many TfTasks
+  // A IoTask may generate many TfTasks by IoTaskLoop()
   struct TfTask {
-    BigInt idx;
+    BigInt idx;  // index of datum_ids
     std::shared_ptr<std::string> shared_buf;  // shared buffer
     std::size_t offset;  // offset within shared_buf
     std::size_t length;  // buffer length
   };
 
-  void
-  Translate(BigInt data_begin, BigInt data_end);
+  // It will translate data range into io tasks and push them to io_queue_.
+  void Translate(BigInt data_begin, BigInt data_end);
 
+  // notify all workers to stop and delete unused batches
   void Destory();
 
+  // IoTaskLoop will take io task from io_queue_ and load file into buffer, then
+  // generate many transform tasks sharing the buffer and push them to
+  // tf_queue_. It will do such thing until io_queue_ is empty.
+  // each io_worker will run this function.
   void IoTaskLoop();
 
+  // TransformTaskLoop will take transform task from tf_queue_, then decompress,
+  // deserialize it into a batch. Then it will do transforms on the batch and
+  // push the batch to bt_queue_.
+  // each transform worker will run this function.
   void TransformTaskLoop();
 
 
@@ -94,17 +118,32 @@ class MTTransformer {
 
   // mutex
   std::mutex io_mtx_;  // io queue mutex
-  std::mutex tf_mtx_;  // buffer queue mutex
+  std::mutex tf_mtx_;  // transform queue mutex
   std::mutex bt_mtx_;  // batch queue mutex
 
-  std::condition_variable tf_cv_;
-  std::condition_variable bt_cv_;
+  // if tf_queue_ is empty, TransformTaskLoop will wait on this
+  // if IoTaskLoop pushes tasks to tf_queue_, it will call notify_all to wake up
+  // all TransformTaskLoop.
+  std::condition_variable tf_cv_;  // transform cv
 
-  // used for io limit, simulate Semaphore
+  // if tf_queue_ is empty, NextBatch will wait on this
+  // when TransformTaskLoop push a batch to bt_queue_, it will call noity once
+  // so that NextBatch will wake up and return a batch taken from bt_queue.
+  std::condition_variable bt_cv_;  // batch cv
+
+  // used for io speed limit, simulate Semaphore
+  // IoTaskLoop will use it for io speep limit
+  // if tf_size_ >= tf_limit_, then it will wait until be notified by Destory()
+  // or TransformTaskLoop()
+  // TransformTaskLoop() will call notify_one if it finds bf_size_ < bf_limit
   std::mutex io_wait_mtx_;
   std::condition_variable io_wait_cv_;
 
-  // used for transform limit, simulate Semaphore
+  // used for transform speed limit, simulate Semaphore
+  // TransformTaskLoop will use it for transform speed limit
+  // if bt_size_ >= bf_limit_, then it will wait until be notified by Destory()
+  // or NextBatch()
+  // NextBatch() will call notify_one if it finds bt_size_ < bt_limit
   std::mutex tf_wait_mtx_;
   std::condition_variable tf_wait_cv_;
 
@@ -115,7 +154,7 @@ class MTTransformer {
   // total_batches is in the view of HasNextBatch(). It's used to see if there
   // is any batch in the batch queue or to be generated by TransformTaskLoop()
   //
-  // if we don't use it. when we wants to check if there is any batch, we have
+  // if I don't use it. when I wants to check if there is any batch, I have
   // to check the batch queue,  tf task queue, and io queue. if all the three
   // queues are empty, it doesn't mean there is no batch. for example, there
   // is only one transform task in buffer_queue and no batches in batch queue.
@@ -133,25 +172,33 @@ class MTTransformer {
   //      |
   // bt_queue     --> empty
   //
+  // set by Translate(), equals to # of total blocks within data range
+  // decrease 1 by NextBatch()
   std::atomic_int total_batches_;  // protected by bt_mtx_
 
   // total_tf_tasks_ is similar with total_batches_. it's used by
   // TransformTaskLoop to see if there is any TfTasks in tf_queue or to be
-  // generated. When TransformTaskLoop pick up a transform task from tf_queue_,
-  // it will decrease total_tf_tasks by 1
+  // generated.
+  //
+  // set by Translate(), equals to # of total blocks within data range
+  // decrease 1 when TransformTaskLoop pick up a transform task from tf_queue_
   std::atomic_int total_tf_tasks_;  // protected by tf_mtx_
 
-  // current size of transform task queue
+  // current size of transform task queue, always equals tf_queue_.size()
+  // increase when pushing tasks to tf_queue_
+  // decrease when poping tasks from tf_queue_
   std::atomic_int tf_size_;
 
-  // current size of batche queue
+  // current size of transform task queue, always equals tf_queue_.size()
+  // increase when pushing tasks to bt_queue_
+  // decrease when poping tasks from bt_queue_
   std::atomic_int bt_size_;
 
-  BigInt num_io_workers_;
-  BigInt num_tf_workers_;
+  int num_io_workers_;
+  int num_tf_workers_;
 
-  BigInt tf_limit_;  // transform task queue size limit
-  BigInt bt_limit_;  // batch queue size limit
+  int tf_limit_;  // transform task queue size limit, used for io speed control
+  int bt_limit_;  // batch queue size limit, used for transform speed control
 
   BigInt data_begin_;
   BigInt data_end_;
