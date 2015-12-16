@@ -37,8 +37,11 @@ bool WarpClient::Send(const std::string& data) {
   return zmq_util::ZMQSend(sock_.get(), kServerId, data);
 }
 
+// Comment(wdai): Sender thread also perform snappy compression and
+// decompression, which could be expensive.
 bool WarpClient::Send(const ClientMsg& msg) {
-  return Send(SerializeProto(msg));
+  std::string data = StreamSerialize(msg);
+  return Send(data);
 }
 
 ServerMsg WarpClient::Recv() {
@@ -48,9 +51,7 @@ ServerMsg WarpClient::Recv() {
   auto recv = zmq_util::ZMQRecv(sock_.get());
   auto recv_str = std::string(reinterpret_cast<const char*>(recv.data()),
       recv.size());
-  ServerMsg server_msg;
-  CHECK(server_msg.ParseFromString(recv_str)) << "Failed to parse msg from "
-    "server";
+  ServerMsg server_msg = StreamDeserialize<ServerMsg>(recv_str);
   CHECK(!server_msg.has_handshake_msg());
   return server_msg;
 }
@@ -65,7 +66,7 @@ void WarpClient::HandshakeWithServer() {
   ClientMsg client_msg;
   // Don't need to set anything in the returned handshake_msg.
   client_msg.mutable_handshake_msg();
-  std::string data = SerializeProto(client_msg);
+  std::string data = StreamSerialize(client_msg);
   bool success = false;
   do {
     success = zmq_util::ZMQSend(sock_.get(), kServerId, data);
@@ -75,8 +76,7 @@ void WarpClient::HandshakeWithServer() {
   auto rep = zmq_util::ZMQRecv(sock_.get(), &server_id_);
   auto rep_str = std::string(reinterpret_cast<const char*>(rep.data()),
       rep.size());
-  ServerMsg server_msg;
-  CHECK(server_msg.ParseFromString(rep_str));
+  ServerMsg server_msg = StreamDeserialize<ServerMsg>(rep_str);
   CHECK(server_msg.has_handshake_msg());
   client_id_ = server_msg.handshake_msg().client_id();
   LOG(INFO) << "Client " << client_id_ << " finished handshake with server."

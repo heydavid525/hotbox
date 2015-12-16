@@ -72,7 +72,7 @@ PROTO StreamDeserialize(const std::string& proto_str) {
   google::protobuf::io::CodedInputStream istream_coded(
       &istream_arr);
   istream_coded.SetTotalBytesLimit(buffer_limit, buffer_limit);
-  LOG(INFO) << "StreamDeserialize to size: " << proto_str.size();
+  // LOG(INFO) << "StreamDeserialize to size: " << proto_str.size();
 
   PROTO proto;
   CHECK(proto.ParseFromCodedStream(&istream_coded));
@@ -80,9 +80,11 @@ PROTO StreamDeserialize(const std::string& proto_str) {
 }
 
 // Serialize and snappy compress proto using stream. No streaming
-// compression.
+// compression. Optionally return the size of serialized proto (before
+// snappy compress).
 template<typename PROTO>
-std::string StreamSerialize(const PROTO& proto) {
+std::string StreamSerialize(const PROTO& proto,
+    size_t* serialized_size = nullptr) {
   std::string buffer;
   {
     // Write to buffer
@@ -91,9 +93,11 @@ std::string StreamSerialize(const PROTO& proto) {
         &ostream_str);
     CHECK(proto.SerializeToCodedStream(&ostream_coded));
   }
+  if (serialized_size != nullptr) {
+    *serialized_size = buffer.size();
+  }
   SnappyCompressor compressor;
   std::string compressed = compressor.Compress(buffer);
-  LOG(INFO) << "StreamSerialize to size: " << compressed.size();
   return compressed;
 }
 

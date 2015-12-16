@@ -3,6 +3,7 @@
 #include "parse/parser_if.hpp"
 #include "parse/proto/parser_config.pb.h"
 #include "schema/datum_base.hpp"
+#include "schema/feature_finder.hpp"
 
 namespace hotbox {
 
@@ -11,7 +12,7 @@ public:
   void SetConfig(const ParserConfig& config);
 
 protected:
-  void Parse(const std::string& line, Schema* schema,
+  std::vector<TypedFeatureFinder> Parse(const std::string& line, Schema* schema,
       DatumBase* datum) const override;
 
 private:

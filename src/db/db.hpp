@@ -66,15 +66,12 @@ private:
 
   // Update related metadata after file ingestion.
   // Namely #global_byte_offset, #datam_records, #records total
-  void UpdateReadMetaData(const DBAtom& atom, const int32_t compressed_size);
+  void UpdateReadMetaData(const DBAtom& atom, size_t  compressed_size);
 
   // Write ‘atom’ data to Atom files. Return bytes written.
   // ori_sizes & comp_sizes totals uncompressed & compressed data size.
-  size_t WriteToAtomFiles(const DBAtom& atom, int32_t* ori_sizes, 
-            int32_t* comp_sizes);
-
-  // Heuristic method and return #records to read in one batch.
-  size_t GuessBatchSize(size_t size);
+  size_t WriteToAtomFiles(const DBAtom& atom, size_t* ori_sizes,
+            size_t* comp_sizes);
 
   //std::vector<Epoch> epochs_;
 

@@ -5,6 +5,7 @@
 #include <rocksdb/options.h>
 #include <string>
 #include <glog/logging.h>
+#include "util/util.hpp"
 
 namespace hotbox {
 
@@ -21,7 +22,6 @@ public:
     write_options.sync = true;
     rocksdb::Status s = db_->Put(write_options, key, val);
     CHECK(s.ok());
-    LOG(INFO) << "Put " << key;
   }
 
   // Read the value for key. Fail the program if not found or other error.

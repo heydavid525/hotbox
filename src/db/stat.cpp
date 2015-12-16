@@ -130,8 +130,6 @@ size_t Stat::Commit(int id, RocksDB* db) const {
     std::string serialized_segment = StreamSerialize(segment);
     total_size += serialized_segment.size();
     db->Put(seg_key, serialized_segment);
-    LOG(INFO) << "Commit: writing stats key: " << seg_key << " stat range: ["
-      << id_begin << ", " << id_end << ")";
   }
   LOG(INFO) << "Stat commit " << num_segments << " segments. Total size: "
     << SizeToReadableString(total_size);

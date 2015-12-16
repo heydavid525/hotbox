@@ -65,10 +65,9 @@ void DBServer::InitFromDBRootFile() {
       "This must be a new DB";
     return;
   }
-  auto db_root_file = io::ReadCompressedFile(db_root_file_path,
-      Compressor::NO_COMPRESS);
-  DBRootFile db_root;
-  CHECK(db_root.ParseFromString(db_root_file));
+  auto db_root_file_str = io::ReadFile(db_root_file_path);
+  DBRootFile db_root = StreamDeserialize<DBRootFile>(db_root_file_str);
+  //CHECK(db_root.ParseFromString(db_root_file));
   std::stringstream ss;
   for (int i = 0; i < db_root.db_names_size(); ++i) {
     std::string db_name = db_root.db_names(i);
@@ -91,7 +90,7 @@ void DBServer::CommitToDBRootFile() const {
   LOG(INFO) << "Write to " << db_root_file_path << " with compressor "
     << Compressor::NO_COMPRESS;
 
-  io::WriteCompressedFile(db_root_file_path, SerializeProto(db_root),
+  io::WriteCompressedFile(db_root_file_path, StreamSerialize(db_root),
       Compressor::NO_COMPRESS);
 }
 

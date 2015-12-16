@@ -33,13 +33,12 @@ std::unique_ptr<dmlc::SeekStream> OpenFileStream(
 size_t WriteCompressedFile(const std::string& file_path,
     const std::string& data, Compressor compressor = Compressor::SNAPPY);
 
-// This method writes 'data' directly to disk without compression
-size_t WriteSizeLimitedFiles(const std::string& file_path, int32_t& file_idx,
-	const std::string& data);
-
-// This method writes 'data' to ATOM.file_idx with specific compression.
-size_t WriteAtomFiles(const std::string& file_path, int32_t& file_idx,
-	const std::string& data, Compressor compressor = Compressor::SNAPPY);
+// This method writes 'data' to ATOM.curr_atom_id without compression. It
+// assumes data.size() <= kAtomSizeInBytes (64MB). Return the new current
+// curr_atom_id, which can be curr_atom_id + 1 if current atom file cannot
+// contain 'data' entirely.
+int WriteAtomFiles(const std::string& file_dir, int curr_atom_id,
+    const std::string& data);
 
 // Append data directly to the end of file 'file_path'.
 size_t AppendFile(const std::string& file_path, const std::string& data);

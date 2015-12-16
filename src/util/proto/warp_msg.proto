@@ -56,6 +56,10 @@ message ReadFileReq {
   string file_path = 2;
   FileFormat file_format = 3;
 
+  // True to avoid committing stats and schema to disk (useful when ingesting
+  // multiple files).
+  bool no_commit = 6;
+
   // header is the line # to be treated as header (0 for no header). Data will
   // # be read after header line.
   // TODO(wdai): Support col_name:type_name in the first row (e.g.,

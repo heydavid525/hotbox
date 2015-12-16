@@ -71,13 +71,9 @@ Schema::Schema(RocksDB* db) {
   features_.reset(new std::vector<Feature>(proto.num_features()));
   for (int i = 0; i < proto.num_segments(); ++i) {
     std::string seg_key = MakeSegmentKey(i);
-    LOG(INFO) << "seg_key: " << seg_key;
     std::string seg_proto_str = db->Get(seg_key);
-    LOG(INFO) << "schema cp1: seg_proto_str size: " << seg_proto_str.size();
     FeatureSegment seg_proto =
       StreamDeserialize<FeatureSegment>(seg_proto_str);
-    LOG(INFO) << "schema cp2 seg_proto num_Features: "
-      << seg_proto.features_size();
     BigInt id_begin = seg_proto.id_begin();
     for (int j = 0; j < seg_proto.features_size(); ++j) {
       (*features_)[j + id_begin] = seg_proto.features(j);
@@ -345,10 +341,12 @@ size_t Schema::Commit(RocksDB* db) const {
     // FeatureSegment seg2 = DeserializeProto<FeatureSegment>(seg_proto_str);
     total_size += seg_proto_str.size();
     db->Put(seg_key, seg_proto_str);
+    /*
     LOG(INFO) << "Commit: writing feature key: " << seg_key
       << " feature range: ["
       << id_begin << ", " << id_end << ") proto size: "
       << SizeToReadableString(seg_proto_str.size());
+      */
   }
   LOG(INFO) << "Schema commit " << num_segments << " segments. Total size: "
     << SizeToReadableString(total_size);

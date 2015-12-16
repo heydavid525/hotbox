@@ -89,53 +89,30 @@ void DataIterator::ReadSizeLimitedAtomAndTransform(BigInt file_begin,
   std::stringstream ss;
   for (int i = 0; i < (atom_idx_end + 1 - atom_idx_begin); i++) {
     LOG(INFO) << "Reading atom file " << atom_idx_begin + i;
+    std::string atom_file = session_proto_.file_map().atom_path()
+          + std::to_string(atom_idx_begin + i);
     if (i == 0) {
       int32_t read_len = (atom_idx_end == atom_idx_begin)
                 ? file_end - file_begin  // total read len
                 : (size_limit - file_begin % size_limit);  // file_len
-      ss << io::ReadCompressedFile(
-        session_proto_.file_map().atom_path()
-          + std::to_string(atom_idx_begin + i),
-          Compressor::NO_COMPRESS,
-            file_begin % size_limit, read_len);
+      ss << io::ReadCompressedFile(atom_file, Compressor::NO_COMPRESS,
+          file_begin % size_limit, read_len);
     } else if (i < (atom_idx_end - atom_idx_begin)) {
-      ss << io::ReadCompressedFile(
-        session_proto_.file_map().atom_path()
-          + std::to_string(atom_idx_begin + i),
-          Compressor::NO_COMPRESS);
+      ss << io::ReadCompressedFile(atom_file, Compressor::NO_COMPRESS);
     } else {
-      ss << io::ReadCompressedFile(
-        session_proto_.file_map().atom_path()
-          + std::to_string(atom_idx_begin + i),
-          Compressor::NO_COMPRESS, 0, file_end % size_limit);
+      ss << io::ReadCompressedFile(atom_file, Compressor::NO_COMPRESS,
+          0, file_end % size_limit);
     }
-/*
-    std::string content = io::ReadCompressedFile(
-        session_proto_.file_map().atom_path() + std::to_string(atom_idx_begin + i),
-        Compressor::NO_COMPRESS);
-    if(i == 0) {
-      ss << content.substr(file_begin % size_limit, file_end - file_begin);
-    }
-    else if (i < (atom_idx_end - atom_idx_begin)) {
-      ss << content;
-    }
-    else {
-      ss << content.substr(0, file_end % size_limit);
-    }
-*/
   }
-  std::string data = DecompressString(ss.str(), session_proto_.compressor());
-  LOG(INFO) << "File Read: " << ss.str().size();
 
-  DBAtom atom_proto;
-  CHECK(atom_proto.ParseFromString(data));
+  DBAtom atom_proto = StreamDeserialize<DBAtom>(ss.str());
   data_buffer_.resize(atom_proto.datum_protos_size());
   FeatureFamily internal_family(session_proto_.internal_family_proto());
   auto output_store_type = session_proto_.output_store_type();
   auto output_dim = session_proto_.output_dim();
 
   LOG(INFO) << "atom_proto.datum_protos_size(): "
-            << atom_proto.datum_protos_size();
+    << atom_proto.datum_protos_size();
   // Start from the last datum because protobuf only has ReleaseLast().
   for (int i = atom_proto.datum_protos_size() - 1; i >= 0; --i) {
     DatumBase* datum_base = new DatumBase(
@@ -178,16 +155,16 @@ void DataIterator::ReadAtomAndTransform(int atom_id) {
 
 DataIterator::DataIterator(DataIterator &&other)
   : session_proto_(other.session_proto_),
-    transforms_(std::move(other.transforms_)),
-    data_begin_(other.data_begin_), data_end_(other.data_end_),
-    next_(other.next_), chunk_begin_(other.chunk_begin_),
-    chunk_end_(other.chunk_end_),
-    data_buffer_(std::move(other.data_buffer_)),
-    datum_ids_(std::move(other.datum_ids_)),
-    use_multi_threads_(other.use_multi_threads_),
-    mtt_engine_(other.mtt_engine_) {
-  other.mtt_engine_ = nullptr;
-}
+  transforms_(std::move(other.transforms_)),
+  data_begin_(other.data_begin_), data_end_(other.data_end_),
+  next_(other.next_), chunk_begin_(other.chunk_begin_),
+  chunk_end_(other.chunk_end_),
+  data_buffer_(std::move(other.data_buffer_)),
+  datum_ids_(std::move(other.datum_ids_)),
+  use_multi_threads_(other.use_multi_threads_),
+  mtt_engine_(other.mtt_engine_) {
+    other.mtt_engine_ = nullptr;
+  }
 
 
 }  // namespace hotbox

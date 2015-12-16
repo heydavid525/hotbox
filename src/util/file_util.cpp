@@ -49,48 +49,21 @@ std::string ReadCompressedFile(const std::string& file_path,
   return DecompressString(buffer, size, compressor);
 }
 
-size_t WriteSizeLimitedFiles(const std::string& file_dir, int32_t& file_idx,
+int WriteAtomFiles(const std::string& file_dir, int curr_atom_id,
     const std::string& data) {
-  int32_t curr_atom_idx = file_idx;
   int32_t size_written = 0;
-
-  std::string curr_file_path = file_dir + std::to_string(curr_atom_idx);
+  std::string curr_file_path = file_dir + std::to_string(curr_atom_id);
   size_t curr_atom_size = GetFileSize(curr_file_path);
   int32_t data_offset = kAtomSizeInBytes - curr_atom_size;
-  LOG(INFO) << "WriteSizeLimitedFiles: "
-            << "Size Limit: " << kAtomSizeInBytes << ". ";
-  LOG(INFO) << "Space Left in Atom " << curr_atom_idx <<": " << data_offset;
   // Assume that an atom obj will never excceed kAtomSizeInBytes, 
-  // i.e. span 2 files.
+  // and thus span at most 2 files.
   size_written += AppendFile(curr_file_path, data.substr(0, data_offset));
   if (data_offset < data.size()) {
-    curr_file_path = file_dir + std::to_string(++curr_atom_idx);
+    curr_file_path = file_dir + std::to_string(++curr_atom_id);
     size_written += AppendFile(curr_file_path, data.substr(data_offset, 
                         kAtomSizeInBytes));
-    LOG(INFO) << "Bytes Written in Atom " << curr_atom_idx
-              << ": " << data.size() - data_offset;
   } 
-  file_idx = curr_atom_idx;
-  LOG(INFO) << "After Writing Atom Idx: " << file_idx;
-  return size_written;
-}
-
-size_t WriteAtomFiles(const std::string& file_dir, int32_t& file_idx,
-    const std::string& data, Compressor compressor) {
-  // Fisrt Compress then write to separate files.
-  if (compressor != Compressor::NO_COMPRESS) {
-    LOG(INFO) << "Compressing Atom Data: " << data.size();
-    auto& registry = ClassRegistry<CompressorIf>::GetRegistry();
-    std::unique_ptr<CompressorIf> compressor_if = 
-                          registry.CreateObject(compressor);
-    std::string compressed = compressor_if->Compress(data);
-    LOG(INFO) << "Compressed String Len: " << compressed.size(); 
-    LOG(INFO) << "Writing to Atom Files. ";
-    return WriteSizeLimitedFiles(file_dir, file_idx, compressed);
-  } else {
-    LOG(INFO) << "Writing UnCompressed Atom Data.";
-    return WriteSizeLimitedFiles(file_dir, file_idx, data);
-  }
+  return curr_atom_id;
 }
 
 size_t WriteCompressedFile(const std::string& file_path,
@@ -126,7 +99,6 @@ size_t AppendFile(const std::string& file_path,
     throw FailedFileOperationException("Failed to open " + file_path
         + " for write.");
   }
-  LOG(INFO) << "Writing to " << file_path;
   os->Write(data.c_str(), data.size());
   return data.size();
 }

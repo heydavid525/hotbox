@@ -7,7 +7,7 @@ namespace hotbox {
 
 namespace {
 
-const int kMaxParseTries = 100;
+const int kMaxParseTries = 2;
 
 }  // anonymous namespace
 
@@ -20,8 +20,30 @@ DatumBase ParserIf::ParseAndUpdateSchema(const std::string& line,
     DatumProto* proto = CreateDatumProtoFromOffset(schema->GetAppendOffset());
     stat_collector->DatumCreateBegin();
     DatumBase datum(proto, stat_collector);
-    try {
-      Parse(line, schema, &datum);
+    std::vector<TypedFeatureFinder> not_found_features = Parse(line, schema, &datum);
+    if (not_found_features.size() > 0) {
+      // Add the missing features to schema.
+      for (const TypedFeatureFinder& finder : not_found_features) {
+        // Default to sparse store type.
+        FeatureStoreType store_type;
+        switch (finder.type) {
+          case FeatureType::CATEGORICAL:
+            store_type = FeatureStoreType::SPARSE_CAT;
+            break;
+          case FeatureType::NUMERICAL:
+            store_type = FeatureStoreType::SPARSE_NUM;
+            break;
+          case FeatureType::BYTES:
+            store_type = FeatureStoreType::SPARSE_BYTES;
+            break;
+          default:
+            LOG(FATAL) << "Unrecognized FeatureType: " << finder.type;
+        }
+        Feature feature = CreateFeature(store_type);
+        schema->AddFeature(finder.family_name, &feature, finder.family_idx);
+        stat_collector->AddFeatureStat(feature);
+      }
+    } else {
       // No missing feature in schema.
       auto stats_output = stat_collector->DatumCreateEnd();
       for (int j = 0; j < stats_output.num_updates; ++j) {
@@ -41,34 +63,10 @@ DatumBase ParserIf::ParseAndUpdateSchema(const std::string& line,
         }
       }
       return datum;
-    } catch (const TypedFeaturesNotFoundException& e) {
-      // Add the missing features to schema.
-      const auto& not_found_features = e.GetNotFoundTypedFeatures();
-      for (const TypedFeatureFinder& finder : not_found_features) {
-        // Default to sparse store type.
-        FeatureStoreType store_type;
-        switch (finder.type) {
-          case FeatureType::CATEGORICAL:
-            store_type = FeatureStoreType::SPARSE_CAT;
-            break;
-          case FeatureType::NUMERICAL:
-            store_type = FeatureStoreType::SPARSE_NUM;
-            break;
-          case FeatureType::BYTES:
-            store_type = FeatureStoreType::SPARSE_BYTES;
-            break;
-          default:
-            LOG(FATAL) << "Unrecognized FeatureType: " << finder.type;
-        }
-        // Leave the feature unnamed.
-        Feature feature = CreateFeature(store_type);
-        schema->AddFeature(finder.family_name, &feature, finder.family_idx);
-        stat_collector->AddFeatureStat(feature);
-      }
     }
   }
   LOG(FATAL) << "Attempted to parse " << kMaxParseTries << ". Report bug";
-  return DatumBase(nullptr);
+  return DatumBase();
 }
 
 // Infer float or int.
@@ -80,11 +78,14 @@ FeatureType ParserIf::InferType(float val) {
 void ParserIf::SetLabelAndWeight(Schema* schema, DatumBase* datum,
     float label, float weight) {
   const auto& intern_family = schema->GetFamily(kInternalFamily);
-  const Feature& feature = intern_family.GetFeature(kLabelFamilyIdx);
-  datum->SetFeatureVal(feature, label);
+  //const Feature& feature = intern_family.GetFeature(kLabelFamilyIdx);
+  auto ret = intern_family.GetFeatureNoExcept(kLabelFamilyIdx);
+  CHECK(ret.second);
+  datum->SetFeatureVal(ret.first, label);
   if (weight != 1.) {
-    const Feature& feature = intern_family.GetFeature(kWeightFamilyIdx);
-    datum->SetFeatureVal(feature, weight);
+    auto ret = intern_family.GetFeatureNoExcept(kWeightFamilyIdx);
+    CHECK(ret.second);
+    datum->SetFeatureVal(ret.first, weight);
   }
 }
 
