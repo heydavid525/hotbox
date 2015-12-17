@@ -54,7 +54,7 @@ PROTO DeserializeAndUncompressProto(const std::string& proto_str) {
 std::string DecompressString(const std::string& input,
     Compressor compressor = Compressor::SNAPPY);
 
-std::string DecompressString(const void* data, const int size,
+std::string DecompressString(const char* data, size_t len,
     Compressor compressor = Compressor::SNAPPY);
 
 size_t WriteCompressedString(std::string& input,
@@ -72,7 +72,22 @@ PROTO StreamDeserialize(const std::string& proto_str) {
   google::protobuf::io::CodedInputStream istream_coded(
       &istream_arr);
   istream_coded.SetTotalBytesLimit(buffer_limit, buffer_limit);
-  // LOG(INFO) << "StreamDeserialize to size: " << proto_str.size();
+
+  PROTO proto;
+  CHECK(proto.ParseFromCodedStream(&istream_coded));
+  return proto;
+}
+
+template<typename PROTO>
+PROTO StreamDeserialize(const char* data, size_t len) {
+  // Read back to another FloatContainer
+  SnappyCompressor compressor;
+  std::string uncompressed = compressor.Uncompress(data, len);
+  google::protobuf::io::ArrayInputStream istream_arr(
+      uncompressed.data(), uncompressed.size());
+  google::protobuf::io::CodedInputStream istream_coded(
+      &istream_arr);
+  istream_coded.SetTotalBytesLimit(buffer_limit, buffer_limit);
 
   PROTO proto;
   CHECK(proto.ParseFromCodedStream(&istream_coded));

@@ -59,7 +59,7 @@ std::string DecompressString(const std::string& input,
 }
 
 
-std::string DecompressString(const void* data, const int size,
+std::string DecompressString(const char* data, size_t size,
     Compressor compressor) {
   // Uncompress
   if (compressor == Compressor::NO_COMPRESS) {

@@ -37,11 +37,11 @@ std::string ReadCompressedFile(const std::string& file_path,
   auto fp = make_unique<google::protobuf::io::IstreamInputStream>
       (dynamic_cast<std::basic_istream<char>*>(&in), len);
 
-  const void* buffer;
+  const char* buffer;
   int size;
   fp->Skip(read_offset); // offset to start reading.
   // Read a bulk of size len, into buffer, length returned in size
-  bool b_succeed = fp->Next(&buffer, &size); 
+  bool b_succeed = fp->Next(reinterpret_cast<const void**>(&buffer), &size);
   if (!b_succeed || (len != size)) {
     throw FailedFileOperationException("Failed to read file: " + file_path
         + "\n");

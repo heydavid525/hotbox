@@ -33,18 +33,6 @@ MTTransformer works as described below:
 
 class MTTransformer {
  public:
-  /*
-  // @files will be added to io_queue
-  // deprecated since atom files are not independent from each other for now
-  MTTransformer(const SessionProto &session_proto,
-                const std::vector<std::string> &files,
-                std::vector<std::function<void(TransDatum *)>> transforms,
-                int num_io_threads,
-                int num_transform_threads,
-                int buffer_limit,
-                int batch_limit) = delete;
-  */
-  //
   MTTransformer(const SessionProto &session_proto,
                 std::vector<std::function<void(TransDatum *)>> transforms,
                 BigInt data_begin, BigInt data_end,
@@ -194,14 +182,14 @@ class MTTransformer {
   // decrease when poping tasks from bt_queue_
   std::atomic_int bt_size_;
 
-  int num_io_workers_;
-  int num_tf_workers_;
+  const int num_io_workers_;
+  const int num_tf_workers_;
 
-  int tf_limit_;  // transform task queue size limit, used for io speed control
-  int bt_limit_;  // batch queue size limit, used for transform speed control
+  const int tf_limit_;  // transform task queue size limit, used for io speed control
+  const int bt_limit_;  // batch queue size limit, used for transform speed control
 
-  BigInt data_begin_;
-  BigInt data_end_;
+  const BigInt data_begin_;
+  const BigInt data_end_;
   std::vector<BigInt> datum_ids_;
   std::vector<BigInt> global_bytes_offsets_;
 };
