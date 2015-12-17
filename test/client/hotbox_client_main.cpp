@@ -18,7 +18,9 @@ int main(int argc, char *argv[]) {
     "/resource/" + FLAGS_transform_config;
   session_options.output_store_type = hotbox::OutputStoreType::SPARSE;
   hotbox::Session session = hb_client.CreateSession(session_options);
+  LOG(INFO) << "before CHECK ";
   CHECK(session.GetStatus().IsOk());
+  LOG(INFO) << "end CHECK";
   hotbox::OSchema o_schema = session.GetOSchema();
   LOG(INFO) << "OSchema: " << o_schema.ToString();
   auto p = o_schema.GetName(4);
@@ -29,6 +31,7 @@ int main(int argc, char *argv[]) {
       it.Next()) {
     hotbox::FlexiDatum datum = it.GetDatum();
     LOG(INFO) << datum.ToString();
+    LOG(INFO) << "ith datum: " << i;
     i++;
   }
   LOG(INFO) << "Read " << i << " data";

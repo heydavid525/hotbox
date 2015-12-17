@@ -53,7 +53,7 @@ void CSVParser::Parse(const std::string& line, Schema* schema,
 
   if (first_column_label_) {
     label = strtof(line.data(), &endptr);
-    // std::cout << "label: " << label << endl;
+    std::cout << "label: " << label << std::endl;
     this->SetLabelAndWeight(schema, datum, label);
     ptr = endptr;
     // G(INFO) << "parsing: " << line;

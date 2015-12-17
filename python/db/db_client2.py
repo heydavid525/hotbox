@@ -123,8 +123,8 @@ class DB:
         'family': util_pb.FAMILY,
         }.get(file_format, 0)
     msg.read_file_req.header = header
-    msg.read_file_req.parser_config.csv_config.header_position = 2 
-    # msg.read_file_req.parser_config.csv_config.label_front = 2
+    msg.read_file_req.parser_config.csv_config.header_position = 0 
+    msg.read_file_req.parser_config.csv_config.first_column_label = 2
     reply = self.warp_client.SendRecv(msg)
     print('Reading file %s ...' % file_path)
     print(reply.generic_reply.msg)
