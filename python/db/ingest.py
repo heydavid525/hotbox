@@ -8,7 +8,7 @@ import argparse
 project_dir = dirname(dirname(dirname(os.path.realpath(__file__))))
 sys.path.append(join(project_dir, 'python/db'))
 
-from db_client import HBClient
+from hb_client import HBClient
 
 """
 Usage (Ingest one file):
@@ -30,8 +30,8 @@ if __name__ == "__main__":
     sys.exit(1)
 
   server_ip = "localhost"
-  db_client = HBClient(server_ip)
-  test_db = db_client.CreateDB('test_db', use_dense_weight=False)
+  hb_client = HBClient(server_ip)
+  test_db = hb_client.CreateDB('test_db', use_dense_weight=False)
 
   if os.path.isdir(args.path):
     files = [join(args.path, f) for f in os.listdir(args.path) if
