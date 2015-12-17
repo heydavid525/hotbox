@@ -7,9 +7,6 @@
 #include <utility>
 #include <cstdint>
 #include <string>
-// #include <cctype>
-// #include <utility>
-// #include <cstdint>
 #include <stdlib.h>
 #include <iostream>
 #include <cstddef>
@@ -157,53 +154,47 @@ void CSVParser::Parse(const std::string& line, Schema* schema,
     // << *conversionFlagNumerical << '\t';
     // std::cout << "conversionFlagCategorical: "
     // << *conversionFlagCategorical << '\t';
-    try {
-    // if this throws an exception,
-    // put the unkonw feature type into not_found_features
-      const Feature& feature = family.GetFeature(feature_id);
-      LOG(INFO) << "Setting feature: "
-        << feature.global_offset() << " val: " << str_val[0];
 
+    std::pair<Feature, bool> ret = family.GetFeatureNoExcept(feature_id);
+    if (ret.second == false) {
+      LOG(INFO) << "not found feature";
+      FeatureFinder not_found_feature;
+      not_found_feature.family_name = kDefaultFamily;
+      not_found_feature.family_idx = feature_id;
+      TypedFeatureFinder typed_finder(not_found_feature,
+                 FeatureType::NUMERICAL);
+      not_found_features.push_back(typed_finder);
+    } else {
+      LOG(INFO) << "Setting feature: "
+         << ret.first.global_offset() << " val: " << str_val[0];
       if (*conversionFlagNumerical == ',') {
-        // feature is numerical or categorical byte type
         if (*conversionFlagCategorical == ',') {
-          datum->SetFeatureVal(feature, catVal);
+          datum->SetFeatureVal(ret.first, catVal);
           std::cout << "Categorical: " << catVal << '\t';
         } else {
-          // feature is categorical
-          datum->SetFeatureVal(feature, val);
-          std::cout << "Numerical: " << val << '\t';
-        }
+         // feature is categorical
+         datum->SetFeatureVal(ret.first, val);
+         std::cout << "Numerical: " << val << '\t';
+       }
       } else {
         // feature is string
-        // std::cout << "String: ";
         int length;
         if (innerComma) {
           length = index - 2;
-          datum->SetFeatureValString(feature, str_val, length);
+          datum->SetFeatureValString(ret.first, str_val, length);
           for (int i = 0 ; i < index-2 ; i++) {
             std::cout << str_val[i];
           }
         } else if (nan) {
-          // Oct 20
-          // setValue(0); set numerical 0 to nan value
-          datum->SetFeatureVal(feature, 0.0);
-          // std::cout << "Not A Value. ";
+          datum->SetFeatureVal(ret.first, 0.0);
         } else {
           length = index - 1;
-          datum->SetFeatureValString(feature, str_val, length);
+          datum->SetFeatureValString(ret.first, str_val, length);
           for (int i = 0 ; i < index-1 ; i++) {
             std::cout << str_val[i];
           }
         }
       }
-    }
-    catch (const FeatureNotFoundException& e) {
-      LOG(INFO) << "not found feature";
-
-      TypedFeatureFinder typed_finder(e.GetNotFoundFeature(),
-     this->InferType(val));
-     not_found_features.push_back(typed_finder);
     }
     // exit condition
     if (comma == '\0') {
