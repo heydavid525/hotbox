@@ -56,6 +56,9 @@ public:
   const Feature& GetFeature(const std::string& feature_name) const;
   Feature& GetMutableFeature(const std::string& feature_name);
 
+  // Returns feature and whether it is found. If it's not found, then Feature
+  // is invalid.
+  std::pair<Feature, bool> GetFeatureNoExcept(BigInt family_idx) const;
   const Feature& GetFeature(BigInt family_idx) const;
   Feature& GetMutableFeature(BigInt family_idx);
 

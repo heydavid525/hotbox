@@ -3,8 +3,7 @@
 
 namespace hotbox {
 
-StatCollector::StatCollector(std::vector<Stat>* stats) : stats_(stats),
-  num_unique_(stats->size()) { }
+StatCollector::StatCollector(std::vector<Stat>* stats) : stats_(stats) { }
 
 std::vector<Stat>& StatCollector::GetStats() {
   return *stats_;
@@ -35,7 +34,7 @@ void StatCollector::UpdateStat(const Feature& feature, float val) {
 StatUpdateOutput StatCollector::DatumCreateEnd() {
   for (int j = 0; j < stats_->size(); ++j) {
     for (int i = 0; i < num_pending_updates_; ++i) {
-      const auto& f = pending_update_features_[i];
+      const Feature& f = pending_update_features_[i];
       int num_unique = (*stats_)[j].UpdateStat(f, vals_[i]);
       num_unique_[i] = std::max(num_unique_[i], num_unique);
     }

@@ -20,7 +20,8 @@ void LibSVMParser::SetConfig(const ParserConfig& config) {
   LOG(INFO) << "label_one_based_: " << label_one_based_;
 }
 
-void LibSVMParser::Parse(const std::string& line, Schema* schema,
+std::vector<TypedFeatureFinder> LibSVMParser::Parse(const std::string& line,
+    Schema* schema,
     DatumBase* datum) const {
   char* ptr = nullptr, *endptr = nullptr;
 
@@ -49,29 +50,19 @@ void LibSVMParser::Parse(const std::string& line, Schema* schema,
     ++ptr;
     float val = strtof(ptr, &endptr);
     ptr = endptr;
-    try {
-      const Feature& feature = family.GetFeature(feature_id);
-      // LOG(INFO) << "Setting feature: global_offset: "
-      // << feature.global_offset() << " store offset: "
-      // << feature.store_offset() << " val: " << val;
-      datum->SetFeatureVal(feature, val);
-    } catch (const FeatureNotFoundException& e) {
-      //TypedFeatureFinder typed_finder(e.GetNotFoundFeature(),
-      //    this->InferType(val));
-      // Always use numerical (single store for faster read).
-      TypedFeatureFinder typed_finder(e.GetNotFoundFeature(),
+    std::pair<Feature, bool> ret = family.GetFeatureNoExcept(feature_id);
+    if (ret.second == false) {
+      FeatureFinder not_found_feature;
+      not_found_feature.family_name = kDefaultFamily;
+      not_found_feature.family_idx = feature_id;
+      TypedFeatureFinder typed_finder(not_found_feature,
           FeatureType::NUMERICAL);
-      // TODO(wdai): Remove these checks.
-      CHECK_NE(-1, typed_finder.family_idx);
-      CHECK_EQ(0, typed_finder.family_name.compare(kDefaultFamily));
       not_found_features.push_back(typed_finder);
+    } else {
+      datum->SetFeatureVal(ret.first, val);
     }
     while (isspace(*ptr) && ptr - line.data() < line.size()) ++ptr;
   }
-  if (not_found_features.size() > 0) {
-    TypedFeaturesNotFoundException e;
-    e.SetNotFoundTypedFeatures(std::move(not_found_features));
-    throw e;
-  }
+  return not_found_features;
 }
 }  // namespace hotbox

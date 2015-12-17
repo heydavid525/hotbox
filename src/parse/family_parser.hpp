@@ -2,6 +2,7 @@
 
 #include <string>
 #include "parse/parser_if.hpp"
+#include "schema/feature_finder.hpp"
 
 namespace hotbox {
 
@@ -17,15 +18,14 @@ namespace hotbox {
 // puts the features into default family. Whitespaces
 class FamilyParser : public NoConfigParserIf {
 protected:
-  void Parse(const std::string& line, Schema* schema, DatumBase* datum)
-    const override;
+  std::vector<TypedFeatureFinder> Parse(const std::string& line,
+      Schema* schema, DatumBase* datum) const override;
 
 private:
   // Comment(wdai): ReadFamily uses InferType from ParserIf, thus has to be
   // under FamilyParser.
   static char* ReadFamily(const std::string& line, char* ptr, Schema* schema,
-      DatumBase* datum);
-
+      DatumBase* datum, std::vector<TypedFeatureFinder>* not_found_features);
 };
 
 }  // namespace hotbox

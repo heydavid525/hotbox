@@ -33,6 +33,32 @@ You will compile all the dependencies to `[build_path]`. For example
 python install_third_party.py third_party build_all
 ```
 
+#### Install Python Snappy
+
+If your snappy was installed with sudo under standard path, you could just do
+
+```
+pip install python-snappy
+```
+
+Otherwise you need to provide appropriate flags pointing to the third_party
+path you built, like
+```
+CPPFLAGS="-I/home/wdai/lib/third_party/include
+-L/home/wdai/lib/third_party/lib" pip install python-snappy
+```
+If you snappy isn't in standard path then you also need to provide
+LD_LIBRARY_PATH when running python that needs snappy. This is easily done if
+you add this line to your `~/.bashrc`:
+```
+# Replace the path with the correct path.
+export LD_LIBRARY_PATH=/home/wdai/lib/third_party/lib:$LD_LIBRARY_PATH
+```
+Otherwise you need to do something like this every time running python script
+that imports snappy:
+```
+LD_LIBRARY_PATH=/home/wdai/lib/third_party/lib python script.py
+```
 
 #### Build Hotbox
 The rest of the commands assume you are in repo root. Before building,

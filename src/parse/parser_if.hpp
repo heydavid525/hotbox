@@ -4,6 +4,7 @@
 #include "schema/datum_base.hpp"
 #include "parse/proto/parser_config.pb.h"
 #include <cmath>
+#include <vector>
 
 namespace hotbox {
 
@@ -24,7 +25,7 @@ protected:
   // datum's dense store is preallocated according to schema.
   // May throw TypedFeaturesNotFoundException. Caller needs to free datum even
   // during exception.
-  virtual void Parse(const std::string& line, Schema* schema,
+  virtual std::vector<TypedFeatureFinder> Parse(const std::string& line, Schema* schema,
       DatumBase* datum) const = 0;
 
   // Infer float or int.

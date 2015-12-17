@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import zmq
 import argparse
 import sys
@@ -8,11 +9,11 @@ import time
 from os.path import dirname
 from os.path import join
 import yaml
+import snappy
 
 project_dir = dirname(dirname(dirname(os.path.realpath(__file__))))
 sys.path.append(join(project_dir, 'build'))
 sys.path.append(join(project_dir, 'third_party', 'include'))
-
 
 import util.proto.warp_msg_pb2 as warp_msg_pb
 import util.proto.util_pb2 as util_pb
@@ -45,13 +46,14 @@ class WarpClient:
 
   def Send(self, client_msg):
     try:
-      self.sock.send(client_msg.SerializeToString(), copy=False);
+      self.sock.send(snappy.compress(client_msg.SerializeToString()),
+          copy=False);
     except Exception as e:
       print(e.message)
 
   def Recv(self):
     try:
-      data = self.sock.recv()
+      data = snappy.uncompress(self.sock.recv())
     except zmq.ZMQError as e:
       print(e.message)
     server_msg = warp_msg_pb.ServerMsg()
@@ -110,7 +112,7 @@ class DB:
   # header is the line # to be treated as header (0 for no header). Data will
   # be read after header line.
   # TODO(wdai): currently header isn't supported.
-  def ReadFile(self, file_path, file_format='csv', header=0):
+  def ReadFile(self, file_path, file_format='csv', no_commit=False, header=0):
     msg = warp_msg_pb.ClientMsg()
     msg.read_file_req.db_name = self.db_name
     msg.read_file_req.file_path = file_path
@@ -123,13 +125,8 @@ class DB:
         'family': util_pb.FAMILY,
         }.get(file_format, 0)
     msg.read_file_req.header = header
+    msg.read_file_req.no_commit = no_commit
     reply = self.warp_client.SendRecv(msg)
     print('Reading file %s ...' % file_path)
     print(reply.generic_reply.msg)
 
-if __name__ == "__main__":
-  server_ip = "localhost"
-  db_client = HBClient(server_ip)
-  test_db = db_client.CreateDB('test_db', use_dense_weight=False)
-  test_db.ReadFile('test/resource/dataset/a1a.toy',
-      file_format='libsvm')

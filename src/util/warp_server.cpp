@@ -37,7 +37,7 @@ bool WarpServer::Send(int client_id, const std::string& data) {
 }
 
 bool WarpServer::Send(int client_id, const ServerMsg& msg) {
-  return Send(client_id, SerializeProto(msg));
+  return Send(client_id, StreamSerialize(msg));
 }
 
 ClientMsg WarpServer::Recv(int* client_id) {
@@ -47,8 +47,7 @@ ClientMsg WarpServer::Recv(int* client_id) {
     auto recv = zmq_util::ZMQRecv(sock_.get(), &client_id_str);
     auto recv_str = std::string(reinterpret_cast<const char*>(recv.data()),
         recv.size());
-    CHECK(client_msg.ParseFromString(recv_str)) << "Failed to parse msg from"
-      " client " << client_id_str;
+    client_msg = StreamDeserialize<ClientMsg>(recv_str);
 
     // Handle handshake.
     if (client_msg.has_handshake_msg()) {
@@ -62,9 +61,7 @@ ClientMsg WarpServer::Recv(int* client_id) {
       ServerMsg server_msg;
       auto handshake_msg = server_msg.mutable_handshake_msg();
       handshake_msg->set_client_id(*client_id);
-      std::string data;
-      server_msg.SerializeToString(&data);
-      CHECK(Send(*client_id, data));
+      CHECK(Send(*client_id, StreamSerialize(server_msg)));
     }
   } while (client_msg.has_handshake_msg());
   auto it = client_str2id_.find(client_id_str);

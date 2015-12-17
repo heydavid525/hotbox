@@ -209,7 +209,7 @@ message SchemaConfig {
   int32 num_unique_values_factor = 3;
 }
 
-// Current max proto sequence: 5.
+// Current max proto sequence: 7.
 message SchemaProto {
   // (yuwr:) This should also be id?
   // uint32 schema_id = 1;
@@ -218,12 +218,17 @@ message SchemaProto {
   // TODO(wdai): Do we need another internal schema_id, as Weiren suggested?
   uint32 version = 1;
 
-  // name (string) --> FeatureFamilyProto. We support multi-weight and multi-labels
-  // through specially reserved families 'label' and 'weight'.
+  // name (string) --> FeatureFamilyProto. We support multi-weight and
+  // multi-labels through specially reserved families 'label' and 'weight'.
   //
   // Comment(wdai): This map lookup will only be done once during transform to
   // get the index on DatumRecord stores, thus not performance critical.
   map<string, FeatureFamilyProto> families = 2;
+
+  // # of sequences after chopping up repeated features. Must be set when
+  // committing to disk.
+  int32 num_segments = 6;
+  int64 num_features = 7;
 
   // Ordered list of output family names.
   repeated string output_families = 3;
@@ -237,7 +242,17 @@ message SchemaProto {
   DatumProtoStoreOffset append_store_offset = 5;
 
   // Feature across all FeatureFamily.
+  // Comment(wdai): When serializing SchemaProto to disk we serialize
+  // features separately or the proto message size would easily exceeds
+  // the limit of 64MB.
   repeated Feature features = 4;
+}
+
+// FeatureSegment is a segment of SchemaProto::features, used to reduce
+// SchemaProto size.
+message FeatureSegment {
+  uint64 id_begin = 1;
+  repeated Feature features = 2;
 }
 
 // OSchema only stores features in FeatureStoreType::OUTPUT.

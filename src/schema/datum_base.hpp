@@ -20,6 +20,8 @@ public:
 
   DatumBase(const DatumBase& other);
 
+  DatumBase() = default;
+
   DatumProto* Release();
 
   float GetLabel(const FeatureFamily& internal_family) const;

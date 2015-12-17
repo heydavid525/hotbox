@@ -8,9 +8,7 @@
 #include "util/warp_server.hpp"
 #include "util/proto/warp_msg.pb.h"
 
-#ifdef USE_ROCKS
-#include "util/rocksdb_util.hpp"
-#endif
+// #include "util/rocksdb_util.hpp"
 
 
 
@@ -62,9 +60,7 @@ private:
 
   std::map<std::string, SessionProto> curr_sessions_;
 
-#ifdef USE_ROCKS
-  std::unique_ptr<rocksdb::DB> db_list_;
-#endif
+  // std::unique_ptr<rocksdb::DB> db_list_;
 
   // Maintain a list of client_id for each session.
   std::map<std::string, std::vector<int>> session_clients_;

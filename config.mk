@@ -1,7 +1,7 @@
 # Build Test?
 BUILD_TEST = 1
 # Build Shared Lib? 0 for static only, 1 for shared only
-USE_SHARED_LIB = 1
+USE_SHARED_LIB = 0
 # Configure whether to use HDFS.
 USE_HDFS = 0
 
@@ -28,8 +28,9 @@ endif
 ifeq ($(USE_HDFS), 1)
   HDFS_LDFLAGS = -Wl,-rpath=$(LIBJVM) \
 	          	   -L$(LIBJVM) -ljvm \
-	          	   -lhdfs 
-  HDFS_INCFLAGS = -I${HADOOP_HOME}/include
+	          	   -lhdfs
+  # -DUSE_HDFS is used by rocksdb_hdfs 
+  HDFS_INCFLAGS = -I${HADOOP_HOME}/include -DUSE_HDFS
 else
   HDFS_LDFLAGS =
   HDFS_INCFLAGS =

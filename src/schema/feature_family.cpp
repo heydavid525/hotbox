@@ -33,7 +33,9 @@ const Feature& FeatureFamily::GetFeature(const std::string& feature_name)
       not_found_feature.feature_name = feature_name;
       throw FeatureNotFoundException(not_found_feature);
     }
-    return this->GetFeature(it->second);
+    auto family_idx = it->second;
+    CheckFeatureExist(family_idx);
+    return (*features_)[global_idx_[family_idx]];
   }
 
 Feature& FeatureFamily::GetMutableFeature(const std::string& feature_name) {
@@ -45,6 +47,14 @@ Feature& FeatureFamily::GetMutableFeature(const std::string& feature_name) {
     throw FeatureNotFoundException(not_found_feature);
   }
   return this->GetMutableFeature(it->second);
+}
+
+std::pair<Feature, bool> FeatureFamily::GetFeatureNoExcept(BigInt family_idx)
+  const {
+  if (!this->HasFeature(family_idx)) {
+    return std::make_pair(Feature(), false);
+  }
+  return std::make_pair((*features_)[global_idx_[family_idx]], true);
 }
 
 const Feature& FeatureFamily::GetFeature(BigInt family_idx) const {

@@ -19,6 +19,8 @@ public:
   // [dim] |family1 feature_name1 feature_name2 |family2 feature_name3
   std::string ToString() const;
 
+  int64_t GetDimension() const;
+
 private:
   const OSchemaProto& proto_;
 };

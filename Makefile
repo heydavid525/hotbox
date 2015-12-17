@@ -3,18 +3,16 @@ PROJECT := $(shell readlink $(dir $(lastword $(MAKEFILE_LIST))) -f)
 
 include $(PROJECT)/config.mk
 
-SRC_DIR:=$(PROJECT)/src
-BUILD :=build
+SRC_DIR := $(PROJECT)/src
+BUILD := build
 LIB = $(BUILD)/lib
 
 NEED_MKDIR = $(BUILD) $(LIB)
 
-
 ifeq ($(USE_SHARED_LIB), 0)
 all: proto hotbox_lib test
 HB_LIB_LINK = $(HB_LIB)
-endif
-ifeq ($(USE_SHARED_LIB), 1)
+else
 all: proto hotbox_sharedlib test
 HB_LIB_LINK = $(HB_SHARED_LIB)
 endif
@@ -49,7 +47,6 @@ THIRD_PARTY_INCLUDE = $(THIRD_PARTY)/include
 THIRD_PARTY_LIB = $(THIRD_PARTY)/lib
 THIRD_PARTY_BIN = $(THIRD_PARTY)/bin
 
-#INCFLAGS =  -Isrc/ -I$(THIRD_PARTY_INCLUDE)
 INCFLAGS =  -I$(SRC_DIR) -I$(THIRD_PARTY_INCLUDE)
 INCFLAGS += -Ibuild/ # include generated *pb.h
 INCFLAGS += -I$(JAVA_HOME)/include # include java for HDFS/DMLC access
@@ -57,6 +54,8 @@ INCFLAGS += $(HDFS_INCFLAGS)
 
 LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
           -L$(THIRD_PARTY_LIB) \
+					-Wl,-rpath,$(BUILD)/lib \
+          -L$(BUILD)/lib \
           -lpthread -lrt -lnsl \
           -lzmq \
           -lgflags \
@@ -68,8 +67,9 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
 					-lpthread \
 					-lyaml-cpp \
 					-lsnappy \
-	          	   -ldmlc \
-          -lglog 
+	        -ldmlc \
+	        -lrocksdb \
+          -lglog
           # lglog must come after ldmlc, which depends on glog.
           #-lrocksdb
 LDFLAGS += $(HDFS_LDFLAGS)
@@ -89,16 +89,8 @@ PROTOC = $(THIRD_PARTY_BIN)/protoc
 $(PROTO_HDRS): $(BUILD)/%.pb.h: $(SRC_DIR)/%.proto
 	@mkdir -p $(@D)
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
-	$(PROTOC) --cpp_out=$(BUILD) --python_out=$(BUILD) --proto_path=$(SRC_DIR) $<
-	
-	
-$(HB_LIB): $(PROTO_OBJS) $(HB_OBJS) 
-	@echo HB_LIB_
-	mkdir -p $(@D)
-	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
-	ar csrv $@ $(filter %.o, $?) $(THIRD_PARTY_LIB)/libdmlc.a
-	# Make $(BUILD)/ into a python module.
-	python $(PROJECT)/python/util/modularize.py $(BUILD)
+	$(PROTOC) --cpp_out=$(BUILD) --python_out=$(BUILD) \
+	--proto_path=$(SRC_DIR) $<
 
 $(PROTO_OBJS): $(BUILD)/%.pb.o: $(BUILD)/%.pb.cc
 	@echo PROTO_OBJS_
@@ -110,6 +102,14 @@ $(HB_OBJS): $(BUILD)/%.o: $(SRC_DIR)/%.cpp $(PROTO_OBJS)
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c $< -o $@
 
+$(HB_LIB): $(PROTO_OBJS) $(HB_OBJS) 
+	@echo HB_LIB_
+	mkdir -p $(@D)
+	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
+	ar csrv $@ $(filter %.o, $?) $(THIRD_PARTY_LIB)/libdmlc.a
+	# Make $(BUILD)/ into a python module.
+	python $(PROJECT)/python/util/modularize.py $(BUILD)
+
 $(HB_SHARED_LIB): $(HB_OBJS) $(PROTO_OBJS) 
 	@echo HB_LIB_SHARED_
 	mkdir -p $(@D)
@@ -118,7 +118,7 @@ $(HB_SHARED_LIB): $(HB_OBJS) $(PROTO_OBJS)
 	# Make $(BUILD)/ into a python module.
 	python $(PROJECT)/python/util/modularize.py $(BUILD)
 
-proto:$(PROTO_HDRS)
+proto: $(PROTO_HDRS)
 
 #$PY_CLIENT_SRC=$(shell find src/client/py_client -type f -name "*.cpp")
 #py_hb_client: $(HB_LIB)

@@ -19,6 +19,10 @@ std::pair<std::string,std::string> OSchema::GetName(BigInt feature_id) const {
       proto_.feature_names(feature_id));
 }
 
+int64_t OSchema::GetDimension() const {
+  return proto_.feature_names_size();
+}
+
 std::string OSchema::ToString() const {
   BigInt num_families = proto_.family_names_size();
   BigInt num_features = proto_.feature_names_size();

@@ -14,3 +14,4 @@
 #include "util/proto/util.pb.h"
 #include "util/proto/warp_msg.pb.h"
 #include "util/register.hpp"
+#include "util/rocks_db.hpp"
