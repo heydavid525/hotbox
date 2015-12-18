@@ -24,6 +24,12 @@ bool StringInVector(const std::string& target,
 
 }  // anonymous namespace
 
+void SelectTransform::SetTransformWriterConfig(const TransformConfig& config,
+    TransformWriterConfig* writer_config) const {
+  LOG(INFO) << "SelectTransform::SetTransformWriterConfig";
+  writer_config->set_output_simple_family(true);
+}
+
 void SelectTransform::TransformSchema(const TransformParam& param,
     TransformWriter* writer) const {
   const SelectTransformConfig& config =
@@ -50,13 +56,16 @@ void SelectTransform::TransformSchema(const TransformParam& param,
 
   // Add the family-wide selected families. Note: Family-wide and wide_family
   // are used synonymously
+  const std::map<std::string, StoreTypeAndOffset>& wide_family_offsets
+    = param.GetFamilyWideStoreOffsets();
   for (const std::string& f : wide_families) {
-    const auto& family_features = input_features.at(f);
-    const auto& family_features_desc = input_features_desc.at(f);
-    for (int i = 0; i < family_features.size(); ++i) {
-      const auto& input_feature = family_features[i];
-      CHECK(IsNumber(input_feature));
-      writer->AddFeature(family_features_desc[i]);
+    StoreTypeAndOffset offsets = wide_family_offsets.at(f);
+    // TODO(wdai): for loop over feature offsets, not feature vector.
+    // wide_family_offsets is the offset on input store.
+    for (int i = offsets.offset_begin(); i < offsets.offset_end(); ++i) {
+      // family-wide feature doesn't need individual feature names.
+      //LOG(INFO) << "Add feature for family " << f;
+      writer->AddFeature("");
     }
   }
 }

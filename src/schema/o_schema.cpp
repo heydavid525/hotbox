@@ -15,8 +15,11 @@ std::pair<std::string,std::string> OSchema::GetName(BigInt feature_id) const {
   if (high == proto_.family_offsets().cend()) {
     idx = proto_.family_names_size() - 1;
   }
-  return std::make_pair(proto_.family_names(idx),
-      proto_.feature_names(feature_id));
+  BigInt family_idx = feature_id - proto_.family_offsets(idx);
+  std::string feature_name = proto_.is_simple_family(idx) ?
+    std::to_string(family_idx) :
+    proto_.feature_names(proto_.family_offsets(idx) + family_idx);
+  return std::make_pair(proto_.family_names(idx), feature_name);
 }
 
 int64_t OSchema::GetDimension() const {

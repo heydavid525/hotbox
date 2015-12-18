@@ -62,7 +62,7 @@ public:
   const Feature& GetFeature(BigInt family_idx) const;
   Feature& GetMutableFeature(BigInt family_idx);
 
-  // Return both initialized and uninitialized features.
+  // Return initialized features, skipping the uninitialized ones.
   FeatureSeq GetFeatures() const;
 
   // Only count the initialized features.
@@ -99,6 +99,8 @@ public:
     return simple_family_;
   }
 
+  // For simple family it returns the store type and offset. Fail if not
+  // simple family.
   StoreTypeAndOffset GetStoreTypeAndOffset() const;
 
 private:

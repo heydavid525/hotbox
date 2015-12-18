@@ -12,6 +12,10 @@ public:
 
   std::function<void(TransDatum*)> GenerateTransform(
       const TransformParam& param) const override;
+
+protected:
+  void SetTransformWriterConfig(const TransformConfig& config,
+      TransformWriterConfig* writer_config) const override;
 };
 
 }  // namespace hotbox

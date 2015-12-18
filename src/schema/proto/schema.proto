@@ -259,13 +259,18 @@ message FeatureSegment {
 //
 // TODO(wdai): This isn't scalable for billions of features.
 message OSchemaProto {
-  // feature_names has 1-to-1 correspondence to each output feature.
+  // feature_names has 1-to-1 correspondence to each output feature in
+  // non-simple family. Simple family's output feature names are elided.
   repeated string feature_names = 1;
 
-  // family_names, family_offset, family_size all have the same length. Family
-  // 'family_names(i)' includes features within
-  // [family_offsets(i), family_offsets(i + 1)). For the last family it ends
-  // feature_names_size() - 1.
+  // family_names, family_offset, is_simple_family have the same length.
+  // Family 'family_names(i)' includes features within
+  // [feature_name_offsets(i),
+  // feature_name_offsets(i + 1)) on feature_names. Simple family-wide selection
+  // will elide feature_names and thus have family_offsets(i) ==
+  // family_offsets(i+1). is_simple_family(i) == true for simple family.
   repeated string family_names = 2;
-  repeated int64 family_offsets = 3;
+  repeated int64 feature_name_offsets = 3;
+  repeated int64 family_offsets = 4;
+  repeated bool is_simple_family = 5;
 }

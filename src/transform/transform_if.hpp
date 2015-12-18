@@ -27,6 +27,22 @@ public:
   // generated transform is performed on each query datum on each client.
   virtual std::function<void(TransDatum*)> GenerateTransform(
       const TransformParam& param) const = 0;
+
+  // By default return false
+  void UpdateTransformWriterConfig(const TransformConfig& config,
+      TransformWriterConfig* writer_config) const {
+    // Configure TransWriter.
+    writer_config->set_store_type(config.base_config().output_store_type());
+    SetTransformWriterConfig(config, writer_config);
+  }
+
+protected:
+  // Configure TransformWriter based on config and specific transform impl.
+  virtual void SetTransformWriterConfig(const TransformConfig& config,
+      TransformWriterConfig* writer_config) const {
+    LOG(INFO) << "TransformIf::SetTransformWriterConfig";
+    // Default does nothing.
+  }
 };
 
 }  // namespace hotbox
