@@ -126,6 +126,8 @@ class DB:
         }.get(file_format, 0)
     msg.read_file_req.header = header
     msg.read_file_req.no_commit = no_commit
+    msg.read_file_req.parser_config.csv_config.header_position = 0
+    msg.read_file_req.parser_config.csv_config.first_column_label = 2
     reply = self.warp_client.SendRecv(msg)
     print('Reading file %s ...' % file_path)
     print(reply.generic_reply.msg)
