@@ -11,7 +11,7 @@ public:
   void SetConfig(const ParserConfig& config);
     
 protected:
-  void Parse(const std::string& line, Schema* schema,
+  std::vector<TypedFeatureFinder> Parse(const std::string& line, Schema* schema,
                DatumBase* datum) const override;
     
 private:

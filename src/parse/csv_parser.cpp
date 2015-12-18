@@ -31,11 +31,14 @@ void CSVParser::SetConfig(const ParserConfig& config) {
     // LOG(INFO) << "label_end: " << lable_end;
 }
 
-void CSVParser::Parse(const std::string& line, Schema* schema,
+std::vector<TypedFeatureFinder> CSVParser::Parse(const std::string& line, Schema* schema,
     DatumBase* datum) const {
+
+  std::vector<TypedFeatureFinder> not_found_features;
+
   if (header_position_ > 0) {
     header_position_--;
-    return;
+    return not_found_features;
   }
   LOG(INFO) << "parsing: " << line;
   char* ptr = nullptr, *endptr = nullptr;
@@ -69,8 +72,6 @@ void CSVParser::Parse(const std::string& line, Schema* schema,
   }
   // Where is kDefaultFamily
   const auto& family = schema->GetOrCreateFamily(kDefaultFamily);
-
-  std::vector<TypedFeatureFinder> not_found_features;
 
   // escape all blank char until reach first token
   while (std::isspace(*ptr) && ptr - myline.data() < myline.size()) ++ptr;
@@ -206,11 +207,7 @@ void CSVParser::Parse(const std::string& line, Schema* schema,
     feature_id++;
     LOG(INFO) << "feature_id: " << feature_id;
   }
-  if (not_found_features.size() > 0) {
-    TypedFeaturesNotFoundException e;
-    e.SetNotFoundTypedFeatures(std::move(not_found_features));
-    throw e;
-  }
+  return not_found_features;
 }
 
 } // namespace hotbox
