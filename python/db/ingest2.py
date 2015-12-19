@@ -9,7 +9,7 @@ import argparse
 project_dir = dirname(dirname(dirname(os.path.realpath(__file__))))
 sys.path.append(join(project_dir, 'python/db'))
 
-from hb_client import HBClient
+from hb_client_yuzhu import HBClient
 
 """
 Usage (Ingest one file):

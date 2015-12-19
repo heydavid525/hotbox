@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <cstddef>
+#include <algorithm>
 #include "parse/csv_parser.hpp"
 #include "schema/constants.hpp"
 
@@ -50,9 +51,11 @@ std::vector<TypedFeatureFinder> CSVParser::Parse(const std::string& line, Schema
   // this is wrong here, need to change according to label position
   float label;
   std::string myline(line);
+  std::replace(myline.begin(),myline.end(),'\t',',');
+  std::cout << "myline after replace: " << myline << std::endl;
 
   if (first_column_label_) {
-    label = strtof(line.data(), &endptr);
+    label = strtof(myline.data(), &endptr);
     std::cout << "label: " << label << std::endl;
     this->SetLabelAndWeight(schema, datum, label);
     ptr = endptr;
@@ -61,7 +64,7 @@ std::vector<TypedFeatureFinder> CSVParser::Parse(const std::string& line, Schema
     ++ptr;
   } else {
     std::size_t found = line.find_last_of(",");
-    label = strtof(line.substr(found+1).c_str(), NULL);
+    label = strtof(myline.substr(found+1).c_str(), NULL);
     // LOG(INFO) << "Myline before: " << myline;
     myline = myline.substr(0, found);
     this->SetLabelAndWeight(schema, datum, label);
@@ -148,13 +151,18 @@ std::vector<TypedFeatureFinder> CSVParser::Parse(const std::string& line, Schema
     char *conversionFlagNumerical;
     char *conversionFlagCategorical;
 
+
+    for (int i = 0;i < 10; i++) {
+      std::cout << "str_val[i]: " << str_val[i] << " ";
+    }
+
     float val = strtof(str_val, &conversionFlagNumerical);
     long catVal = strtol(str_val, &conversionFlagCategorical, 10);
 
-    // std::cout << "conversionFlagNumerical: "
-    // << *conversionFlagNumerical << '\t';
-    // std::cout << "conversionFlagCategorical: "
-    // << *conversionFlagCategorical << '\t';
+     std::cout << "conversionFlagNumerical: "
+     << *conversionFlagNumerical << '\t';
+     std::cout << "conversionFlagCategorical: "
+     << *conversionFlagCategorical << '\t';
 
     std::pair<Feature, bool> ret = family.GetFeatureNoExcept(feature_id);
     if (ret.second == false) {
@@ -179,6 +187,7 @@ std::vector<TypedFeatureFinder> CSVParser::Parse(const std::string& line, Schema
        }
       } else {
         // feature is string
+        LOG(INFO) << "feature is string.";
         int length;
         if (innerComma) {
           length = index - 2;
