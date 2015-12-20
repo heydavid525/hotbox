@@ -35,8 +35,8 @@ public:
             input_features.cbegin(), input_features.cend());
 
         const auto& input_features_desc = it->second.input_features_desc();
-        input_features_desc_[it->first] = std::vector<std::string>(
-            input_features_desc.cbegin(), input_features_desc.cend());
+        //input_features_desc_[it->first] = std::vector<std::string>(
+        //    input_features_desc.cbegin(), input_features_desc.cend());
       }
     }
 
@@ -151,17 +151,27 @@ private:
     }
   }
 
+  // Select all features in family 'family_name', which has to be simple
+  // family.
   void FamilyWideSelection(const Schema& schema,
       const std::string& family_name) {
-    // Family-wide selection.
     const auto& input_family = schema.GetFamily(family_name);
+    CHECK(input_family.IsSimple());
+    // Get the family offsets only for family-wide selection.
+    wide_family_offsets_[family_name] =
+      input_family.GetStoreTypeAndOffset();
+    // Just give empty vector for input_features_desc_ and input_features_.
+    input_features_[family_name] = std::vector<Feature>();
+    input_features_desc_[family_name] = std::vector<std::string>();
+    //  return;
+    /*
     const FeatureSeq& feature_seq = input_family.GetFeatures();
     std::vector<Feature> family_features(feature_seq.GetNumFeatures());
     for (int i = 0; i < feature_seq.GetNumFeatures(); ++i) {
       family_features[i] = feature_seq.GetFeature(i);
     }
     input_features_[family_name] = family_features;
-    //input_features_.append(family_features);
+    input_features_.append(family_features);
 
     std::vector<std::string> family_desc(feature_seq.GetNumFeatures());
     for (int i = 0; i < feature_seq.GetNumFeatures(); ++i) {
@@ -169,12 +179,7 @@ private:
           + std::to_string(i));
     }
     input_features_desc_[family_name] = family_desc;
-
-    // Get the family offsets only for family-wide selection.
-    if (schema.GetFamily(family_name).IsSimple()) {
-      wide_family_offsets_[family_name] =
-        input_family.GetStoreTypeAndOffset();
-    }
+    */
   }
 
   // FeatureFinder is the parsed results from input_features_str_, before
@@ -191,10 +196,13 @@ private:
 
 private:
   TransformConfig config_;
+
+  // For simple family-wide selection we elide the feature.
   std::map<std::string, std::vector<Feature>> input_features_;
 
   // family:feature_name or family:idx depending on how user specifies it. For
-  // family-wide selection it's always family:idx.
+  // simple family-wide selection it's empty vector (we elide feature name for
+  // efficiency).
   std::map<std::string, std::vector<std::string>> input_features_desc_;
 
   // Each wide-family using single store will be in this map.

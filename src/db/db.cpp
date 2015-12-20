@@ -305,22 +305,25 @@ SessionProto DB::CreateSession(const SessionOptionsProto& session_options) {
     const TransformConfig& config = configs.transform_configs(i);
 
     // Configure TransWriter.
+    TransformWriterConfig writer_config;
     auto output_family = config.base_config().output_family();
     if (output_family.empty()) {
       // Set default family name when output_family isn't set.
       output_family = kConfigCaseToTransformName[config.config_case()] +
         std::to_string(i);
     }
+    writer_config.set_output_family_name(output_family);
     // Create transform param before TransformWriter modifies trans_schema.
     LOG(INFO) << "Preparing transform params";
     TransformParam trans_param(trans_schema, config);
     LOG(INFO) << "Done preparing transform params";
 
-    FeatureStoreType store_type = config.base_config().output_store_type();
-    TransformWriter trans_writer(&trans_schema, output_family, store_type);
-
     std::unique_ptr<TransformIf> transform =
       registry.CreateObject(config.config_case());
+    transform->UpdateTransformWriterConfig(config, &writer_config);
+    // FeatureStoreType store_type = config.base_config().output_store_type();
+    TransformWriter trans_writer(&trans_schema, writer_config);
+
     LOG(INFO) << "Transforming schema...";
     transform->TransformSchema(trans_param, &trans_writer);
     LOG(INFO) << "Done transforming schema";

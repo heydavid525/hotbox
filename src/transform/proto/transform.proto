@@ -4,6 +4,13 @@ import "schema/proto/schema.proto";
 
 package hotbox;
 
+// Config for TransformWriter.
+message TransformWriterConfig {
+  string output_family_name = 1;
+  FeatureStoreType store_type = 2;
+  bool output_simple_family = 3;
+}
+
 // Features in each family and their descriptor strings.
 //
 // Comment(wdai): TransformFamilyFeatureProto should be nested under

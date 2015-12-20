@@ -10,13 +10,14 @@ class TransformWriter {
 public:
   // TransformWriter does not take ownership of schema. 'schema' must outlive
   // TransformWriter.
-  TransformWriter(Schema* schema, const std::string& output_family_name,
-      FeatureStoreType store_type = FeatureStoreType::OUTPUT) : schema_(schema),
-  store_type_(store_type) {
+  TransformWriter(Schema* schema, const TransformWriterConfig& config) :
+    schema_(schema), store_type_(config.store_type()) {
     InitializeOffset(&output_store_offset_begin_);
     InitializeOffset(&output_store_offset_end_);
-    output_family_ = &(schema_->GetOrCreateMutableFamily(output_family_name,
-        store_type_ == FeatureStoreType::OUTPUT));
+
+    output_family_ = &(schema_->GetOrCreateMutableFamily(
+        config.output_family_name(), store_type_ == FeatureStoreType::OUTPUT,
+        config.output_simple_family()));
   }
 
   // Add a feature to the storage type (default is OUTPUT, but could be
@@ -34,7 +35,8 @@ public:
   // Get the output range for each transform to be sent to client.
   TransformOutputRange GetTransformOutputRange() const {
     TransformOutputRange range;
-    range.set_store_offset_begin(output_store_offset_begin_.offsets(store_type_));
+    range.set_store_offset_begin(
+        output_store_offset_begin_.offsets(store_type_));
     range.set_store_offset_end(output_store_offset_end_.offsets(store_type_));
     range.set_store_type(store_type_);
     return range;

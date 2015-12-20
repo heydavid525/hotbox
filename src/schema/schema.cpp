@@ -229,34 +229,33 @@ void Schema::UpdateStoreOffset(Feature* new_feature, BigInt store_offset) {
 }
 
 OSchemaProto Schema::GetOSchemaProto() const {
-  BigInt output_feature_dim =
-    append_store_offset_.offsets(FeatureStoreType::OUTPUT);
-
   OSchemaProto proto;
-  proto.mutable_feature_names()->Reserve(output_feature_dim);
+  //proto.mutable_feature_names()->Reserve(output_feature_dim);
   proto.mutable_family_names()->Reserve(output_families_.size());
   proto.mutable_family_offsets()->Resize(output_families_.size(), 0);
+  proto.mutable_feature_name_offsets()->Resize(output_families_.size(), 0);
 
-  BigInt curr_feature_id = 0;
   for (int i = 0; i < output_families_.size(); ++i) {
     const FeatureFamily& family = GetFamily(output_families_[i]);
+    proto.add_family_names(family.GetFamilyName());
+    proto.set_feature_name_offsets(i, proto.feature_names_size());
+    if (family.IsSimple()) {
+      proto.add_is_simple_family(true);
+      StoreTypeAndOffset offset = family.GetStoreTypeAndOffset();
+      proto.set_family_offsets(i, offset.offset_begin());
+      continue;
+    }
     const auto& feature_seq = family.GetFeatures();
     CHECK_GT(feature_seq.GetNumFeatures(), 0);
 
     // We assume output feature family's features are added in ascending
     // order, so the offset of first feature is the family offset.
     BigInt family_offset = feature_seq.GetFeature(0).store_offset();
-    proto.add_family_names(family.GetFamilyName());
+    proto.add_is_simple_family(false);
     proto.set_family_offsets(i, family_offset);
-    CHECK_EQ(curr_feature_id, family_offset);
     for (int j = 0; j < feature_seq.GetNumFeatures(); ++j) {
       const auto& f = feature_seq.GetFeature(j);
       proto.add_feature_names(f.name());
-
-      // Verify that feature offset matches the location of the feature's name
-      // in OSchemaProto feature_names.  OUTPUT features in each family
-      // should be added in exactly this order.
-      CHECK_EQ(f.store_offset(), curr_feature_id++) << f.name();
     }
   }
   return proto;

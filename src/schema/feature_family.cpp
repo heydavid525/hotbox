@@ -68,6 +68,8 @@ Feature& FeatureFamily::GetMutableFeature(BigInt family_idx) {
 }
 
 FeatureSeq FeatureFamily::GetFeatures() const {
+  CHECK(!simple_family_);
+  /*
   if (simple_family_) {
     auto store_type = GetStoreTypeAndOffset().store_type();
     BigInt num_features_all = offset_end_.offsets(store_type) -
@@ -86,6 +88,7 @@ FeatureSeq FeatureFamily::GetFeatures() const {
     }
     return FeatureSeq(fill_in_features, idx);
   }
+  */
 
   // Remove uninitialized features (which have global_idx_ = -1).
   std::vector<BigInt> compact_idx;
@@ -134,6 +137,7 @@ void FeatureFamily::AddFeature(const Feature& new_feature, BigInt family_idx) {
     << family_idx << " in " << family_name_ << " is already initialized.";
   UpdateOffsets(new_feature);
   global_idx_[family_idx] = new_feature.global_offset();
+  //LOG(INFO) << "Added feature id " << family_idx << " family name: " << family_name_ << " output offset_end: " << offset_end_.offsets(FeatureStoreType::OUTPUT);
   const auto& feature_name = new_feature.name();
   if (!feature_name.empty()) {
     const auto& r =
@@ -222,7 +226,9 @@ StoreTypeAndOffset FeatureFamily::GetStoreTypeAndOffset() const {
       return store_type_offset;
     }
   }
-  LOG(FATAL) << "Should not get here";
+  LOG(FATAL) << "Should not get here. Family name: " << family_name_
+    << " offset_begin_: " << offset_begin_.DebugString()
+    << " offset_end_: " << offset_end_.DebugString();
   return store_type_offset;
 }
 
