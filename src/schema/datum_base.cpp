@@ -130,14 +130,14 @@ void DatumBase::SetFeatureValString(const Feature& f,const  char* str, int lengt
     BigInt offset = f.store_offset();
     switch (f.store_type()) {
       case FeatureStoreType::DENSE_BYTES:
-      SetDenseStrFeatureVal(offset, str, length);
-      return;
+        SetDenseStrFeatureVal(offset, str, length);
+        return;
       case FeatureStoreType::SPARSE_BYTES:
-      SetSparseStrFeatureVal(offset, str, length);
-      return;
-      
-      default:
-      LOG(FATAL) << "Unrecognized store_type: " << f.store_type();
+        SetSparseStrFeatureVal(offset, str, length);
+        return;
+
+        default:
+        LOG(FATAL) << "Unrecognized store_type: " << f.store_type();
     }
 }
   
