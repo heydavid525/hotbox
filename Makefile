@@ -124,7 +124,9 @@ proto: $(PROTO_HDRS)
 #py_hb_client: $(HB_LIB)
 #	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(LDFLAGS) -shared -Wl,--export-dynamic $(PY_CLIENT_SRC) -L./build/lib -lhotbox -lboost_python -L/usr/lib/python2.7/config -lpython2.7 -o py_hb_client.so
 spark_exp_server: experiment/spark_exp/server/server.cpp $(HB_LIB)
-	$(CXX) $(CXXFLAGS) $(INCFLAGS) experiment/spark_exp/server/server.cpp $(HB_LIB) $(LDFLAGS) -o spark_exp_server
+	$(CXX) $(CXXFLAGS) $(INCFLAGS) experiment/spark_exp/server/server.cpp $(HB_LIB) $(LDFLAGS) -lboost_thread -o spark_exp_server
+spark_streaming_server: experiment/spark_exp/server/stream_server.cpp $(HB_LIB)
+	$(CXX) $(CXXFLAGS) $(INCFLAGS) experiment/spark_exp/server/stream_server.cpp $(HB_LIB) $(LDFLAGS) -o spark_streaming_server
 
 hotbox_lib: path proto $(HB_LIB) 
 
