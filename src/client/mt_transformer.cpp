@@ -21,9 +21,15 @@ MTTransformer::MTTransformer(const SessionProto &session_proto,
   data_begin_(data_begin), data_end_(data_end),
   datum_ids_(session_proto_.file_map().datum_ids().cbegin(),
              session_proto_.file_map().datum_ids().cend()),
-  global_bytes_offsets_(
-            session_proto_.file_map().global_bytes_offsets().cbegin(),
-            session_proto_.file_map().global_bytes_offsets().cend()) {
+             global_bytes_offsets_(
+              session_proto_.file_map().global_bytes_offsets().size() + 1) {
+  // datum_ids does not contain num_data, just put it in for convenience
+  // global_bytes_offsets does not start from 0, just put 0 in the beginning
+  datum_ids_.push_back(session_proto_.file_map().num_data());
+  global_bytes_offsets_[0] = (0);
+  std::copy(session_proto_.file_map().global_bytes_offsets().cbegin(),
+            session_proto_.file_map().global_bytes_offsets().cend(),
+            global_bytes_offsets_.begin() + 1);
   Start();
 }
 
@@ -45,9 +51,6 @@ void MTTransformer::IoTaskLoop() {
       iotask = std::move(io_queue_.front());
       io_queue_.pop();
     }
-
-    //LOG(INFO) << "IoTaskLoop " << std::this_thread::get_id() << " read file ["
-    //          << iotask.file_begin << ", " << iotask.file_end << ")";
     // read buffer
     auto file_size = kAtomSizeInBytes;
     auto atom_id_begin = iotask.file_begin / file_size;
@@ -83,23 +86,20 @@ void MTTransformer::IoTaskLoop() {
     std::shared_ptr<std::string> shared_buf(content);
     {
       std::lock_guard<std::mutex> lock(tf_mtx_);
-      auto offset = 0;
       for (auto idx = iotask.global_bytes_offsets_begin;
-          idx <= iotask.global_bytes_offsets_end;
+          idx < iotask.global_bytes_offsets_end;
           idx++) {
         TfTask task;
         task.shared_buf = shared_buf;
         task.idx = idx;
-        task.offset = offset;
-        task.length = global_bytes_offsets_[idx] - iotask.file_begin - offset;
-        offset = global_bytes_offsets_[idx] - iotask.file_begin;
-
+        task.offset = global_bytes_offsets_[idx] - iotask.file_begin;
+        task.length = global_bytes_offsets_[idx + 1]
+          - global_bytes_offsets_[idx];
         tf_queue_.push(task);
         tf_size_++;
       }
     }
     tf_cv_.notify_all();
-
     {
       // speed limit
       std::unique_lock<std::mutex> lock(io_wait_mtx_);
@@ -137,14 +137,13 @@ void MTTransformer::TransformTaskLoop() {
       io_wait_cv_.notify_one();
     // decompress buffer
     std::string content = DecompressString(
-        task.shared_buf.get()->c_str() + task.offset,
+        task.shared_buf->c_str() + task.offset,
         task.length,
         session_proto_.compressor());
     // deserialize buffer
     DBAtom atom_proto = StreamDeserialize<DBAtom>(
         task.shared_buf.get()->c_str() + task.offset, task.length);
-    //atom_proto.ParseFromString(content);
-
+    // atom_proto.ParseFromString(content);
     FeatureFamily internal_family(session_proto_.internal_family_proto());
     auto output_store_type = session_proto_.output_store_type();
     auto output_dim = session_proto_.output_dim();
@@ -153,11 +152,11 @@ void MTTransformer::TransformTaskLoop() {
     BigInt datum_begin, datum_end, datum_base;
     datum_begin = datum_ids_[task.idx];
     datum_end = datum_ids_[task.idx + 1];
-    datum_base = datum_begin;
     if (datum_begin < data_begin_)
       datum_begin = data_begin_;
-    if (datum_end > data_end_ || datum_end == 0)
+    if (datum_end > data_end_)
       datum_end = data_end_;
+    datum_base = datum_begin;
     datum_begin -= datum_base;
     datum_end -= datum_base;
     std::vector<FlexiDatum> *vec = new std::vector<FlexiDatum>(
@@ -181,7 +180,6 @@ void MTTransformer::TransformTaskLoop() {
       // vec->push_back(std::move(trans_datum.GetFlexiDatum()));
       (*vec)[i - datum_begin] = std::move(trans_datum.GetFlexiDatum());
     }
-
     // push vec to bt_queue
     {
       std::lock_guard<std::mutex> lock(bt_mtx_);
@@ -264,26 +262,17 @@ MTTransformer::Translate(BigInt data_begin, BigInt data_end) {
       data_end);
   auto global_bytes_offsets_begin = low - datum_ids_.cbegin() - 1;
   auto global_bytes_offsets_end = high - datum_ids_.cbegin() - 1;
-  BigInt file_begin = 0;
-  // remember global_bytes_offsets_[0] not zero while datum_ids_[0] is!
-  if (data_begin < global_bytes_offsets_[global_bytes_offsets_begin]) {
-    if (global_bytes_offsets_begin == 0)
-      file_begin = 0;
-    else
-      file_begin = global_bytes_offsets_[global_bytes_offsets_begin - 1];
-  } else {
-    file_begin = global_bytes_offsets_[global_bytes_offsets_begin];
-  }
+
+  auto file_begin = global_bytes_offsets_[global_bytes_offsets_begin];
   auto file_end = global_bytes_offsets_[global_bytes_offsets_end];
-  // LOG(INFO) << "File range [" << file_begin << ", " << file_end << ")";
   auto file_size = kAtomSizeInBytes;
   auto global_bytes_offsets_index = global_bytes_offsets_begin;
-  for (auto offset = file_begin; offset < file_end; global_bytes_offsets_index++) {
+  for (auto offset = file_begin; offset < file_end;) {
     IoTask task;
     task.file_begin = offset;
     task.global_bytes_offsets_begin = global_bytes_offsets_index;
     offset += file_size - offset % file_size;
-    auto upper = std::lower_bound(global_bytes_offsets_.cbegin(),
+    auto upper = std::upper_bound(global_bytes_offsets_.cbegin(),
         global_bytes_offsets_.cend(), offset);
     if (upper == global_bytes_offsets_.cend())
       upper--;
@@ -298,8 +287,8 @@ MTTransformer::Translate(BigInt data_begin, BigInt data_end) {
     io_queue_.push(task);
   }
 
-  total_tf_tasks_ = global_bytes_offsets_end - global_bytes_offsets_begin + 1;
-  total_batches_ = global_bytes_offsets_end - global_bytes_offsets_begin + 1;
+  total_tf_tasks_ = global_bytes_offsets_end - global_bytes_offsets_begin;
+  total_batches_ = global_bytes_offsets_end - global_bytes_offsets_begin;
 
   // LOG(INFO) << "Total Buffers :" << total_tf_tasks_;
   LOG(INFO) << "Total Batches :" << total_batches_;
