@@ -135,11 +135,13 @@ void MTTransformer::TransformTaskLoop() {
     }
     if (tf_size_ < tf_limit_)
       io_wait_cv_.notify_one();
+    /*
     // decompress buffer
     std::string content = DecompressString(
         task.shared_buf->c_str() + task.offset,
         task.length,
         session_proto_.compressor());
+    */
     // deserialize buffer
     DBAtom atom_proto = StreamDeserialize<DBAtom>(
         task.shared_buf.get()->c_str() + task.offset, task.length);
@@ -261,8 +263,11 @@ MTTransformer::Translate(BigInt data_begin, BigInt data_end) {
   auto high = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(),
       data_end);
   auto global_bytes_offsets_begin = low - datum_ids_.cbegin() - 1;
-  auto global_bytes_offsets_end = high - datum_ids_.cbegin() - 1;
-
+  BigInt global_bytes_offsets_end;
+  if (high == datum_ids_.cend())
+    global_bytes_offsets_end = high - datum_ids_.cbegin() - 1;
+  else
+    global_bytes_offsets_end = high - datum_ids_.cbegin();
   auto file_begin = global_bytes_offsets_[global_bytes_offsets_begin];
   auto file_end = global_bytes_offsets_[global_bytes_offsets_end];
   auto file_size = kAtomSizeInBytes;
