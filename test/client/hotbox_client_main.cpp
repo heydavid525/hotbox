@@ -21,6 +21,7 @@ int main(int argc, char *argv[]) {
   hotbox::Session session = hb_client.CreateSession(session_options);
   CHECK(session.GetStatus().IsOk());
   hotbox::OSchema o_schema = session.GetOSchema();
+  LOG(INFO) << "output dim: " << o_schema.GetDimension();
   LOG(INFO) << "OSchema: " << o_schema.ToString();
   auto p = o_schema.GetName(4);
   LOG(INFO) << "o_schema(4): family: " << p.first << " feature_name: "

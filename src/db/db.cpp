@@ -26,7 +26,8 @@ const int kFeatureBatchSize = 1e6;
 
 }  // anonymous namespace
 
-DB::DB(const std::string& db_path) : meta_db_(db_path + kDBMeta) {
+DB::DB(const std::string& db_path_meta) :
+  meta_db_(db_path_meta + kDBMeta) {
   std::string db_proto_str = meta_db_.Get(kDBProto);
   LOG(INFO) << "Get Key (" << kDBProto << ") from DB ("
     << meta_db_.GetName() << ")";
@@ -90,7 +91,7 @@ DB::DB(const std::string& db_path) : meta_db_(db_path + kDBMeta) {
 }
 
 DB::DB(const DBConfig& config) : schema_(new Schema(config.schema_config())),
-meta_db_(config.db_dir() + kDBMeta) {
+meta_db_(config.db_dir_meta() + kDBMeta) {
   auto db_config = meta_data_.mutable_db_config();
   *db_config = config;
 

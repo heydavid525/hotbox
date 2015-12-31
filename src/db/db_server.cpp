@@ -15,12 +15,14 @@ const std::string kDBRootFile = "/DB_root_file";
 
 }  // anonymous namespace
 
-DBServer::DBServer(const DBServerConfig& config) : db_dir_(config.db_dir()) { }
+DBServer::DBServer(const DBServerConfig& config) : db_dir_(config.db_dir()),
+  db_dir_meta_(config.db_dir_meta().empty() ? db_dir_ : config.db_dir_meta()) { }
 
 void DBServer::Start() {
 
   Init();
-  LOG(INFO) << "DBServer running. DB path is " << db_dir_;
+  LOG(INFO) << "DBServer running. DB path is " << db_dir_ << " meta dir: "
+    << db_dir_meta_;
 
   while (true) {
     int client_id;
@@ -53,6 +55,7 @@ void DBServer::Start() {
 
 void DBServer::Init() {
   CreateDirectory(db_dir_);
+  CreateDirectory(db_dir_meta_);
   RegisterAll();
   InitFromDBRootFile();
 }
@@ -71,9 +74,10 @@ void DBServer::InitFromDBRootFile() {
   std::stringstream ss;
   for (int i = 0; i < db_root.db_names_size(); ++i) {
     std::string db_name = db_root.db_names(i);
-    std::string db_path = db_dir_ + "/" + db_name;
-    LOG(INFO) << "Load DB File (" << db_path << ").";
-    dbs_[db_name] = make_unique<DB>(db_path);
+    //std::string db_path = db_dir_ + "/" + db_name;
+    std::string db_path_meta = db_dir_meta_ + "/" + db_name;
+    LOG(INFO) << "Load DB MetaFile (" << db_path_meta << ")";
+    dbs_[db_name] = make_unique<DB>(db_path_meta);
     ss << db_name << std::endl;
   }
   LOG(INFO) << "DBServer initialized from " << db_root_file_path
@@ -110,10 +114,12 @@ void DBServer::CreateDBReqHandler(int client_id, const CreateDBReq& req) {
   // Append db name to db_dir_.
   auto db_config = req.db_config();
   auto db_path = db_dir_ + "/" + db_config.db_name();
+  auto db_path_meta = db_dir_meta_ + "/" + db_config.db_name();
   CreateDirectory(db_path);
+  CreateDirectory(db_path_meta);
 
   db_config.set_db_dir(db_path);
-  //db_config.set_db_dir(db_path.string());
+  db_config.set_db_dir_meta(db_path_meta);
   const auto it = dbs_.find(db_config.db_name());
   std::string msg;
   if (it == dbs_.cend()) {

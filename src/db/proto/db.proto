@@ -89,7 +89,9 @@ enum StorageType {
 
 message DBServerConfig {
   string db_dir = 1;
-  //WarpServerConfig warp_server_config = 2;
+
+  // If set, meta file (in RocksDB) will be stored here instead of db_dir.
+  string db_dir_meta = 2;
 }
 
 message DBConfig {
@@ -106,6 +108,9 @@ message DBConfig {
   // All DB info will be stored under this directory. This parameter should be
   // set by DBServer, which knows the DB root dir.
   string db_dir = 4;
+
+  // If set, meta file (in RocksDB) will be stored here instead of db_dir.
+  string db_dir_meta = 6;
 }
 
 // FileMap maps datum_id to file (atom_id). This is indepedent from the epoch

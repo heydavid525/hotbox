@@ -15,6 +15,11 @@ int main(int argc, char *argv[]) {
   LOG(INFO) << "db_test_bed_dir: "  << db_test_bed_dir;
   server_config.set_db_dir(db_test_bed_dir);
 
+  std::string db_test_bed_dir_meta = hotbox::GetTestBedDir()
+    + "/test_db_root_meta";
+  LOG(INFO) << "db_test_bed_dir_meta: "  << db_test_bed_dir_meta;
+  server_config.set_db_dir_meta(db_test_bed_dir_meta);
+
   hotbox::DBServer db_server(server_config);
   db_server.Start();
 

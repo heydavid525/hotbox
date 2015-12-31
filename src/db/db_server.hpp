@@ -52,7 +52,11 @@ private:
   void CloseSessionHandler(int client_id, const CloseSessionReq& req);
 
 private:
-  std::string db_dir_;
+  // Atom files are stored under db_dir_.
+  const std::string db_dir_;
+
+  // Meta files (in RocksDB) are stored under db_dir_meta_.
+  const std::string db_dir_meta_;
 
   WarpServer server_;
 

@@ -31,7 +31,7 @@ private:
 class DB : private boost::noncopyable {
 public:
   // Initialize DB from db_path/DBFile which contains serialized DBProto.
-  DB(const std::string& db_path);
+  DB(const std::string& db_path_meta);
 
   DB(const DBConfig& config);
 
