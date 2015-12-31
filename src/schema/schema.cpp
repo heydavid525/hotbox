@@ -235,6 +235,7 @@ OSchemaProto Schema::GetOSchemaProto() const {
   proto.mutable_family_offsets()->Resize(output_families_.size(), 0);
   proto.mutable_feature_name_offsets()->Resize(output_families_.size(), 0);
 
+  BigInt output_dim = 0;
   for (int i = 0; i < output_families_.size(); ++i) {
     const FeatureFamily& family = GetFamily(output_families_[i]);
     proto.add_family_names(family.GetFamilyName());
@@ -243,10 +244,12 @@ OSchemaProto Schema::GetOSchemaProto() const {
       proto.add_is_simple_family(true);
       StoreTypeAndOffset offset = family.GetStoreTypeAndOffset();
       proto.set_family_offsets(i, offset.offset_begin());
+      output_dim += offset.offset_end() - offset.offset_begin();
       continue;
     }
     const auto& feature_seq = family.GetFeatures();
     CHECK_GT(feature_seq.GetNumFeatures(), 0);
+    output_dim += feature_seq.GetNumFeatures();
 
     // We assume output feature family's features are added in ascending
     // order, so the offset of first feature is the family offset.
@@ -258,6 +261,7 @@ OSchemaProto Schema::GetOSchemaProto() const {
       proto.add_feature_names(f.name());
     }
   }
+  proto.set_output_dim(output_dim);
   return proto;
 }
 

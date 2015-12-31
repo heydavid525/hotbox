@@ -273,4 +273,5 @@ message OSchemaProto {
   repeated int64 feature_name_offsets = 3;
   repeated int64 family_offsets = 4;
   repeated bool is_simple_family = 5;
+  int64 output_dim = 6;
 }

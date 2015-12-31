@@ -20,7 +20,7 @@ std::pair<std::string,std::string> OSchema::GetName(BigInt feature_id) const {
 }
 
 int64_t OSchema::GetDimension() const {
-  return proto_.feature_names_size();
+  return proto_.output_dim();
 }
 
 std::string OSchema::ToString() const {

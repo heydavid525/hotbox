@@ -2,9 +2,12 @@
 
 #include <yaml-cpp/yaml.h>
 #include <glog/logging.h>
+#include <gflags/gflags.h>
 #include <string>
 #include "util/file_util.hpp"
 #include <map>
+
+DECLARE_string(hb_config_path);
 
 namespace hotbox {
 
@@ -12,13 +15,15 @@ namespace hotbox {
 // default output family name). Initialized in util/register.cpp
 extern std::map<int, std::string> kConfigCaseToTransformName;
 
+/*
 namespace {
 
-const std::string kConfigPath = 
+const std::string FLAGS_config_path = 
   io::ParentPath(io::ParentPath(
       io::Path(__FILE__))).append("/config.yaml");
 
 }  // anonymous namespace
+*/
 
 class GlobalConfig {
 public:
@@ -38,6 +43,7 @@ private:
 
 private:
   YAML::Node config_;
+  std::string config_path_;
 };
 
 template<typename V>
@@ -46,7 +52,7 @@ V GlobalConfig::Get(const std::string& key, bool* found) const {
     *found = config_[key];
     return *found ? config_[key].as<V>() : 0;
   }
-  CHECK(config_[key]) << key << " nout found in " << kConfigPath;
+  CHECK(config_[key]) << key << " nout found in " << config_path_;
   return config_[key].as<V>();
 }
 
