@@ -16,6 +16,7 @@ env_params = (
   )
 
 params = {
+    #"transform_config": "select_transform.conf"
     "transform_config": "select_all.conf"
     }
 

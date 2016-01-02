@@ -44,6 +44,7 @@ pip install python-snappy
 Otherwise you need to provide appropriate flags pointing to the third_party
 path you built, like
 ```
+# Change the include and library path to your actual third party paths
 CPPFLAGS="-I/home/wdai/lib/third_party/include
 -L/home/wdai/lib/third_party/lib" pip install python-snappy
 ```
