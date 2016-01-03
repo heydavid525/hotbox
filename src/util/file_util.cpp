@@ -9,6 +9,8 @@
 
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 
+#include <io/general_fstream.hpp>
+
 namespace hotbox {
 namespace io {
 
@@ -26,10 +28,14 @@ std::unique_ptr<dmlc::SeekStream> OpenFileStream(
 // Implementation using zero_copy_stream_impl of protobuf.
 std::string ReadCompressedFile(const std::string& file_path,
   Compressor compressor, int32_t read_offset, size_t len) {
+  {
   // sk is a smart pointer. We do own the SeekStream pointer.
-  auto sk = OpenFileStream(file_path.c_str());  
+  // auto sk = OpenFileStream(file_path.c_str()); 
   // dmlc::istream does not own the pointer.
-  dmlc::istream in(sk.get());
+  // dmlc::istream in(sk.get());
+  } 
+  petuum::io::ifstream in(file_path, std::ifstream::binary);
+  CHECK(in) << "Failed to open " << file_path;
   // By default, read the whole file.
   if (len == 0) {
     len = GetFileSize(file_path);
