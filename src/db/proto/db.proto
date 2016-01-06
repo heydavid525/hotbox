@@ -1,0 +1,225 @@
+syntax = "proto3";
+
+import "util/proto/util.proto";
+import "schema/proto/schema.proto";
+import "transform/proto/transform.proto";
+
+package hotbox;
+
+// Track stats starting from an epoch. Each DB has at least one
+// StatProto starting from the beginning of DB.
+//
+// Current max proto sequence: 2.
+message StatProto {
+  // Comment (yuwr:) This should be a schema index? We might have many
+  // schemas, each schema could have many versions.  Each epoch would
+  // correspond to a schema, but not vice versa, hence the index.
+  //
+  // Comment (wdai): Since schema really is just the mapping from "mobile:ctr"
+  // feature descriptor to the feature id, I feel that this only needs to
+  // change when (1) user changes schema explicitly, or (2) we change the
+  // internal descriptor to feature_id mapping. I feel (2) could be too costly
+  // to do and thus we only needs one version id.
+
+  // uint32 schema_id = 1;
+  //uint32 schema_version = 1;   // for schema evolution (future work).
+
+  // # data in this epoch.
+  uint64 num_data = 1;
+
+  // The beginning epoch for the stat.
+  uint32 epoch_begin = 3;
+
+  // # of FeatureStatProtoSegment. This must be set when committing to disk.
+  int32 num_segments = 5;
+
+  // # of stats. Must be set when committing to disk.
+  int64 num_stats = 6;
+
+  // Should have the same # of features as in schema.
+  repeated FeatureStatProto stats = 2;
+
+  repeated bool initialized = 4;
+}
+
+// A sequence of stats starting from feature id_begin. This breaks up
+// StatProto::stats when committing to disk to avoid hitting proto
+// message size limit 64MB.
+message FeatureStatProtoSegment {
+  uint64 id_begin = 1;
+  repeated FeatureStatProto stats = 2;
+  repeated bool initialized = 3;
+}
+
+/*
+// File is assumed to be stored in file chunks of a user defined fixed size (e.g. HDFS).
+// Each file contains a number of data records.
+// (The record would start with a length descriptor (4 bytes) used to segment each compressed record.
+// This is taken care of by the underlying storage interface.)
+message FileInfo {
+  string filepath = 1;
+  string filename = 2;
+  uint32 filesize = 3; // in Bytes
+
+  // timestamp in unix time of seconds.
+  uint64 creationtime = 4;
+  // # data records in the file 
+  uint64 num_data = 5;
+  // use datum# to locate its physical position on the file
+  // e.g. If you have a 64MB file, you can add a few indices 
+  // by the size of 4MB, to reduce sequential seek burden.
+  // Comment(wdai): Let's not worry about this yet. Sequential read of 64MB
+  // files are okay.
+  //repeated map<uint64, uint64> data_idx= 6;
+  Compressor compression_method = 7;
+}
+
+// Comment(wdai): Could you (Weiren) provide some comments explaining the use
+// of these fields? Thanks!
+message FileMap {
+  int32 file_map_id = 1;
+  repeated FileInfo files_info = 2;
+}
+
+enum StorageType {
+  NFS = 0;
+  HDFS = 1;
+}
+*/
+
+message DBServerConfig {
+  string db_dir = 1;
+
+  // If set, meta file (in RocksDB) will be stored here instead of db_dir.
+  string db_dir_meta = 2;
+}
+
+message DBConfig {
+  // Basic information about DB.
+  string db_name = 1;
+  string db_description = 2;
+  //StorageType storage_type = 3;
+  SchemaConfig schema_config = 3;
+
+  // All DB atom files are compressed by this compression mode. Default to
+  // Compressr::SNAPPY.
+  Compressor compressor = 5;
+
+  // All DB info will be stored under this directory. This parameter should be
+  // set by DBServer, which knows the DB root dir.
+  string db_dir = 4;
+
+  // If set, meta file (in RocksDB) will be stored here instead of db_dir.
+  string db_dir_meta = 6;
+}
+
+// FileMap maps datum_id to file (atom_id). This is indepedent from the epoch
+// mapping (epoch maps from epoch to datum_id).
+message FileMap {
+  // Full path is atom_path + atom_id.
+  string atom_path = 3;
+  // global data offset in bytes, e.g. 64MB file limit and a atom in Atom.X
+  // The global_bytes_offsets = X * 64MB + offset_in_file.
+  repeated int64 global_bytes_offsets = 4;
+  //repeated int64 data_idx = 4;
+  // datum range corresponding to data offset range. 
+  // [data_idx(i), data_idx(i+1)) <-> [datum_id(i), datum_id(i+1))
+  repeated int64 datum_ids = 1;
+  // Total # of data 
+  int64 num_data = 2;
+}
+
+message DBMetaData {
+  DBConfig db_config = 1;
+
+  uint32 num_epoch = 5;
+  //uint32 num_schema = 6; // could be retrieved from schema_id.size();
+
+  // Database Creation Timestamp (linux time stamp).
+  uint64 creation_time = 8;
+
+  // We'll perform runtime check to ensure that 64-bit indexed DB is not read
+  // by 32-bit index system.
+  FeatureIndexType feature_index_type = 2;
+
+  // Mapping datum to atom file.
+  FileMap file_map = 6;
+}
+
+// Each atom file is a DBAtom message. Kind of like page in DB.
+message DBAtom {
+  // Store serialized DatumProe
+  repeated DatumProto datum_protos = 1;
+}
+
+// All DB info except atom files.
+message DBProto {
+  DBMetaData meta_data = 1;
+  // SchemaProto schema_proto = 2;
+
+  // Multiple epoch_stats starting from various epoch.
+  // repeated StatProto stats = 3;
+}
+
+// This file is saved at the root of a db_dir for finding all the DB under a
+// DBServer.
+//
+// Comment(wdai): DB in Hotbox is more like Table in SQL.
+// TODO(wdai): Remove this as we use RocksDB.
+message DBRootFile {
+  repeated string db_names = 1;
+}
+
+message TransformOutputRange {
+  // Transform writes to [offset_begin, offset_end) on store_type.
+  int64 store_offset_begin = 1;
+  int64 store_offset_end = 2;
+  FeatureStoreType store_type = 3;
+}
+
+message SessionOptionsProto {
+  string db_name = 1;
+  string session_id = 2;
+
+  TransformConfigList transform_config_list = 3;
+
+  OutputStoreType output_store_type = 4;
+
+  // TODO(wdai)
+  //int64 max_examples = 3;
+  //double subsample_rate = 4;
+}
+
+// ServerSession generally stores bookkeepping data from schema transforms
+// so that new client's request to join the same session doesn't need to incur
+// another schema transform.
+message SessionProto {
+  string session_id = 1;
+  repeated TransformParamProto trans_params = 6;
+
+  repeated TransformOutputRange transform_output_ranges = 2;
+  OSchemaProto o_schema = 3;
+  // Need internal family to access label and weight.
+  SelfContainedFeatureFamilyProto internal_family_proto = 7;
+
+  // All DB atom files are compressed by this compression mode. Default to
+  // Compressr::SNAPPY.
+  Compressor compressor = 4;
+
+  // Mapping datum to atom file.
+  FileMap file_map = 5;
+
+  OutputStoreType output_store_type = 8;
+
+  int64 output_dim = 9;
+}
+
+/*
+message SessionProto {
+  repeated TransformParamProto transform_params = 2;
+}
+*/
+
+// TODO(wdai): Define TSchema (TransformedSchema) that contains stats about
+// each transformed column (e.g., estimated # of nonzeros, storage type,
+// feature dim) so trainer and optimize based on these info.

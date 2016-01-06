@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package hotbox;
+
+// We check all numerical fields in the raw feature and check against
+// respective quantiles.
+message OutlierExclusionSelector {
+  int32 quantile_lower_bound = 1;
+  int32 quantile_upper_bound = 2;
+}
+
+message UniformSubsampleSelector {
+  double sample_rate = 1;
+}
+
+// Select range data (based on ingest time) down to minute granularity. There
+// must not be any schema evolution during the selected range (runtime
+// exception).
+message TimeRangeSelector {
+  // Use SQL timestamp string format: YYYY-MM-DD [HH:MI], where hours and
+  // minutes are optional. E.g., "2015-07-25" reads from the beginning of that
+  // day. "2015-07-25 14:00" reads from 2pm that day. Empty string means from
+  // the beginning of DB creation.
+  string timestamp_begin = 1;
+
+  // Same format as timestamp_begin. Empty string means up to current time
+  // (latest epoch).
+  string timestamp_end = 2;
+}

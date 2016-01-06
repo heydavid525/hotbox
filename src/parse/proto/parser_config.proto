@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package hotbox;
+
+message ParserConfig {
+  oneof config {
+    LibSVMParserConfig libsvm_config = 1;
+  }
+}
+
+message LibSVMParserConfig {
+  // True if feature indices starts from 1.
+  bool feature_one_based = 1;
+
+  // True if label indices starts from 1.
+  bool label_one_based = 2;
+}

@@ -1,0 +1,4 @@
+# Only use 'key: value' pairs, one per line. No sequence nor general yaml
+# syntax. Comments are okay.
+server_ip: localhost
+server_port: 19857
