@@ -28,8 +28,9 @@ int main(int argc, char *argv[]) {
                            << p.second;
   int i = 0;
   hotbox::Timer timer;
-  for (hotbox::DataIterator it = session.NewDataIterator(); it.HasNext();
-      it.Next()) {
+  // Test move constructor of DataIterator.
+  hotbox::DataIterator iter = session.NewDataIterator();
+  for (hotbox::DataIterator it = std::move(iter); it.HasNext(); it.Next()) {
     hotbox::FlexiDatum datum = it.GetDatum();
     //LOG(INFO) << datum.ToString();
     i++;
