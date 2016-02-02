@@ -22,9 +22,12 @@ int main(int argc, char *argv[]) {
   CHECK(session.GetStatus().IsOk());
   hotbox::OSchema o_schema = session.GetOSchema();
   LOG(INFO) << "output dim: " << o_schema.GetDimension();
-  LOG(INFO) << "OSchema: " << o_schema.ToString();
+  //LOG(INFO) << "OSchema: " << o_schema.ToString();
   auto p = o_schema.GetName(4);
   LOG(INFO) << "o_schema(4): family: " << p.first << " feature_name: "
+                           << p.second;
+  p = o_schema.GetName(3231962);
+  LOG(INFO) << "o_schema(3231962): family: " << p.first << " feature_name: "
                            << p.second;
   int i = 0;
   hotbox::Timer timer;
@@ -32,7 +35,7 @@ int main(int argc, char *argv[]) {
   hotbox::DataIterator iter = session.NewDataIterator();
   for (hotbox::DataIterator it = std::move(iter); it.HasNext(); it.Next()) {
     hotbox::FlexiDatum datum = it.GetDatum();
-    //LOG(INFO) << datum.ToString();
+    LOG(INFO) << datum.ToString();
     i++;
   }
   LOG(INFO) << "Read " << i << " data. Time: " << timer.elapsed();
