@@ -1,7 +1,0 @@
-syntax = "proto3";
-
-package hotbox;
-
-message FloatContainer {
-  repeated float values = 1;
-}

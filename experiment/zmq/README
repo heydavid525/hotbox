@@ -1,5 +1,0 @@
-g++ Server.c -o server -lzmq
-g++ Client.c -o client -lzmq
-
-Start the server, then the client.
-Then kill the client while the server is waiting.
