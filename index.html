@@ -9,7 +9,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Creative - Start Bootstrap Theme</title>
+    <title>Hotbox</title>
 
     <!-- Bootstrap Core CSS -->
     <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css">
@@ -49,7 +49,11 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand page-scroll" href="#page-top">Hotbox</a>
+                <a href="http://petuum.org">
+                <img class="navbar-brand" src="img/petuum_logo.png">
+                </a>
+                <a class="navbar-brand page-scroll" href="#page-top">
+                Hotbox</a>
             </div>
 
             <!-- Collect the nav links, forms, and other content for toggling -->
@@ -71,6 +75,9 @@
     <header>
         <div class="header-content">
             <div class="header-content-inner">
+                <!--<div align="left">
+                <img class="small-logo" src="img/petuum_logo.png" alt="petuum">
+                </div>-->
                 <h1>Hotbox</h1>
                 <hr>
                 <img class="logo" src="img/logo.svg" alt="hotbox">
@@ -115,6 +122,51 @@ In addition, Hotbox stores Big ML data in compressed format for fast loading / s
 
 </p>
                     <!--<a href="#" class="btn btn-default btn-xl">Get Started!</a>-->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="bg2" id="why">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12 text-center">
+                    <h2 class="section-heading">Why Hotbox?</h2>
+                    <hr class="primary">
+                    <p class="text-faded">
+</p>
+                </div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2 text-center">
+                  <ul class="custom-bullet text-left heavy-text">
+
+                      <li>Speed: Hotbox transform data on the fly (a.k.a
+                      streaming) instead of waiting for all the data to be
+                      loaded. No problem if data doesn't fit in memory. Also
+                      transformed features are often larger than the raw
+                      features. By not storing it we save disk at small
+                      compute cost. In contrast, Spark feature transforms only
+                      works in batch mode.  Dataset exceeding memory size will
+                      likely to be very slow.</li>
+
+                      <li>Lightweight: Hotbox encodes data smartly and
+                      compress before storing, reducing dataset size by 2~5x.
+                      For ML applications whose runtime dominated by disk IO
+                      time, this is a huge saving. In our experiment
+                      Hotbox-equipped system can load data 36% faster than
+                      Spark loading from Hive.</li>
+
+                      <li>Convenience: Simple C++ and Python API to integrate
+                      with your ML application.
+                      Fully support distributed training and worker failure
+                      and elastic scaling.</li>
+
+                      <li>ML support: Come with a library of common transforms
+                      for ML applications that configurable for your app.</li>
+                  </ul>
                 </div>
             </div>
         </div>
