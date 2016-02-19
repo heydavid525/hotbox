@@ -59,12 +59,9 @@
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul class="nav navbar-nav navbar-right">
-                    <li>
-                        <a class="page-scroll" href="#about">About</a>
-                    </li>
-                    <li>
-                        <a class="page-scroll" href="#performance">Performance</a>
-                    </li>
+                    <li><a class="page-scroll" href="#about">About</a></li>
+                    <li><a class="page-scroll" href="#why">Why Hotbox</a></li>
+                    <li><a class="page-scroll" href="#performance">Performance</a></li>
                 </ul>
             </div>
             <!-- /.navbar-collapse -->
@@ -81,7 +78,11 @@
                 <h1>Hotbox</h1>
                 <hr>
                 <img class="logo" src="img/logo.svg" alt="hotbox">
-                <p>A feature engineering engine for machine learning on streaming data </p>
+                <!--<p>A feature engineering engine for machine learning on
+                    streaming data </p>-->
+                <p>Generate, stream and manage up to billions of engineered
+                features for Big Machine Learning over distributed
+                clusters</p>
                 <a href="#about" class="btn btn-primary btn-xl page-scroll">Find Out More</a>
             </div>
         </div>
@@ -127,6 +128,42 @@ In addition, Hotbox stores Big ML data in compressed format for fast loading / s
         </div>
     </section>
 
+    <section id="feature_eng">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12 text-center">
+                    <h2 class="section-heading">Feature Engineering At Work</h2>
+                    <hr class="primary">
+                </div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2 text-center">
+                    <div class="service-box-bg">
+                        <!--<i class="fa fa-4x fa-diamond wow bounceIn
+                            text-primary"></i>-->
+                        <h3>2010 KDD Cup Winning Solution</h3>
+                        <img src="img/kdd_feature.png" class="img-responsive">
+
+                        <p class="text-muted text-left">The features were
+                        created by taking interaction between features, adding
+                        temporal features, and then more combination <em>(Yu
+                        el.  al.  2010)</em>. With larger dataset, it is not
+                        uncommon to have <strong>billions</strong> of
+                        features. In fact, in practice a lot of performance
+                        improvements comes from feature engineering! (For more
+                        examples, see papers from <a
+                        href="http://www.herbrich.me/papers/adclicksfacebook.pdf">Facebook</a>
+                        and <a
+                        href="https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf">Google</a>.)</p>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section class="bg2" id="why">
         <div class="container">
             <div class="row">
@@ -142,6 +179,15 @@ In addition, Hotbox stores Big ML data in compressed format for fast loading / s
             <div class="row">
                 <div class="col-lg-8 col-lg-offset-2 text-center">
                   <ul class="custom-bullet text-left heavy-text">
+
+                      <li>Ultra High Dimensional: Hotbox can generate up
+                      to billions of features efficiently.</li>
+
+                      <li>Petuum Integration: Hotbox works with Petuum systems
+                      such as <a
+                      href="https://github.com/petuum/bosen/wiki">Bosen and
+                      Strads</a>. Feature engineering and training in one
+                      performant eco-system.</li>
 
                       <li>Speed: Hotbox transform data on the fly (a.k.a
                       streaming) instead of waiting for all the data to be

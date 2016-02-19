@@ -248,18 +248,23 @@ header .header-content .header-content-inner p {
     margin-top: 0;
 }
 
+.service-box-bg {
+    margin: 50px auto 0;
+    max-width: 600px;
+}
+
 .service-box {
     margin: 50px auto 0;
     max-width: 400px;
 }
 
 @media(min-width:992px) {
-    .service-box {
+    .service-box .service-box-bg {
         margin: 20px auto 0;
     }
 }
 
-.service-box p {
+.service-box .service-box-bg p {
     margin-bottom: 0;
 }
 
