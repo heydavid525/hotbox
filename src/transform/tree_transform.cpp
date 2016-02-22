@@ -229,17 +229,17 @@ void TreeTransform::TransformSchema(const TransformParam& param,
         (TransDatum* datum) {
           float val = datum->GetFeatureVal(input_feature);
 
-          // 
-          for (int j = 0; j < buckets.size() - 1; ++j) {
-            if (val >= buckets.Get(j) && val < buckets.Get(j+1)) {
-              datum->SetFeatureValRelativeOffset(offset + j, 1);
-              break;
-            }
-          }
+          // TODO: figure out the position to store tree dataum point
+          // for (int j = 0; j < buckets.size() - 1; ++j) {
+          //   if (val >= buckets.Get(j) && val < buckets.Get(j+1)) {
+          //     datum->SetFeatureValRelativeOffset(offset + j, 1);
+          //     break;
+          //   }
+          // }
  
         });
       // The buckets include both ends of the bucket boundaries.
-      offset += config.buckets_size() - 1;
+      // offset += config.buckets_size() - 1;
     }
     return [transforms] (TransDatum* datum) {
       for (const auto& transform : transforms) {
