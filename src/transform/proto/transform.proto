@@ -139,23 +139,21 @@ message LogitTransformConfig {
 }
 
 
-
-// yuzhu: add tree transform config, right now use base transform config nov16
+// yuzhu: add tree transform config 
 // 2 parameters can be added to the config 1) Quality: it's the gain
 // related to the split in this specific node 2) Cover: metric to
 // measure the number of observation affected by the split
-message TreeTransformConfig{
- // int32 tree_id = 1;
- //  bool is_root = 2;
- //  bool is_leaf = 3;
- //  string feature_name = 4;
- //  double split = 5;
- //  string operator = 6;
- //  int32 yes_node_index = 7;
- //  int32 no_node_index = 8;
- //  int32 miss_node_index = 9;
- //  int32 level = 10;
- string tree_dump_file_name = 1;
+message TreeTransformConfig {
+  int32 tree_id = 1;
+  bool is_root = 2;
+  bool is_leaf = 3;
+  string feature_name = 4;
+  double split = 5;
+  string operator = 6;
+  int32 yes_node_index = 7;
+  int32 no_node_index = 8;
+  int32 miss_node_index = 9;
+  int32 level = 10;
 }
 
 
