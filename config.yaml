@@ -1,4 +1,7 @@
 # Only use 'key: value' pairs, one per line. No sequence nor general yaml
 # syntax. Comments are okay.
-server_ip: localhost
+server_ip: 10.1.1.1
 server_port: 19857
+
+db_dir: "hdfs://cogito.local/user/wdai/hotbox_db"
+db_meta_dir: "/home/wdai/hotbox/db_meta"

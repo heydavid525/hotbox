@@ -50,7 +50,7 @@ template<typename V>
 V GlobalConfig::Get(const std::string& key, bool* found) const {
   if (found != nullptr) {
     *found = config_[key];
-    return *found ? config_[key].as<V>() : 0;
+    return *found ? config_[key].as<V>() : V();
   }
   CHECK(config_[key]) << key << " nout found in " << config_path_;
   return config_[key].as<V>();
