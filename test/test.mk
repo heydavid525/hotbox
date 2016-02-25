@@ -53,7 +53,10 @@ hotbox_client_main: $(PROJECT)/test/client/hotbox_client_main.cpp \
 		-lgtest  $(TEST_LDFLAGS) $(LDFLAGS)
 
 test: test_proto $(TEST_BIN) class_registry_test stream_test db_server_main \
-	rocks_db_test rocks_if_test compressed_streams_test util_test
+	 compressed_streams_test util_test
+
+# RocksDB test generates a lot of files.
+expensive_test: rocks_db_test rocks_if_test
 
 class_registry_test: $(TEST_BIN)
 	$(TEST_DIR)/util/class_registry_test
