@@ -75,7 +75,7 @@ FlexiDatum&& DataIterator::GetDatum() {
               << " - " << chunk_end_ << ")";
     LOG(INFO) << "-------------------------------------";
   }
-  return std::move(data_buffer_[next_++ - chunk_begin_]);
+  return std::move(data_buffer_[next_ - chunk_begin_]);
 }
 
 void DataIterator::ReadSizeLimitedAtomAndTransform(BigInt file_begin,
