@@ -4,6 +4,8 @@
 #include <glog/logging.h>
 #include <gflags/gflags.h>
 
+DEFINE_string(db_name, "", "Database name");
+DEFINE_string(session_id, "test_session", "session identifier");
 DEFINE_string(transform_config, "", "Transform config filename under "
     "hotbox/test/resource/");
 
@@ -13,8 +15,8 @@ int main(int argc, char *argv[]) {
   hotbox::HBClient hb_client;
   LOG(INFO) << "HBClient Initialized";
   hotbox::SessionOptions session_options;
-  session_options.db_name = "test_db";
-  session_options.session_id = "test_session";
+  session_options.db_name = FLAGS_db_name;
+  session_options.session_id = FLAGS_session_id;
   session_options.transform_config_path = hotbox::GetTestDir() +
     "/resource/" + FLAGS_transform_config;
   session_options.output_store_type = hotbox::OutputStoreType::SPARSE;
@@ -32,10 +34,22 @@ int main(int argc, char *argv[]) {
   int i = 0;
   hotbox::Timer timer;
   // Test move constructor of DataIterator.
-  hotbox::DataIterator iter = session.NewDataIterator();
-  for (hotbox::DataIterator it = std::move(iter); it.HasNext(); it.Next()) {
+  //hotbox::DataIterator iter = session.NewDataIterator(0, 10);
+  hotbox::DataIterator iter = session.NewDataIterator(0, -1, false, 1, 1);
+  iter.Restart();
+  hotbox::DataIterator it = std::move(iter);
+  for (; it.HasNext(); it.Next()) {
     hotbox::FlexiDatum datum = it.GetDatum();
-    LOG(INFO) << datum.ToString();
+    LOG_IF(INFO, i < 10) << datum.ToString();
+    i++;
+  }
+
+  // Test restart.
+  it.Restart();
+  LOG(INFO) << "Restarting....";
+  for (; it.HasNext(); it.Next()) {
+    hotbox::FlexiDatum datum = it.GetDatum();
+    //LOG(INFO) << datum.ToString();
     i++;
   }
   LOG(INFO) << "Read " << i << " data. Time: " << timer.elapsed();
