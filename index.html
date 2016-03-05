@@ -157,7 +157,7 @@ Fetaure Dimension: 29M
                     <h2 class="section-heading">Hotbox generates features to
                     improve model performance</h2>
                     <hr class="light">
-                    <p class="text-faded">
+                    <p>
 
 In practice, Machine Learning (ML) needs extensive feature engineering to work
 well. Often it's achieved by combining various "views" of the original
@@ -166,7 +166,7 @@ features, and thus originally small set of features (e.g., thousands) could beco
 
                     <img width="80%" src="img/ensemble_features.svg" alt="ensemble features">
 
-                    <p class="text-faded">
+                    <p>
  Hotbox supports transforms from one-hot encoding, cartesian products to
  gradient boosted tree and neural network transforms (by working with external
  training systems):
@@ -178,6 +178,12 @@ features, and thus originally small set of features (e.g., thousands) could beco
                       src="img/hotbox_workflow.svg" alt="hotbox workflow">
                     <br>
                     <br>
+
+<p>
+
+Hotbox performs feature transforms over distributed workers (scales linearly
+with the number of workers) in a streaming fashion (one record at a time).
+Thus it uses very little memory and is blazing fast!
 
 </p>
                     <!--<a href="#" class="btn btn-default btn-xl">Get Started!</a>-->
