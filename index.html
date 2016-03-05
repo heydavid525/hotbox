@@ -34,6 +34,7 @@
         <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
         <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
+    <script src="google_analytics.js"></script>
 
 </head>
 
@@ -92,7 +93,65 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-8 col-lg-offset-2 text-center">
-                    <h2 class="section-heading">How Hotbox works</h2>
+                    <h2 class="section-heading">Hotbox reduces ML data
+                    size so they load faster</h2>
+                    <hr class="light">
+                    <p class="text-left">
+
+ML systems routinely loads GBs to TBs of data for training. Hotbox builds high
+dimensional schemas of the data of up to billions of dimensions to encode the
+data in lossless ways. With compression, it can reduce the data size by up to
+5x! With Hotbox, ML algorithms use less storage footprint and load data
+faster. It would work out of box for</br>
+
+                    <ul class="custom-bullet2 text-faded text-left">
+<li> Classification: logistic regression, SVM, Decision Tree,
+Neural Network</br>
+<li> Clustering: K-means, Gaussian Mixture Model</br>
+<li> Collaborative Filtering, Matrix Factorization, Sparse Coding</br>
+</ul>
+
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="performance">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4 col-md-12 col-lg-offset-2 text-center">
+                    <div class="service-box">
+                        <!--<i class="fa fa-4x fa-diamond wow bounceIn
+                            text-primary"></i>-->
+                        <h3>Fast Loading</h3>
+                        <img src="img/load_time_text.png" class="img-responsive"
+                        alt="Load time">
+                        <p class="text-muted">Dataset: Criteo day 0</br>
+Raw size (in libsvm): 50GB</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-12  text-center">
+                    <div class="service-box">
+                        <!--<i class="fa fa-4x fa-paper-plane wow bounceIn
+                            text-primary" data-wow-delay=".1s"></i>-->
+                        <h3>Compressed Storage</h3>
+                        <img src="img/data_size_text.png" class="img-responsive"
+                        alt="Data size">
+                        <p class="text-muted">Dataset: KDD Cup 2010
+                        Algebra</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="bg-primary" id="about">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2 text-center">
+                    <h2 class="section-heading">Hotbox generates features to
+                    improve model performance</h2>
                     <hr class="light">
                     <p class="text-faded">
 
@@ -115,11 +174,6 @@ features, and thus originally small set of features (e.g., thousands) could beco
                       src="img/hotbox_workflow.svg" alt="hotbox workflow">
                     <br>
                     <br>
-
-</p>
-                    <p class="text-faded">
-
-In addition, Hotbox stores Big ML data in compressed format for fast loading / streaming.
 
 </p>
                     <!--<a href="#" class="btn btn-default btn-xl">Get Started!</a>-->
@@ -229,28 +283,7 @@ In addition, Hotbox stores Big ML data in compressed format for fast loading / s
         </div>
         <div class="container">
             <div class="row">
-                <div class="col-lg-4 col-md-12 text-center">
-                    <div class="service-box">
-                        <!--<i class="fa fa-4x fa-diamond wow bounceIn
-                            text-primary"></i>-->
-                        <h3>Fast Loading</h3>
-                        <img src="img/load_time.png" class="img-responsive"
-                        alt="Load time">
-                        <p class="text-muted">36% faster loading</p>
-                    </div>
-                </div>
-                <div class="col-lg-4 col-md-12 text-center">
-                    <div class="service-box">
-                        <!--<i class="fa fa-4x fa-paper-plane wow bounceIn
-                            text-primary" data-wow-delay=".1s"></i>-->
-                        <h3>Compressed Storage</h3>
-                        <img src="img/data_size.png" class="img-responsive"
-                        alt="Data size">
-                        <p class="text-muted">2-5x smaller than already
-                        compressed libsvm format</p>
-                    </div>
-                </div>
-                <div class="col-lg-4 col-md-12 text-center">
+                <div class="col-lg-6 col-md-12 col-lg-offset-3 text-center">
                     <div class="service-box">
                         <!--<i class="fa fa-4x fa-newspaper-o wow bounceIn
                             text-primary" data-wow-delay=".2s"></i>-->

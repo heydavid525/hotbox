@@ -17,6 +17,22 @@
     color: #f05f40;
 }
 
+.custom-bullet2 li {
+    display: block;
+}
+
+.custom-bullet2 li:before {
+    /*Using a Bootstrap glyphicon as the bullet point*/
+    content: "\e080";
+    font-family: 'Glyphicons Halflings';
+    /* font-size: 9px;
+    float: left;*/
+    margin-top: 4px;
+    margin-left: -17px;
+    margin-right: 5px;
+    color: #00BFFF;
+}
+
 .heavy-text {
     font-size: 150%;
 }
