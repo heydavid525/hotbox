@@ -77,8 +77,13 @@
                 <img class="small-logo" src="img/petuum_logo.png" alt="petuum">
                 </div>-->
                 <h1>Hotbox</h1>
-                <hr>
-                <img class="logo" src="img/logo.svg" alt="hotbox">
+</br>
+</br>
+                <!--<hr>-->
+                <img class="logo" src="img/hypercube.png" alt="hotbox">
+</br>
+</br>
+</br>
                 <!--<p>A feature engineering engine for machine learning on
                     streaming data </p>-->
                 <p>Generate, stream and manage up to billions of engineered
@@ -125,51 +130,102 @@ Neural Network</br>
                     <div class="service-box">
                         <!--<i class="fa fa-4x fa-diamond wow bounceIn
                             text-primary"></i>-->
-                        <h3>Fast Loading</h3>
-                        <img src="img/load_time_text.png" class="img-responsive"
-                        alt="Load time">
-                        <p class="text-muted">Dataset: Criteo day 0</br>
-Feature Dimension: 55M</br>
-Raw size (in libsvm): 50GB</p>
-                    </div>
-                </div>
-                <div class="col-lg-4 col-md-12  text-center">
-                    <div class="service-box">
-                        <!--<i class="fa fa-4x fa-paper-plane wow bounceIn
-                            text-primary" data-wow-delay=".1s"></i>-->
                         <h3>Compressed Storage</h3>
                         <img src="img/data_size_text.png" class="img-responsive"
                         alt="Data size">
-                        <p class="text-muted">Dataset: KDD Cup 2010
-                        Algebra</br>
-Fetaure Dimension: 29M
-</p>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-12  text-left">
+                    <div class="service-box">
+                        <!--<i class="fa fa-4x fa-paper-plane wow bounceIn
+                            text-primary" data-wow-delay=".1s"></i>-->
+
+                        <p class="text-muted">Most ML practitioners resort to a
+                        compact data format called "libsvm" format. This format
+                        works particularly well for dataset with high
+                        dimensions (many features) but for most data points
+                        only very few of the features are relevant (i.e.,
+                        having non-zero values). Libsvm format exploits this
+                        so-called "sparsity" of the dataset and stores only the
+                        non-zero values of each data point, and thus is far
+                        superior to other formats such as csv for high
+                        dimensional sparse dataset.</p>
+
+<p class="text-muted"> Here we show that Hotbox
+                        has a significant advantage in terms of storage size
+                        over even this compact data format. We use KDD Cup 2010
+                        Dataset, which records interactions between students
+                        and tutoring systems. The dataset was used to predict
+                        student performance on math problems, and has 29
+                        million dimensions and 20 million data point. We found
+                        that Hotbox stores it with less than 20% of the storage
+                        needed for Libsvm format.</p>
                     </div>
                 </div>
             </div>
+<hr>
+            <div class="row">
+                <div class="col-lg-4 col-md-12 col-lg-offset-2 text-center">
+                    <div class="service-box">
+                        <!--<i class="fa fa-4x fa-diamond wow bounceIn
+                            text-primary"></i>-->
+                        <h3>Fast Loading</h3>
+                        <img src="img/load_time_text.png" class="img-responsive"
+                        alt="Load time">
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-12 text-left">
+                    <div class="service-box">
+
+                        <p class="text-muted">We applied Hotbox to the largest
+                        public dataset in online advertisement. The task is to
+                        predict click through rate (CTR) given the search
+                        query, user characteristics, ads content, etc, which
+                        together form the "feature" of the event. This feature
+                        can be very high dimensional. In this case it is 55
+                        million.</p>
+
+<p class="text-muted">
+We load this dataset from Hotbox to Bosen, a Petuum distributed training
+system, and found that it's 36% faster than loading the same dataset to Spark
+from Hive. This can be signficant speedup as data loading time is often
+significant in training.</p>
+
+<p class="text-muted">
+Dataset: Criteo day 0</br>
+Feature Dimension: 55M</br>
+Raw size (in libsvm): 50GB</p>
+
+                    </div>
+
+                </div>
+            </div>
+
         </div>
     </section>
 
     <section class="bg-primary" id="about">
         <div class="container">
             <div class="row">
-                <div class="col-lg-8 col-lg-offset-2 text-center">
+                <div class="col-lg-8 col-lg-offset-2 text-left">
                     <h2 class="section-heading">Hotbox generates features to
                     improve model performance</h2>
                     <hr class="light">
                     <p>
 
 In practice, Machine Learning (ML) needs extensive feature engineering to work
-well. Often it's achieved by combining various "views" of the original
-features, and thus originally small set of features (e.g., thousands) could become very high dimensional (e.g., billions):
-</p>
+well. <em>Feature engineering</em> refers to the practice of creating new "views" of the
+original dataset by combining existing features in complex ways. In fact, the
+high dimensionality of the KDD dataset above is resulted from heavy feature
+engineering. As a result, even originally small set of features (e.g.,
+thousands) could become very high dimensional (e.g., billions): </p>
 
                     <img width="80%" src="img/ensemble_features.svg" alt="ensemble features">
 
                     <p>
  Hotbox supports transforms from one-hot encoding, cartesian products to
  gradient boosted tree and neural network transforms (by working with external
- training systems):
+ training systems), with many more to come:
 </p>
 
                     <br>
@@ -208,6 +264,14 @@ Thus it uses very little memory and is blazing fast!
                         <!--<i class="fa fa-4x fa-diamond wow bounceIn
                             text-primary"></i>-->
                         <h3>2010 KDD Cup Winning Solution</h3>
+
+<p class="text-muted text-left">
+
+Here we use the KDD Cup winning solution to show the importance of feature
+engineering in a real-world setting:
+
+</p>
+
                         <img src="img/kdd_feature.png" class="img-responsive">
 
                         <p class="text-muted text-left">The features were
@@ -244,6 +308,13 @@ Thus it uses very little memory and is blazing fast!
                 <div class="col-lg-8 col-lg-offset-2 text-center">
                   <ul class="custom-bullet text-left heavy-text">
 
+<li>Better Data Storage and Loading: Today's ML datasets could easily exceed
+the combined memory of trainer machines, especially after feature engineering.
+In those cases it is unrealistic to cache all datasets in memory as done in
+Tachyon and Spark. By streaming data from compressed store and applying
+transforms on the fly, Hotbox pays a small CPU cost but removes any memory
+limitation caused by large datasets.</li>
+
                       <li>Ultra High Dimensional: Hotbox can generate up
                       to billions of features efficiently.</li>
 
@@ -263,7 +334,7 @@ Thus it uses very little memory and is blazing fast!
                       likely to be very slow.</li>
 
                       <li>Lightweight: Hotbox encodes data smartly and
-                      compress before storing, reducing dataset size by 2~5x.
+                      compress before storing, reducing dataset size by up to 5x.
                       For ML applications whose runtime dominated by disk IO
                       time, this is a huge saving. In our experiment
                       Hotbox-equipped system can load data 36% faster than
@@ -293,15 +364,37 @@ Thus it uses very little memory and is blazing fast!
         </div>
         <div class="container">
             <div class="row">
-                <div class="col-lg-6 col-md-12 col-lg-offset-3 text-center">
+                <div class="col-lg-4 col-md-12 col-lg-offset-2 text-center">
                     <div class="service-box">
                         <!--<i class="fa fa-4x fa-newspaper-o wow bounceIn
                             text-primary" data-wow-delay=".2s"></i>-->
                         <h3>Large-scale Training</h3>
                         <img src="img/train_time_text.png" class="img-responsive"
                         alt="Train time">
-                        <p class="text-muted">Hotbox enables large-scale
-                        training</p>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-12 text-left">
+                    <div class="service-box">
+
+                        <p class="text-muted">Hotbox is easy to use with
+                        existing training systems. We integrate Hotbox with
+                        Petuum Bosen, a distributed training system, and Spark.
+                        We come back to the KDD Cup example and train a
+                        Logistic Regression model, which is the winning
+                        solution of the challenge. We record the end-to-end
+                        time (including data loading and training) for Petuum
+                        Bosen and Spark, both equipped with Hotbox, to reach a
+                        sufficiently good model (measured by Logistic
+                        Regression objective).</p>
+
+<p class="text-muted"> We observe that Petuum Bosen
+                        outperforms Spark by a factor of 10. This is mainly
+                        because Petuum Bosen uses a synchronization model more
+                        suited for machine learning tasks (see <a
+                        href="http://petuum.org">here</a> for more details).
+                        Hotbox here nonetheless reduces data management
+                        complexity as well as loading time for the ML systems.</p>
+
                     </div>
                 </div>
             </div>
