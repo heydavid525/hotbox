@@ -166,4 +166,6 @@ std::string ToString(T val, int num_decimals = 2) {
   return out.str();
 }
 
+double process_mem_usage();
+
 }   // namespace hotbox
