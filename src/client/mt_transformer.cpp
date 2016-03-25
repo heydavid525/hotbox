@@ -146,7 +146,6 @@ void MTTransformer::TransformTaskLoop() {
     DBAtom atom_proto = StreamDeserialize<DBAtom>(
         task.shared_buf.get()->c_str() + task.offset, task.length);
     // atom_proto.ParseFromString(content);
-    FeatureFamily internal_family(session_proto_.internal_family_proto());
     auto output_store_type = session_proto_.output_store_type();
     auto output_dim = session_proto_.output_dim();
 
@@ -172,8 +171,8 @@ void MTTransformer::TransformTaskLoop() {
       }
       DatumBase* datum_base = new DatumBase(
           atom_proto.mutable_datum_protos()->ReleaseLast());
-      TransDatum trans_datum(datum_base, internal_family, output_store_type,
-          output_dim);
+      TransDatum trans_datum(datum_base, session_proto_.label(),
+          session_proto_.weight(), output_store_type, output_dim);
 
       for (int t = 0; t < transforms_.size(); ++t) {
         trans_datum.ReadyTransform(session_proto_.transform_output_ranges(t));
@@ -247,6 +246,10 @@ std::vector<FlexiDatum> *MTTransformer::NextBatch() {
       });
   vec = bt_queue_.front();
   bt_queue_.pop();
+  ///
+  //for (int i = 0; i < vec->size(); ++i) {
+  //  LOG(INFO) << (*vec)[i].ToString();
+  //}
   total_batches_--;
   bt_size_--;
   lock.unlock();

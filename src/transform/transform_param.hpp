@@ -197,7 +197,8 @@ private:
 private:
   TransformConfig config_;
 
-  // For simple family-wide selection we elide the feature.
+  // input_features_ only include features that are not part of family-wide
+  // selection. For simple family-wide selection we elide the feature.
   std::map<std::string, std::vector<Feature>> input_features_;
 
   // family:feature_name or family:idx depending on how user specifies it. For

@@ -14,7 +14,7 @@ namespace hotbox {
 class TransDatum {
 public:
   // This takes the ownership of base.
-  TransDatum(DatumBase* base, const FeatureFamily& internal_family,
+  TransDatum(DatumBase* base, const Feature& label, const Feature& weight,
       OutputStoreType output_store_type, BigInt output_dim);
 
   // Get number feature value (CATEGORICAL or NUMERIC). Error otherwise.
@@ -38,7 +38,8 @@ public:
 
 private:
   std::unique_ptr<DatumBase> base_;
-  const FeatureFamily& internal_family_;
+  const Feature& label_;
+  const Feature& weight_;
 
   // Output store format.
   const OutputStoreType output_store_type_;

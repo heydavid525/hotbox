@@ -105,7 +105,6 @@ void DataIterator::ReadSizeLimitedAtomAndTransform(BigInt file_begin,
 
   DBAtom atom_proto = StreamDeserialize<DBAtom>(ss.str());
   data_buffer_.resize(atom_proto.datum_protos_size());
-  FeatureFamily internal_family(session_proto_.internal_family_proto());
   auto output_store_type = session_proto_.output_store_type();
   auto output_dim = session_proto_.output_dim();
 
@@ -115,7 +114,8 @@ void DataIterator::ReadSizeLimitedAtomAndTransform(BigInt file_begin,
   for (int i = atom_proto.datum_protos_size() - 1; i >= 0; --i) {
     DatumBase* datum_base = new DatumBase(
         atom_proto.mutable_datum_protos()->ReleaseLast());
-    TransDatum trans_datum(datum_base, internal_family, output_store_type,
+    TransDatum trans_datum(datum_base, session_proto_.label(),
+        session_proto_.weight(), output_store_type,
         output_dim);
     for (int t = 0; t < transforms_.size(); ++t) {
       trans_datum.ReadyTransform(session_proto_.transform_output_ranges(t));
@@ -133,7 +133,6 @@ void DataIterator::ReadAtomAndTransform(int atom_id) {
   DBAtom atom_proto;
   CHECK(atom_proto.ParseFromString(content));
   data_buffer_.resize(atom_proto.datum_protos_size());
-  FeatureFamily internal_family(session_proto_.internal_family_proto());
   auto output_store_type = session_proto_.output_store_type();
   auto output_dim = session_proto_.output_dim();
 
@@ -141,8 +140,8 @@ void DataIterator::ReadAtomAndTransform(int atom_id) {
   for (int i = atom_proto.datum_protos_size() - 1; i >= 0; --i) {
     DatumBase* datum_base = new DatumBase(
         atom_proto.mutable_datum_protos()->ReleaseLast());
-    TransDatum trans_datum(datum_base, internal_family, output_store_type,
-        output_dim);
+    TransDatum trans_datum(datum_base, session_proto_.label(),
+        session_proto_.weight(), output_store_type, output_dim);
     for (int t = 0; t < transforms_.size(); ++t) {
       trans_datum.ReadyTransform(session_proto_.transform_output_ranges(t));
       transforms_[t](&trans_datum);

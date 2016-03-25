@@ -47,11 +47,7 @@ public:
       std::shared_ptr<std::vector<Feature>> features,
       bool simple_family = false);
 
-  FeatureFamily(const SelfContainedFeatureFamilyProto& proto);
-
   bool HasFeature(BigInt family_idx) const;
-
-  //void DeleteFeature(BigInt family_idx);
 
   const Feature& GetFeature(const std::string& feature_name) const;
   Feature& GetMutableFeature(const std::string& feature_name);
@@ -73,10 +69,6 @@ public:
   BigInt GetMaxFeatureId() const;
 
   FeatureFamilyProto GetProto() const;
-
-  // Include Feature of this family. Use this to serialize single family
-  // without Schema (e.g., internal family).
-  SelfContainedFeatureFamilyProto GetSelfContainedProto() const;
 
   std::string GetFamilyName() const;
 

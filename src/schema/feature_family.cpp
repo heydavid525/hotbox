@@ -137,7 +137,6 @@ void FeatureFamily::AddFeature(const Feature& new_feature, BigInt family_idx) {
     << family_idx << " in " << family_name_ << " is already initialized.";
   UpdateOffsets(new_feature);
   global_idx_[family_idx] = new_feature.global_offset();
-  //LOG(INFO) << "Added feature id " << family_idx << " family name: " << family_name_ << " output offset_end: " << offset_end_.offsets(FeatureStoreType::OUTPUT);
   const auto& feature_name = new_feature.name();
   if (!feature_name.empty()) {
     const auto& r =
@@ -177,23 +176,6 @@ FeatureFamilyProto FeatureFamily::GetProto() const {
   return proto;
 }
 
-SelfContainedFeatureFamilyProto FeatureFamily::GetSelfContainedProto() const {
-  SelfContainedFeatureFamilyProto proto;
-  proto.set_family_name(family_name_);
-  auto idx = proto.mutable_name_to_family_idx();
-  for (const auto& p : name_to_family_idx_) {
-    (*idx)[p.first] = p.second;
-  }
-  proto.mutable_features()->Reserve(global_idx_.size());
-  for (const auto& i : global_idx_) {
-    (*proto.add_features()) = (*features_)[i];
-  }
-  (*proto.mutable_offset_begin()) = offset_begin_;
-  (*proto.mutable_offset_end()) = offset_end_;
-  proto.set_simple_family(simple_family_);
-  return proto;
-}
-
 FeatureFamily::FeatureFamily(const FeatureFamilyProto& proto,
     std::shared_ptr<std::vector<Feature>> features, bool simple_family) :
   family_name_(proto.family_name()), features_(features),
@@ -202,17 +184,6 @@ FeatureFamily::FeatureFamily(const FeatureFamilyProto& proto,
   global_idx_(proto.global_idx().cbegin(), proto.global_idx().cend()),
   offset_begin_(proto.offset_begin()), offset_end_(proto.offset_end()),
   simple_family_(proto.simple_family()) {
-  }
-
-FeatureFamily::FeatureFamily(const SelfContainedFeatureFamilyProto& proto) :
-  family_name_(proto.family_name()),
-  features_(new std::vector<Feature>(proto.features().cbegin(),
-        proto.features().cend())),
-  name_to_family_idx_(proto.name_to_family_idx().cbegin(),
-      proto.name_to_family_idx().cend()),
-  global_idx_(features_->size()) {
-    // Fill in [0, 1, ..., global_idx_.size() -1]
-    std::iota(global_idx_.begin(), global_idx_.end(), 0);
   }
 
 StoreTypeAndOffset FeatureFamily::GetStoreTypeAndOffset() const {

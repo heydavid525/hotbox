@@ -39,9 +39,6 @@ DB::DB(const std::string& db_path_meta) :
   DBProto proto = StreamDeserialize<DBProto>(db_proto_str);
   meta_data_ = proto.meta_data();
   schema_.reset(new Schema(&meta_db_));
-  // const auto& intern_family = schema_->GetFamily(kInternalFamily);
-  // const Feature& feature = intern_family.GetFeature(kLabelFamilyIdx);
-  // LOG(INFO) << "label feature: " << feature.DebugString();
 
   // Assume only 1 stat.
   stats_.emplace_back(0, &meta_db_);
@@ -343,8 +340,10 @@ SessionProto DB::CreateSession(const SessionOptionsProto& session_options) {
   session.set_session_id(session_options.session_id());
   session.set_compressor(meta_data_.db_config().compressor());
   *(session.mutable_file_map()) = meta_data_.file_map();
-  *(session.mutable_internal_family_proto()) =
-    trans_schema.GetFamily(kInternalFamily).GetSelfContainedProto();
+  *(session.mutable_label()) =
+      trans_schema.GetFamily(kInternalFamily).GetFeature(kLabelFamilyIdx);
+  *(session.mutable_weight()) =
+      trans_schema.GetFamily(kInternalFamily).GetFeature(kWeightFamilyIdx);
   session.set_output_store_type(session_options.output_store_type());
   session.set_output_dim(
       trans_schema.GetAppendOffset().offsets(FeatureStoreType::OUTPUT));

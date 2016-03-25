@@ -199,8 +199,10 @@ message SessionProto {
 
   repeated TransformOutputRange transform_output_ranges = 2;
   OSchemaProto o_schema = 3;
-  // Need internal family to access label and weight.
-  SelfContainedFeatureFamilyProto internal_family_proto = 7;
+
+  // Help locating label and weight in the store.
+  Feature label = 7;
+  Feature weight = 8;
 
   // All DB atom files are compressed by this compression mode. Default to
   // Compressr::SNAPPY.
@@ -209,9 +211,9 @@ message SessionProto {
   // Mapping datum to atom file.
   FileMap file_map = 5;
 
-  OutputStoreType output_store_type = 8;
+  OutputStoreType output_store_type = 9;
 
-  int64 output_dim = 9;
+  int64 output_dim = 10;
 }
 
 /*

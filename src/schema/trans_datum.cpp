@@ -4,9 +4,9 @@
 
 namespace hotbox {
 
-TransDatum::TransDatum(DatumBase* base, const FeatureFamily& internal_family,
+TransDatum::TransDatum(DatumBase* base, const Feature& label, const Feature& weight,
     OutputStoreType output_store_type, BigInt output_dim) : base_(base),
-  internal_family_(internal_family),
+  label_(label), weight_(weight),
   output_store_type_(output_store_type), output_feature_dim_(output_dim) {
   if (output_store_type == OutputStoreType::DENSE) {
     dense_vals_.resize(output_feature_dim_);
@@ -64,8 +64,8 @@ void TransDatum::SetFeatureValRelativeOffset(BigInt relative_offset,
 }
 
 FlexiDatum TransDatum::GetFlexiDatum() {
-  float label = base_->GetLabel(internal_family_);
-  float weight = base_->GetWeight(internal_family_);
+  float label = base_->GetFeatureVal(label_);
+  float weight = base_->GetFeatureVal(weight_);
   switch (output_store_type_) {
     case OutputStoreType::SPARSE:
       return FlexiDatum(std::move(sparse_idx_), std::move(sparse_vals_),

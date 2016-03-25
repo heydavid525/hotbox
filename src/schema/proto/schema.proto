@@ -175,27 +175,6 @@ message FeatureFamilyProto {
   bool simple_family = 6;
 }
 
-// Similar to FeatureFamilyProto, but include Feature and thus does not
-// depend on the Feature in Schema.
-// Current max proto sequence: 3.
-message SelfContainedFeatureFamilyProto {
-  string family_name = 1;
-
-  // Map from feature name (string) to index on features, used in
-  // "mobile:num_clicks" type of lookup (name = "num_clicks").
-  map<string, int64> name_to_family_idx = 2;
-
-  // Index lookup on family (e.g., "mobile:0" will find the first entry in
-  // features).
-  repeated Feature features = 3;
-
-  // See FeatureFamilyProto.
-  DatumProtoStoreOffset offset_begin = 4;
-  DatumProtoStoreOffset offset_end = 5;
-
-  bool simple_family = 6;
-}
-
 // Message to construct default Schema.
 message SchemaConfig {
   // False to use real number (e.g., in regression)
