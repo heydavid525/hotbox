@@ -151,7 +151,7 @@ message DatumProtoStoreOffset {
   repeated int64 offsets = 1;
 }
 
-// Current max proto sequence: 6.
+// Current max proto sequence: 9.
 message FeatureFamilyProto {
   string family_name = 1;
 
@@ -164,7 +164,8 @@ message FeatureFamilyProto {
   //repeated Feature features = 3;
 
   // Maps to a global vector of Feature.
-  repeated int64 global_idx = 3;
+  //repeated int64 global_idx = 3;
+
 
   // Assume each FeatureFamily has contiguous store range on all stores. This
   // would be the case if all features in a family are added before the next
@@ -173,6 +174,30 @@ message FeatureFamilyProto {
   DatumProtoStoreOffset offset_end = 5;
 
   bool simple_family = 6;
+
+  int64 global_offset_begin = 8;
+
+  // Only SimpleFeatureFamily uses.
+  // TODO(wdai): use oneof to separate SimpleFeatureFamily fields from
+  // FeatureFamily fields.
+  FeatureStoreType store_type = 9;
+
+  // Materialized Feature for this family. Not used for SimpleFeatureFamily.
+  //
+  // Comment(wdai): We opt not to store features in SchemaProto to reduce
+  // coupling. There should be no performance difference as access to features
+  // is usually within a family, in which case one map lookup to get
+  // FeatureFamily and then it'd be vector speed.
+  //
+  // Comment(wdai): When serializing SchemaProto to disk we serialize
+  // features separately or the proto message size would easily exceeds
+  // the limit of 64MB.
+  repeated Feature features = 7;
+
+  // 1-to-1 correspondence with features, indicating if a feature is
+  // initialized. initialized_size() == features_size(). Not used for
+  // SimpleFeatureFamily.
+  repeated bool initialized = 3;
 }
 
 // Message to construct default Schema.
@@ -195,7 +220,7 @@ message SchemaProto {
 
   // version is defined based on user's schema evolution.
   // TODO(wdai): Do we need another internal schema_id, as Weiren suggested?
-  uint32 version = 1;
+  //uint32 version = 1;
 
   // name (string) --> FeatureFamilyProto. We support multi-weight and
   // multi-labels through specially reserved families 'label' and 'weight'.
@@ -219,19 +244,6 @@ message SchemaProto {
   //int64 dim = 4;
 
   DatumProtoStoreOffset append_store_offset = 5;
-
-  // Feature across all FeatureFamily.
-  // Comment(wdai): When serializing SchemaProto to disk we serialize
-  // features separately or the proto message size would easily exceeds
-  // the limit of 64MB.
-  repeated Feature features = 4;
-}
-
-// FeatureSegment is a segment of SchemaProto::features, used to reduce
-// SchemaProto size.
-message FeatureSegment {
-  uint64 id_begin = 1;
-  repeated Feature features = 2;
 }
 
 // OSchema only stores features in FeatureStoreType::OUTPUT.

@@ -32,17 +32,17 @@ void SelectTransform::SetTransformWriterConfig(const TransformConfig& config,
 
 void SelectTransform::TransformSchema(const TransformParam& param,
     TransformWriter* writer) const {
-  const SelectTransformConfig& config =
-    param.GetConfig().select_transform();
-  const auto& input_features = param.GetInputFeaturesByFamily();
-  const auto& input_features_desc = param.GetInputFeaturesDescByFamily();
+  const auto& non_simple_input_features = param.GetInputFeaturesByFamily();
+  const auto& non_simple_input_features_desc =
+    param.GetInputFeaturesDescByFamily();
   std::vector<std::string> wide_families = param.GetFamilyWideFamilies();
 
   // Add features that are not in wide-family.
-  for (const auto& p : input_features) {
+  for (const auto& p : non_simple_input_features) {
     std::string family_name = p.first;
     const auto& family_features = p.second;
-    const auto& family_features_desc = input_features_desc.at(family_name);
+    const auto& family_features_desc =
+      non_simple_input_features_desc.at(family_name);
     if (!StringInVector(family_name, wide_families)) {
       // This family isn't selected by family-wide. Add them.
       for (int i = 0; i < p.second.size(); ++i) {
@@ -64,7 +64,6 @@ void SelectTransform::TransformSchema(const TransformParam& param,
     // wide_family_offsets is the offset on input store.
     for (int i = offsets.offset_begin(); i < offsets.offset_end(); ++i) {
       // family-wide feature doesn't need individual feature names.
-      //LOG(INFO) << "Add feature for family " << f;
       writer->AddFeature("");
     }
   }

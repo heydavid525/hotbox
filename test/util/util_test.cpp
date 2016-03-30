@@ -19,6 +19,7 @@ const int32_t kTestSize = 1e6;
 
 }  // anonymous namespace
 
+/*
 TEST(UtilTest, SmokeTest) {
   FeatureSegment seg;
   std::ifstream t(GetResourceDir() + "/schema_seg.prototxt");
@@ -32,6 +33,7 @@ TEST(UtilTest, SmokeTest) {
   EXPECT_EQ(seg.DebugString(), seg2.DebugString());
   LOG(INFO) << "segment has " << seg.features_size() << " features PASSED!";
 }
+*/
 
 /*
  * This test demonstrates that stream de-/serialization is better than the

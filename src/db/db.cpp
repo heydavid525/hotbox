@@ -319,7 +319,6 @@ SessionProto DB::CreateSession(const SessionOptionsProto& session_options) {
     std::unique_ptr<TransformIf> transform =
       registry.CreateObject(config.config_case());
     transform->UpdateTransformWriterConfig(config, &writer_config);
-    // FeatureStoreType store_type = config.base_config().output_store_type();
     TransformWriter trans_writer(&trans_schema, writer_config);
 
     LOG(INFO) << "Transforming schema...";
@@ -363,8 +362,8 @@ std::string DB::PrintMetaData() const {
     "FeatureFamily: NumFeatures / MaxFeatureId\n";
 
   for (const auto& p : schema_->GetFamilies()) {
-    ss << p.first << ": " << p.second.GetNumFeatures() << " / "
-      <<  p.second.GetMaxFeatureId() << std::endl;
+    ss << p.first << ": " << p.second->GetNumFeatures() << " / "
+      <<  p.second->GetMaxFeatureId() << std::endl;
   }
   return ss.str();
 }

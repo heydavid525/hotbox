@@ -1,12 +1,12 @@
 #pragma once
 
-// #include "util/hotbox_exceptions.hpp"
 #include "util/all.hpp"
 #include "schema/proto/schema.pb.h"
 #include "schema/feature_family.hpp"
 #include <cstdint>
 #include <string>
 #include <map>
+#include <utility>
 
 namespace hotbox {
 
@@ -24,48 +24,54 @@ public:
   // Initialize from Schema committed to db (Commit()).
   Schema(RocksDB* db);
 
+  // Deep copy of families_.
+  Schema(const Schema& other);
+
   void Init(const SchemaProto& proto);
 
-  // new_feature needs to have FeatureStoreType set, but not offset.
-  // 'new_feature' will have offset set correctly after the call. This call
-  // invokes map-lookup for family based on family_name. Use another
-  // AddFeature to avoid map-lookup. 'family_idx' = -1 to append feature at
-  // the end of the family.
+  // new_feature needs to have FeatureStoreType set, but not offset
+  // (which is set in schema).  'new_feature' will have global_offset
+  // set correctly after the call. This call invokes map-lookup for
+  // family based on family_name. Use another AddFeature to avoid
+  // map-lookup. 'family_idx' = -1 to append feature at the end of
+  // the family.
   void AddFeature(const std::string& family_name, Feature* new_feature,
       BigInt family_idx = -1);
 
   // Similar to AddFeature() above, but avoids map lookup for FeatureFamily.
   // 'family' must be a family obtained from this Schema.
-  void AddFeature(FeatureFamily* family, Feature* new_feature,
+  void AddFeature(FeatureFamilyIf* family, Feature* new_feature,
       BigInt family_idx = -1);
 
-  const Feature& GetFeature(const std::string& family_name,
-      BigInt family_idx) const;
-  Feature& GetMutableFeature(const std::string& family_name,
-      BigInt family_idx);
+  Feature GetFeature(const std::string& family_name, BigInt family_idx) const;
 
-  const Feature& GetFeature(const FeatureFinder& finder) const;
-  Feature& GetMutableFeature(const FeatureFinder& finder);
+  // Throws FamilyNotFound exception if family doesn't exist.
+  Feature GetFeature(const FeatureFinder& finder) const;
 
-  Feature& GetMutableFeature(const Feature& feature);
+  //Feature& GetMutableFeature(const Feature& feature);
 
   // Throws FamilyNotFoundException.
-  const FeatureFamily& GetFamily(const std::string& family_name) const;
-  FeatureFamily& GetMutableFamily(const std::string& family_name);
+  const FeatureFamilyIf& GetFamily(const std::string& family_name) const;
+  FeatureFamilyIf& GetMutableFamily(const std::string& family_name);
 
-  // Try to get a family. If it doesn't exist, create it. 'output_family' ==
-  // true if the family is stored in FeatureStoreType::OUTPUT. This helps
-  // generate a OSchema to send to client.
-  const FeatureFamily& GetOrCreateFamily(const std::string& family_name,
-      bool output_family = false, bool simple_family = false) const;
-  FeatureFamily& GetOrCreateMutableFamily(const std::string& family_name,
-      bool output_family = false, bool simple_family = false);
+  // Try to get a family. If it doesn't exist, create it. 'simple_family' ==
+  // true if the family only uses single store, otherwise 'store_type' is
+  // ignored. Note that all output family has to be simple, since they can only
+  // store in FeatureStoreType::OUTPUT. If 'simple_family' == false,
+  // 'store_type' is ignored.
+  const FeatureFamilyIf& GetOrCreateFamily(const std::string& family_name,
+      bool simple_family = false,
+      FeatureStoreType store_type = FeatureStoreType::OUTPUT) const;
+  FeatureFamilyIf& GetOrCreateMutableFamily(const std::string& family_name,
+      bool simple_family = false,
+      FeatureStoreType store_type = FeatureStoreType::OUTPUT);
 
   // Return append_store_offset_.
   const DatumProtoStoreOffset& GetAppendOffset() const;
 
   // Not including kInternalFamily.
-  const std::map<std::string, FeatureFamily>& GetFamilies() const;
+  const std::map<std::string, std::unique_ptr<FeatureFamilyIf>>& GetFamilies()
+    const;
 
   // Get # of features (not including label/weight or anything in the
   // kInternalFamily) in this schema.
@@ -81,9 +87,9 @@ public:
 
   // std::string Serialize(bool with_features = true) const;
 
-  inline const std::shared_ptr<std::vector<Feature>> GetFeatures() const {
-    return features_;
-  }
+  //inline const std::shared_ptr<std::vector<Feature>> GetFeatures() const {
+  //  return features_;
+  //}
 
   // Commit Schema to DB, chopping up repeated features. Return number of bytes
   // stored to disk.
@@ -99,7 +105,7 @@ private:
 private:
   // Comment(wdai): It's mutable so we can add family while
   // accessing Schema object as const.
-  mutable std::map<std::string, FeatureFamily> families_;
+  mutable std::map<std::string, std::unique_ptr<FeatureFamilyIf>> families_;
 
   // Keep an ordered list of output families to construct OSchema to
   // send to client.
@@ -108,7 +114,10 @@ private:
 
   // All feature are stored in features_. FeatureFamily maintains the
   // global_index to find feature from here.
-  std::shared_ptr<std::vector<Feature>> features_;
+  //std::shared_ptr<std::vector<Feature>> features_;
+
+  // Each added feature will increment this.
+  BigInt curr_global_offset_ = 0;
 
   // Internal family stores label, weight, and is treated specially so that
   // when returning families_ for DatumBase to iterate over we don't show

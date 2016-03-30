@@ -22,32 +22,14 @@ DatumProto* DatumBase::Release() {
   return proto_.release();
 }
 
-float DatumBase::GetLabel(const FeatureFamily& internal_family) const {
+float DatumBase::GetLabel(const FeatureFamilyIf& internal_family) const {
   return GetFeatureVal(internal_family.GetFeature(kLabelFamilyIdx));
 }
 
-float DatumBase::GetWeight(const FeatureFamily& internal_family) const {
+float DatumBase::GetWeight(const FeatureFamilyIf& internal_family) const {
   float weight = GetFeatureVal(internal_family.GetFeature(kWeightFamilyIdx));
   return weight == 0 ? 1 : weight;
 }
-
-/*
-float DatumBase::GetFeatureVal(const Schema& schema,
-    const std::string& feature_desc) const {
-  auto finders = ParseFeatureDesc(feature_desc);
-  CHECK_EQ(1, finders.size());
-  const auto& finder = finders[0];
-  const auto& family = schema.GetFamily(finder.family_name);
-  CHECK(!finder.all_family);
-  FeatureLocator loc;
-  if (!finder.feature_name.empty()) {
-    loc = family.GetFeature(finder.feature_name).loc();
-  } else {
-    loc = family.GetFeature(finder.family_idx).loc();
-  }
-  return GetFeatureVal(loc);
-}
-*/
 
 float DatumBase::GetFeatureVal(const Feature& f) const {
   CHECK_NOTNULL(proto_.get());
@@ -190,6 +172,7 @@ std::string DatumBase::ToString() const {
   return ss.str();
 }
 
+// The implementation is rather inefficient, so shouldn't be called often.
 std::string DatumBase::ToString(const Schema& schema) const {
   CHECK_NOTNULL(proto_.get());
   std::stringstream ss;
@@ -202,13 +185,20 @@ std::string DatumBase::ToString(const Schema& schema) const {
   for (const auto& pair : families) {
     const std::string& family_name = pair.first;
     ss << " |" << family_name;
-    const auto& feature_seq = pair.second.GetFeatures();
-    for (int i = 0; i < feature_seq.GetNumFeatures(); ++i) {
-      const auto& f = feature_seq.GetFeature(i);
-      std::string feature_name = (f.name().empty() ?
-          std::to_string(i) : f.name());
-      ss << " " << feature_name << ":" << GetFeatureVal(f);
+    LOG(FATAL) << "Not implemented yet.";
+    /*
+    if (pair.second.IsSimple()) {
+      LOG(INFO) << "Not implemented yet.";
+    } else {
+      const auto& feature_seq = pair.second.GetFeatures();
+      for (int i = 0; i < feature_seq.GetNumFeatures(); ++i) {
+        const auto& f = feature_seq.GetFeature(i);
+        std::string feature_name = (f.name().empty() ?
+            std::to_string(i) : f.name());
+        ss << " " << feature_name << ":" << GetFeatureVal(f);
+      }
     }
+    */
     /*
     const std::vector<Feature>& features = pair.second.GetFeatures();
     for (int i = 0; i < features.size(); ++i) {

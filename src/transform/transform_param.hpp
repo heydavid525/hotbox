@@ -6,6 +6,7 @@
 #include <glog/logging.h>
 #include <string>
 #include <map>
+#include <utility>
 
 namespace hotbox {
 
@@ -131,7 +132,7 @@ private:
       // wildcard to select all features in all-family.
       if (finder.family_name == "*") {
         CHECK(finder.all_family) << "Must select all family and all features";
-        const std::map<std::string, FeatureFamily>& families =
+        const std::map<std::string, std::unique_ptr<FeatureFamilyIf>>& families =
           schema.GetFamilies();
         for (const auto& p : families) {
           FamilyWideSelection(schema, p.first);
@@ -159,7 +160,7 @@ private:
     CHECK(input_family.IsSimple());
     // Get the family offsets only for family-wide selection.
     wide_family_offsets_[family_name] =
-      input_family.GetStoreTypeAndOffset();
+      dynamic_cast<const SimpleFeatureFamily&>(input_family).GetStoreTypeAndOffset();
     // Just give empty vector for input_features_desc_ and input_features_.
     input_features_[family_name] = std::vector<Feature>();
     input_features_desc_[family_name] = std::vector<std::string>();

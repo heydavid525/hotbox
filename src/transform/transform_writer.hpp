@@ -16,8 +16,8 @@ public:
     InitializeOffset(&output_store_offset_end_);
 
     output_family_ = &(schema_->GetOrCreateMutableFamily(
-        config.output_family_name(), store_type_ == FeatureStoreType::OUTPUT,
-        config.output_simple_family()));
+        config.output_family_name(), config.output_simple_family(),
+        store_type_));
   }
 
   // Add a feature to the storage type (default is OUTPUT, but could be
@@ -55,7 +55,7 @@ private:
 private:
   // Does not take ownership of schema_ nor output_family_.
   Schema* schema_;
-  FeatureFamily* output_family_;
+  FeatureFamilyIf* output_family_;
 
   // Transform output is only allowed between [output_store_offset_begin_,
   // output_store_offset_end_).

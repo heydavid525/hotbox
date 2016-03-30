@@ -45,7 +45,10 @@ DatumBase ParserIf::ParseAndUpdateSchema(const std::string& line,
       }
     } else {
       // No missing feature in schema.
-      auto stats_output = stat_collector->DatumCreateEnd();
+      //auto stats_output = stat_collector->DatumCreateEnd();
+      stat_collector->DatumCreateEnd();
+      // Comment(wdai): Don't worry about detecting factor feature for now.
+      /*
       for (int j = 0; j < stats_output.num_updates; ++j) {
         // Convert features with too many unique values to non-factor feature.
         if (stats_output.num_unique[j] >=
@@ -62,6 +65,7 @@ DatumBase ParserIf::ParseAndUpdateSchema(const std::string& line,
           }
         }
       }
+      */
       return datum;
     }
   }

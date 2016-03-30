@@ -24,14 +24,10 @@ public:
 
   DatumProto* Release();
 
-  float GetLabel(const FeatureFamily& internal_family) const;
+  float GetLabel(const FeatureFamilyIf& internal_family) const;
 
   // Weight cannot be 0 since it can be stored sparsely and 0 means default 1.
-  float GetWeight(const FeatureFamily& internal_family) const;
-
-  // feature_desc (feature descriptor) can only result in 1 feature.
-  //float GetFeatureVal(const Schema& schema,
-  //    const std::string& feature_desc) const;
+  float GetWeight(const FeatureFamilyIf& internal_family) const;
 
   // Get number feature value (CATEGORICAL or NUMERIC). Error otherwise.
   // TODO(wdai): Return flexitype in the future.

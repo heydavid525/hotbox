@@ -30,11 +30,10 @@ std::vector<TypedFeatureFinder> LibSVMParser::Parse(const std::string& line,
   this->SetLabelAndWeight(schema, datum, label);
   ptr = endptr;
 
-  bool output_family = false;
   // Use only single store type.
   bool simple_family = true;
-  const auto& family = schema->GetOrCreateFamily(kDefaultFamily, output_family,
-      simple_family);
+  const auto& family = schema->GetOrCreateFamily(kDefaultFamily, simple_family,
+      FeatureStoreType::SPARSE_NUM);
 
   std::vector<TypedFeatureFinder> not_found_features;
 

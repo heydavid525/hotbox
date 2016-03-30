@@ -5,6 +5,7 @@ import os
 from os.path import dirname
 from os.path import join
 import argparse
+import yaml
 
 project_dir = dirname(dirname(dirname(os.path.realpath(__file__))))
 sys.path.append(join(project_dir, 'python/db'))
@@ -13,26 +14,34 @@ from hb_client import HBClient
 
 """
 Usage (Ingest one file):
-  python python/db/ingest.py --path /path/to/file.libsvm
+  python python/db/ingest.py --path /path/to/file.libsvm --db some_db_name
 
 Usage (Ingest a directory):
-  python python/db/ingest.py --path /path/to/dir/
+  python python/db/ingest.py --path /path/to/dir/ --db some_db_name
 
 """
 
 if __name__ == "__main__":
+
+  with open(join(project_dir, 'config.yaml'), 'r') as f:
+      try:
+          yconfig = yaml.load(f)
+      except yaml.YAMLError as exc:
+          print(exc)
   parser = argparse.ArgumentParser()
   parser.add_argument("--path")
+  parser.add_argument("--db")
   args = parser.parse_args()
 
-  print('args.path', args.path)
   if not args.path:
     print('--path must be specified (directory or single file).')
     sys.exit(1)
+  if not args.db:
+    print('--db must be specified.')
+    sys.exit(1)
 
-  server_ip = "localhost"
-  hb_client = HBClient(server_ip)
-  test_db = hb_client.CreateDB('test_db', use_dense_weight=False)
+  hb_client = HBClient(yconfig['server_ip'])
+  test_db = hb_client.CreateDB(args.db, use_dense_weight=False)
 
   if os.path.isdir(args.path):
     files = [join(args.path, f) for f in os.listdir(args.path) if

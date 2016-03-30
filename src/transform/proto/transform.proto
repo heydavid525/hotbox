@@ -124,6 +124,7 @@ message ConstantTransformConfig {
 //
 // Output features are stored in sparse format.
 message NgramTransformConfig {
+  
 }
 
 // f(p) = log(p/(1-p)) for p \in (0, 1) is very useful for transforming
@@ -137,7 +138,7 @@ message LogitTransformConfig {
   double lower_bound = 4;
 }
 
-// Select input features (supporting *:* wildcard) and perform no transform.
+// SelectTransform uses selected features from the BaseTransformConfig
 message SelectTransformConfig {
 }
 
