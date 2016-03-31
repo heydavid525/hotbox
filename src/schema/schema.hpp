@@ -43,6 +43,10 @@ public:
   void AddFeature(FeatureFamilyIf* family, Feature* new_feature,
       BigInt family_idx = -1);
 
+  // Extend a simple family's feature by num_features. family has to be
+  // SimpleFeatureFamily.
+  void AddFeatures(FeatureFamilyIf* family, BigInt num_features);
+
   Feature GetFeature(const std::string& family_name, BigInt family_idx) const;
 
   // Throws FamilyNotFound exception if family doesn't exist.

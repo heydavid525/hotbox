@@ -105,6 +105,16 @@ void Schema::AddFeature(FeatureFamilyIf* family, Feature* new_feature,
       static_cast<BigInt>(new_feature->global_offset()));
 }
 
+void Schema::AddFeatures(FeatureFamilyIf* family, BigInt num_features) {
+  CHECK_NOTNULL(family);
+  CHECK(family->IsSimple());
+  SimpleFeatureFamily* s_family = dynamic_cast<SimpleFeatureFamily*>(family);
+  s_family->AddFeatures(num_features);
+  StoreTypeAndOffset type_offset = s_family->GetStoreTypeAndOffset();
+  append_store_offset_.set_offsets(type_offset.store_type(), type_offset.offset_end());
+  curr_global_offset_ += num_features;
+}
+
 Feature Schema::GetFeature(const std::string& family_name,
     BigInt family_idx) const {
   return GetFamily(family_name).GetFeature(family_idx);

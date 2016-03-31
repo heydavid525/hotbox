@@ -60,12 +60,7 @@ void SelectTransform::TransformSchema(const TransformParam& param,
     = param.GetFamilyWideStoreOffsets();
   for (const std::string& f : wide_families) {
     StoreTypeAndOffset offsets = wide_family_offsets.at(f);
-    // TODO(wdai): for loop over feature offsets, not feature vector.
-    // wide_family_offsets is the offset on input store.
-    for (int i = offsets.offset_begin(); i < offsets.offset_end(); ++i) {
-      // family-wide feature doesn't need individual feature names.
-      writer->AddFeature("");
-    }
+    writer->AddFeatures(offsets.offset_end() - offsets.offset_begin());
   }
 }
 

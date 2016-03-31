@@ -74,14 +74,18 @@ void SimpleFeatureFamily::AddFeature(Feature* new_feature,
   // offset should be the same order as family_idx.
   new_feature->set_global_offset(global_offset_begin_ + family_idx);
   CHECK_EQ(store_type_, new_feature->store_type());
-  AddFeatureRange(family_idx);
+  ExtendFeature(family_idx);
 }
 
-void SimpleFeatureFamily::AddFeatureRange(BigInt family_idx) {
+void SimpleFeatureFamily::ExtendFeature(BigInt family_idx) {
   auto curr_offset_begin = offset_begin_.offsets(store_type_);
   auto curr_offset_end = offset_end_.offsets(store_type_);
   offset_end_.set_offsets(store_type_, std::max(curr_offset_end,
         curr_offset_begin + family_idx + 1));
+}
+
+void SimpleFeatureFamily::AddFeatures(BigInt num_features) {
+  ExtendFeature(GetNumFeatures() + num_features);
 }
 
 StoreTypeAndOffset SimpleFeatureFamily::GetStoreTypeAndOffset() const {

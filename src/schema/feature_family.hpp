@@ -164,6 +164,9 @@ public:
   FeatureFamilyProto GetProto() const override;
 
 private:
+  // Allow Schema to access AddFeatures.
+  friend class Schema;
+
   bool HasFeature(BigInt family_idx) const;
 
   Feature CreateFeature(BigInt family_idx) const;
@@ -173,7 +176,10 @@ private:
   void AddFeature(Feature* new_feature, BigInt family_idx = -1) override;
 
   // Extend family idx range to family_idx.
-  void AddFeatureRange(BigInt family_idx);
+  void ExtendFeature(BigInt family_idx);
+
+  // Add num_features features
+  void AddFeatures(BigInt num_features);
 
 private:
   FeatureStoreType store_type_;

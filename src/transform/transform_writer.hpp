@@ -32,6 +32,14 @@ public:
         std::max(curr_end, new_feature.store_offset() + 1));
   }
 
+  // Add num_features anonymous features to output_family_. We assume
+  // output_family_ is SimpleFeatureFamily.
+  void AddFeatures(BigInt num_features) {
+    schema_->AddFeatures(output_family_, num_features);
+    auto curr_end = output_store_offset_end_.offsets(store_type_);
+    output_store_offset_end_.set_offsets(store_type_, curr_end + num_features);
+  }
+
   // Get the output range for each transform to be sent to client.
   TransformOutputRange GetTransformOutputRange() const {
     TransformOutputRange range;
