@@ -13,7 +13,7 @@ public:
 
 protected:
   std::vector<TypedFeatureFinder> Parse(const std::string& line, Schema* schema,
-      DatumBase* datum) const override;
+      DatumBase* datum, bool* invalid) const override;
 
 private:
   bool feature_one_based_{false};

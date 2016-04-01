@@ -32,7 +32,7 @@ public:
       for (auto it = proto.input_families().cbegin();
           it != proto.input_families().cend(); ++it) {
         const auto& input_features = it->second.input_features();
-        input_features_[it->first] = std::vector<Feature>(
+        ns_input_features_[it->first] = std::vector<Feature>(
             input_features.cbegin(), input_features.cend());
 
         const auto& input_features_desc = it->second.input_features_desc();
@@ -61,15 +61,17 @@ public:
   // Get all the selected input features.
   std::vector<Feature> GetInputFeatures() const {
     std::vector<Feature> features;
-    for (const auto& f : input_features_) {
+    for (const auto& f : ns_input_features_) {
       features.insert(features.end(), f.second.cbegin(), f.second.cend());
     }
     return features;
   }
 
+  // Return family --> [feature1, feature2,...] including only
+  // non-family-wide features.
   const std::map<std::string, std::vector<Feature>>&
     GetInputFeaturesByFamily() const {
-      return input_features_;
+      return ns_input_features_;
   }
 
   const std::map<std::string, std::vector<std::string>>&
@@ -94,7 +96,7 @@ public:
     *(proto.mutable_config()) = config_;
 
     // Instantiate TransformParamProto::input_families.
-    for (const auto& p : input_features_) {
+    for (const auto& p : ns_input_features_) {
       TransformFamilyFeatureProto family_feature;
       const std::vector<Feature>& features = p.second;
       const std::vector<std::string>& features_desc =
@@ -113,10 +115,10 @@ public:
       (*proto.mutable_wide_family_offsets())[p.first] = p.second;
     }
     /*
-    proto.mutable_input_features()->Reserve(input_features_.size());
+    proto.mutable_input_features()->Reserve(ns_input_features_.size());
     proto.mutable_input_features_desc()->Reserve(input_features_desc_.size());
-    for (int i = 0; i < input_features_.size(); ++i) {
-      *(proto.add_input_features()) = input_features_[i];
+    for (int i = 0; i < ns_input_features_.size(); ++i) {
+      *(proto.add_input_features()) = ns_input_features_[i];
       *(proto.add_input_features_desc()) = input_features_desc_[i];
     }
     */
@@ -124,7 +126,6 @@ public:
   }
 
 private:
-  // Populate input_features_.
   void PrepareInputFeatures(const Schema& schema,
       const std::vector<std::string>& input_features_str) {
     auto finders = GetInputFeatureFinders(input_features_str);
@@ -141,7 +142,7 @@ private:
         if (finder.all_family) {
           FamilyWideSelection(schema, finder.family_name);
         } else {
-          input_features_[finder.family_name].push_back(
+          ns_input_features_[finder.family_name].push_back(
               schema.GetFeature(finder));
           input_features_desc_[finder.family_name].push_back(
               finder.family_name + ":" +
@@ -161,26 +162,9 @@ private:
     // Get the family offsets only for family-wide selection.
     wide_family_offsets_[family_name] =
       dynamic_cast<const SimpleFeatureFamily&>(input_family).GetStoreTypeAndOffset();
-    // Just give empty vector for input_features_desc_ and input_features_.
-    input_features_[family_name] = std::vector<Feature>();
+    // Just give empty vector for input_features_desc_ and ns_input_features_.
+    ns_input_features_[family_name] = std::vector<Feature>();
     input_features_desc_[family_name] = std::vector<std::string>();
-    //  return;
-    /*
-    const FeatureSeq& feature_seq = input_family.GetFeatures();
-    std::vector<Feature> family_features(feature_seq.GetNumFeatures());
-    for (int i = 0; i < feature_seq.GetNumFeatures(); ++i) {
-      family_features[i] = feature_seq.GetFeature(i);
-    }
-    input_features_[family_name] = family_features;
-    input_features_.append(family_features);
-
-    std::vector<std::string> family_desc(feature_seq.GetNumFeatures());
-    for (int i = 0; i < feature_seq.GetNumFeatures(); ++i) {
-      family_desc.push_back(input_family.GetFamilyName() + ":"
-          + std::to_string(i));
-    }
-    input_features_desc_[family_name] = family_desc;
-    */
   }
 
   // FeatureFinder is the parsed results from input_features_str_, before
@@ -198,9 +182,10 @@ private:
 private:
   TransformConfig config_;
 
-  // input_features_ only include features that are not part of family-wide
-  // selection. For simple family-wide selection we elide the feature.
-  std::map<std::string, std::vector<Feature>> input_features_;
+  // ns_input_features_ (non-simple input_features) only include features that
+  // are not part of family-wide selection. For simple family-wide selection we
+  // elide the feature.
+  std::map<std::string, std::vector<Feature>> ns_input_features_;
 
   // family:feature_name or family:idx depending on how user specifies it. For
   // simple family-wide selection it's empty vector (we elide feature name for

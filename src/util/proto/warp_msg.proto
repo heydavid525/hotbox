@@ -56,9 +56,9 @@ message ReadFileReq {
   string file_path = 2;
   FileFormat file_format = 3;
 
-  // True to avoid committing stats and schema to disk (useful when ingesting
-  // multiple files).
-  bool no_commit = 6;
+  // True to commit stats and schema to disk (use false for all files but the
+  // last one when ingesting multiple files to reduce disk io).
+  bool commit = 6;
 
   // header is the line # to be treated as header (0 for no header). Data will
   // # be read after header line.

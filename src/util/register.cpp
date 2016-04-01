@@ -45,7 +45,10 @@ void RegisterTransforms() {
       Creator<TransformIf, SelectTransform>);
   kConfigCaseToTransformName[TransformConfig::kSelectTransform]
     = "SelectTransform";
-
+  registry.AddCreator(TransformConfig::kNgramTransform,
+      Creator<TransformIf, NgramTransform>);
+  kConfigCaseToTransformName[TransformConfig::kNgramTransform]
+    = "NgramTransform";
 }
 
 }  // namespace hotbox

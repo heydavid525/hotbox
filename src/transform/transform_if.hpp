@@ -41,7 +41,8 @@ protected:
   virtual void SetTransformWriterConfig(const TransformConfig& config,
       TransformWriterConfig* writer_config) const {
     LOG(INFO) << "TransformIf::SetTransformWriterConfig";
-    // Default does nothing.
+    // Default sets output to simple family.
+    writer_config->set_output_simple_family(true);
   }
 };
 

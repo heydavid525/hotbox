@@ -62,13 +62,13 @@ public:
   // true if the family only uses single store, otherwise 'store_type' is
   // ignored. Note that all output family has to be simple, since they can only
   // store in FeatureStoreType::OUTPUT. If 'simple_family' == false,
-  // 'store_type' is ignored.
-  const FeatureFamilyIf& GetOrCreateFamily(const std::string& family_name,
+  // 'store_type' is ignored. Optional 'num_features' specifies number of
+  // features in this family. Without it it'd be determined by
+  // AddFeature/AddFeatures.
+  FeatureFamilyIf& GetOrCreateFamily(const std::string& family_name,
       bool simple_family = false,
-      FeatureStoreType store_type = FeatureStoreType::OUTPUT) const;
-  FeatureFamilyIf& GetOrCreateMutableFamily(const std::string& family_name,
-      bool simple_family = false,
-      FeatureStoreType store_type = FeatureStoreType::OUTPUT);
+      FeatureStoreType store_type = FeatureStoreType::OUTPUT,
+      BigInt num_features = 0);
 
   // Return append_store_offset_.
   const DatumProtoStoreOffset& GetAppendOffset() const;
@@ -86,15 +86,6 @@ public:
 
   SchemaConfig GetConfig() const;
 
-  // with_features = true to store features_ in the schema proto.
-  // SchemaProto GetProto(bool with_features = true) const;
-
-  // std::string Serialize(bool with_features = true) const;
-
-  //inline const std::shared_ptr<std::vector<Feature>> GetFeatures() const {
-  //  return features_;
-  //}
-
   // Commit Schema to DB, chopping up repeated features. Return number of bytes
   // stored to disk.
   size_t Commit(RocksDB* db) const;
@@ -107,14 +98,11 @@ private:
   void UpdateStoreOffset(Feature* new_feature, BigInt store_offset = -1);
 
 private:
-  // Comment(wdai): It's mutable so we can add family while
-  // accessing Schema object as const.
-  mutable std::map<std::string, std::unique_ptr<FeatureFamilyIf>> families_;
+  std::map<std::string, std::unique_ptr<FeatureFamilyIf>> families_;
 
   // Keep an ordered list of output families to construct OSchema to
   // send to client.
-  // Comment(wdai): It's mutable for the same reason as families_.
-  mutable std::vector<std::string> output_families_;
+  std::vector<std::string> output_families_;
 
   // All feature are stored in features_. FeatureFamily maintains the
   // global_index to find feature from here.

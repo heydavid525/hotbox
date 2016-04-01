@@ -6,7 +6,13 @@
 
 namespace hotbox {
 
-// Parse string in the family format:
+// Parse string in the family format. The file should start with first line
+// defining number of features in each family:
+//
+//    # |family1 5 |family2 4
+//
+// (family1 has 5 features (0~4), family2 has 4 features). Each following
+// line looks like:
 //
 //    0 1 | family1 0:3.4 1:4 | family2 3:5.3 
 //
@@ -19,7 +25,7 @@ namespace hotbox {
 class FamilyParser : public NoConfigParserIf {
 protected:
   std::vector<TypedFeatureFinder> Parse(const std::string& line,
-      Schema* schema, DatumBase* datum) const override;
+      Schema* schema, DatumBase* datum, bool* invalid) const override;
 
 private:
   // Comment(wdai): ReadFamily uses InferType from ParserIf, thus has to be

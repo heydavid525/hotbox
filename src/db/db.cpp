@@ -186,8 +186,12 @@ std::string DB::ReadFile(const ReadFileReq& req) {
       for (int i = 0; i < batch_size && std::getline(in, line); i++) {
         ++rec_counter;
         CHECK_NOTNULL(parser.get());
+        bool invalid = false;
         DatumBase datum = parser->ParseAndUpdateSchema(line,
-            schema_.get(), &stat_collector);
+            schema_.get(), &stat_collector, &invalid);
+        if (invalid) {
+          continue;
+        }
         if (batch_size == kInitIngestBatchSize) {
           // For the first batch we make rough estimate, which will be adjust
           // after the first batch is written. 0.5 for snappy compression.
@@ -207,7 +211,7 @@ std::string DB::ReadFile(const ReadFileReq& req) {
     }
     time = timer.elapsed();
 
-    if (!req.no_commit()) {
+    if (req.commit()) {
       CommitDB();
     }
   }

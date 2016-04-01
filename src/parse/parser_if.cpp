@@ -15,12 +15,15 @@ ParserIf::~ParserIf() { }
 
 // Parse and add features to schema if not found.
 DatumBase ParserIf::ParseAndUpdateSchema(const std::string& line,
-    Schema* schema, StatCollector* stat_collector) noexcept {
+    Schema* schema, StatCollector* stat_collector, bool* invalid) noexcept {
   for (int i = 0; i < kMaxParseTries; ++i) {
     DatumProto* proto = CreateDatumProtoFromOffset(schema->GetAppendOffset());
     stat_collector->DatumCreateBegin();
     DatumBase datum(proto, stat_collector);
-    std::vector<TypedFeatureFinder> not_found_features = Parse(line, schema, &datum);
+    // By default a datum is valid. invalid is set to true by Parse if a line
+    // is a comment.
+    std::vector<TypedFeatureFinder> not_found_features = Parse(line, schema, &datum,
+        invalid);
     if (not_found_features.size() > 0) {
       // Add the missing features to schema.
       for (const TypedFeatureFinder& finder : not_found_features) {
@@ -41,6 +44,7 @@ DatumBase ParserIf::ParseAndUpdateSchema(const std::string& line,
         }
         Feature feature = CreateFeature(store_type);
         schema->AddFeature(finder.family_name, &feature, finder.family_idx);
+        LOG(INFO) << "feature global offset: " << feature.global_offset();
         stat_collector->AddFeatureStat(feature);
       }
     } else {

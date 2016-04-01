@@ -17,16 +17,16 @@ public:
 
   // Parse and add features to schema if not found.
   DatumBase ParseAndUpdateSchema(const std::string& line, Schema* schema,
-      StatCollector* stat_collector) noexcept;
+      StatCollector* stat_collector, bool* invalid) noexcept;
 
   virtual ~ParserIf();
 
 protected:
   // datum's dense store is preallocated according to schema.
   // May throw TypedFeaturesNotFoundException. Caller needs to free datum even
-  // during exception.
+  // during exception. 'invalid' = true if the line is a comment.
   virtual std::vector<TypedFeatureFinder> Parse(const std::string& line, Schema* schema,
-      DatumBase* datum) const = 0;
+      DatumBase* datum, bool* invalid) const = 0;
 
   // Infer float or int.
   static FeatureType InferType(float val);

@@ -24,12 +24,6 @@ bool StringInVector(const std::string& target,
 
 }  // anonymous namespace
 
-void SelectTransform::SetTransformWriterConfig(const TransformConfig& config,
-    TransformWriterConfig* writer_config) const {
-  LOG(INFO) << "SelectTransform::SetTransformWriterConfig";
-  writer_config->set_output_simple_family(true);
-}
-
 void SelectTransform::TransformSchema(const TransformParam& param,
     TransformWriter* writer) const {
   const auto& non_simple_input_features = param.GetInputFeaturesByFamily();
@@ -118,6 +112,10 @@ std::function<void(TransDatum*)> SelectTransform::GenerateTransform(
             auto low = std::lower_bound(
                 proto.sparse_num_store_idxs().cbegin(),
                 proto.sparse_num_store_idxs().cend(), offset_begin);
+
+            // 'start' indexes the first non-zero element for family p.first,
+            // if the family isn't all zero (if so, 'start' indexes the
+            // beginning of next family.)
             auto start = low - proto.sparse_num_store_idxs().cbegin();
             for (int i = start; i < proto.sparse_num_store_idxs_size(); ++i) {
               if (proto.sparse_num_store_idxs(i) < offset_begin) {

@@ -152,34 +152,9 @@ FeatureFamilyIf& Schema::GetMutableFamily(const std::string& family_name) {
   return *(it->second);
 }
 
-// Comment(wdai): GetOrCreateFamily has identical implementation as
-// GetOrCreateMutableFamily.
-const FeatureFamilyIf& Schema::GetOrCreateFamily(const std::string& family_name,
-    bool simple_family, FeatureStoreType store_type) const {
-  if (family_name == kInternalFamily) {
-    return internal_family_;
-  }
-  auto it = families_.find(family_name);
-  if (it == families_.cend()) {
-    if (simple_family) {
-      families_[family_name] = make_unique<SimpleFeatureFamily>(
-              family_name, append_store_offset_, store_type, 
-              curr_global_offset_);
-    } else {
-      families_[family_name] = make_unique<FeatureFamily>(family_name,
-              append_store_offset_, curr_global_offset_);
-    }
-    if (store_type == FeatureStoreType::OUTPUT) {
-      output_families_.push_back(family_name);
-    }
-  }
-  it = families_.find(family_name);
-  return *it->second;
-}
-
-FeatureFamilyIf& Schema::GetOrCreateMutableFamily(
+FeatureFamilyIf& Schema::GetOrCreateFamily(
     const std::string& family_name, bool simple_family,
-    FeatureStoreType store_type) {
+    FeatureStoreType store_type, BigInt num_features) {
   if (family_name == kInternalFamily) {
     return internal_family_;
   }
@@ -190,6 +165,8 @@ FeatureFamilyIf& Schema::GetOrCreateMutableFamily(
               family_name, append_store_offset_, store_type,
               curr_global_offset_);
     } else {
+      CHECK_EQ(0, num_features)
+        << "num_features must be 0 for non-simple family";
       families_[family_name] = make_unique<FeatureFamily>(family_name,
               append_store_offset_, curr_global_offset_);
     }
@@ -198,6 +175,9 @@ FeatureFamilyIf& Schema::GetOrCreateMutableFamily(
     }
   }
   it = families_.find(family_name);
+  curr_global_offset_ += num_features;  // no-op if num_features == 0 (default)
+  auto curr_offset = append_store_offset_.offsets(store_type);
+  append_store_offset_.set_offsets(store_type, curr_offset + num_features);
   return *it->second;
 }
 

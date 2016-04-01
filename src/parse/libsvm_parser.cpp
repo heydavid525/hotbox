@@ -21,8 +21,7 @@ void LibSVMParser::SetConfig(const ParserConfig& config) {
 }
 
 std::vector<TypedFeatureFinder> LibSVMParser::Parse(const std::string& line,
-    Schema* schema,
-    DatumBase* datum) const {
+    Schema* schema, DatumBase* datum, bool* invalid) const {
   char* ptr = nullptr, *endptr = nullptr;
 
   // Read label.

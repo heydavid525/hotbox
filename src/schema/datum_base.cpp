@@ -235,7 +235,8 @@ void DatumBase::CheckInOrder() const {
   prev_idx = -1;
   for (int i = 0; i < proto_->sparse_num_store_idxs_size(); ++i) {
     BigInt curr_idx = proto_->sparse_num_store_idxs(i);
-    CHECK_GT(curr_idx, prev_idx);
+    CHECK_GT(curr_idx, prev_idx) << "sparse_num_store: "
+      << proto_->DebugString();
     prev_idx = curr_idx;
   }
   prev_idx = -1;

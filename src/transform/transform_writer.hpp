@@ -15,7 +15,7 @@ public:
     InitializeOffset(&output_store_offset_begin_);
     InitializeOffset(&output_store_offset_end_);
 
-    output_family_ = &(schema_->GetOrCreateMutableFamily(
+    output_family_ = &(schema_->GetOrCreateFamily(
         config.output_family_name(), config.output_simple_family(),
         store_type_));
   }

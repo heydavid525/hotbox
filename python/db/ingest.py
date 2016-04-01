@@ -15,6 +15,7 @@ from hb_client import HBClient
 """
 Usage (Ingest one file):
   python python/db/ingest.py --path /path/to/file.libsvm --db some_db_name
+   [--format libsvm/family]
 
 Usage (Ingest a directory):
   python python/db/ingest.py --path /path/to/dir/ --db some_db_name
@@ -31,6 +32,7 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("--path")
   parser.add_argument("--db")
+  parser.add_argument("--format")
   args = parser.parse_args()
 
   if not args.path:
@@ -41,7 +43,7 @@ if __name__ == "__main__":
     sys.exit(1)
 
   hb_client = HBClient(yconfig['server_ip'])
-  test_db = hb_client.CreateDB(args.db, use_dense_weight=False)
+  db = hb_client.CreateDB(args.db, use_dense_weight=False)
 
   if os.path.isdir(args.path):
     files = [join(args.path, f) for f in os.listdir(args.path) if
@@ -49,6 +51,7 @@ if __name__ == "__main__":
   else:
     files = [args.path]
   for i, f in enumerate(files):
-    no_commit = False if i == len(files) - 1 else True
+    commit = True if i == len(files) - 1 else False
     print('-' * 10, 'Ingesting', f)
-    test_db.ReadFile(f, file_format='libsvm', no_commit=no_commit)
+    format = 'libsvm' if not args.format else args.format
+    db.ReadFile(f, file_format=format, commit=commit)

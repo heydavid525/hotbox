@@ -112,7 +112,7 @@ class DB:
   # header is the line # to be treated as header (0 for no header). Data will
   # be read after header line.
   # TODO(wdai): currently header isn't supported.
-  def ReadFile(self, file_path, file_format='csv', no_commit=False, header=0):
+  def ReadFile(self, file_path, file_format='csv', commit=True, header=0):
     msg = warp_msg_pb.ClientMsg()
     msg.read_file_req.db_name = self.db_name
     msg.read_file_req.file_path = file_path
@@ -125,7 +125,7 @@ class DB:
         'family': util_pb.FAMILY,
         }.get(file_format, 0)
     msg.read_file_req.header = header
-    msg.read_file_req.no_commit = no_commit
+    msg.read_file_req.commit = commit
     reply = self.warp_client.SendRecv(msg)
     print('Reading file %s ...' % file_path)
     print(reply.generic_reply.msg)
