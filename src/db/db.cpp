@@ -147,8 +147,8 @@ void DB::UpdateReadMetaData(const DBAtom& atom, size_t new_len) {
       curr_global_bytes_offset + new_len);
   //LOG(INFO) << "Total data offset: " << curr_global_bytes_offset + new_len;
 
-  BigInt num_data_read = atom.datum_protos_size();
-  BigInt num_data_before_read = meta_data_.file_map().num_data();
+  int64_t num_data_read = atom.datum_protos_size();
+  int64_t num_data_before_read = meta_data_.file_map().num_data();
   meta_data_.mutable_file_map()->add_datum_ids(num_data_before_read);
   meta_data_.mutable_file_map()->set_num_data(
       num_data_before_read + num_data_read);
@@ -257,25 +257,6 @@ DBProto DB::GetProto() const {
   return proto;
 }
 
-/*
-   void DB::CommitStats() {
-   int num_stat_batches = std::ceil(static_cast<float>(stats_.size())
-   / kStatBatchSize);
-   for (int i = 0; i < num_stat_batches; ++i) {
-   BigInt id_begin = kStatBatchSize * i;
-   BigInt id_end = std::min(id_begin + kStatBatchSize,
-   static_cast<BigInt>(stats_.size()));
-   FeatureStatProtoSeq stat_proto_seq;
-   stat_proto_seq.set_id_begin(id_begin);
-   stat_proto_seq.mutable_stats()->Reserve(kStatBatchSize);
-   for (BigInt j = id_begin; j < id_end; ++j) {
- *stat_proto_seq.add_stats() = stats_[j].GetProto();
- }
- std::string stat_key = kStatProtoSeqPrefix + std::to_string(i);
- meta_db_.Put(stat_key, SerializeProto(stat_proto_seq));
- }
- }
- */
 
 void DB::CommitDB() {
   Timer timer;

@@ -20,9 +20,9 @@ DataIterator::DataIterator(const SessionProto& session_proto,
 
 DataIterator::DataIterator(const SessionProto& session_proto,
     std::vector<std::function<void(TransDatum*)>> transforms,
-    BigInt data_begin, BigInt data_end, bool use_multi_threads,
-    BigInt num_io_threads, BigInt num_transform_threads,
-    BigInt buffer_limit, BigInt batch_limit)
+    size_t data_begin, size_t data_end, bool use_multi_threads,
+    int32_t num_io_threads, int32_t num_transform_threads,
+    size_t buffer_limit, size_t batch_limit)
   : session_proto_(session_proto), transforms_(transforms),
   data_begin_(data_begin), data_end_(data_end), next_(data_begin),
   datum_ids_(session_proto_.file_map().datum_ids().cbegin(),
@@ -76,9 +76,9 @@ FlexiDatum&& DataIterator::GetDatum() {
   return std::move(data_buffer_[next_ - chunk_begin_]);
 }
 
-void DataIterator::ReadSizeLimitedAtomAndTransform(int64_t file_begin,
-    int64_t file_end) {
-  int64_t size_limit = kAtomSizeInBytes;
+void DataIterator::ReadSizeLimitedAtomAndTransform(size_t file_begin,
+    size_t file_end) {
+  int32_t size_limit = kAtomSizeInBytes;
   int64_t atom_idx_begin = file_begin / size_limit;
   int64_t atom_idx_end = file_end / size_limit;
   LOG(INFO) << "Which Atom: [" << atom_idx_begin

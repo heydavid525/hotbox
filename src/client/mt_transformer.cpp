@@ -10,7 +10,7 @@ namespace hotbox {
 MTTransformer::MTTransformer(const SessionProto &session_proto,
                              std::vector<std::function<void(TransDatum *)>>
                              transforms,
-                             BigInt data_begin, BigInt data_end,
+                             size_t data_begin, size_t data_end,
                              int num_io_threads,
                              int num_transform_threads,
                              int transform_task_limit,
@@ -150,7 +150,7 @@ void MTTransformer::TransformTaskLoop() {
     auto output_dim = session_proto_.output_dim();
 
     // do transform
-    BigInt datum_begin, datum_end, datum_base;
+    size_t datum_begin, datum_end, datum_base;
     datum_begin = datum_ids_[task.idx];
     datum_end = datum_ids_[task.idx + 1];
     if (datum_begin < data_begin_)
@@ -259,14 +259,14 @@ std::vector<FlexiDatum> *MTTransformer::NextBatch() {
 
 // split data range into subrange group by atom file
 void
-MTTransformer::Translate(BigInt data_begin, BigInt data_end) {
+MTTransformer::Translate(size_t data_begin, size_t data_end) {
   CHECK_LT(data_begin, data_end);
   auto low = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(),
       data_begin);
   auto high = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(),
       data_end);
   auto global_bytes_offsets_begin = low - datum_ids_.cbegin() - 1;
-  BigInt global_bytes_offsets_end;
+  size_t global_bytes_offsets_end;
   if (high == datum_ids_.cend())
     global_bytes_offsets_end = high - datum_ids_.cbegin() - 1;
   else

@@ -60,37 +60,37 @@ private:
    */
   DataIterator(const SessionProto& session_proto,
     std::vector<std::function<void(TransDatum*)>> transforms,
-    BigInt data_begin, BigInt data_end, bool use_multi_threads,
-    BigInt num_io_threads, BigInt num_transform_threads,
-    BigInt buffer_limit, BigInt batch_limit);
+    size_t data_begin, size_t data_end, bool use_multi_threads,
+    int32_t num_io_threads, int32_t num_transform_threads,
+    size_t buffer_limit, size_t batch_limit);
 
   // Read an atom file and perform transform.
   void ReadAtomAndTransform(int atom_id);
-  void ReadSizeLimitedAtomAndTransform(int64_t file_begin, int64_t file_end);
+  void ReadSizeLimitedAtomAndTransform(size_t file_begin, size_t file_end);
 
 private:
   const SessionProto& session_proto_;
   std::vector<std::function<void(TransDatum*)>> transforms_;
-  BigInt data_begin_;
-  BigInt data_end_;
+  size_t data_begin_;
+  size_t data_end_;
 
-  BigInt next_;
+  size_t next_;
 
-  BigInt chunk_begin_;
-  BigInt chunk_end_;
+  size_t chunk_begin_;
+  size_t chunk_end_;
 
   std::vector<FlexiDatum> data_buffer_;
 
-  std::vector<BigInt> datum_ids_;
+  std::vector<int64_t> datum_ids_;
 
   bool use_multi_threads_;
 
   MTTransformer *mtt_engine_;
 
-  BigInt num_io_threads_;
-  BigInt num_transform_threads_;
-  BigInt buffer_limit_;
-  BigInt batch_limit_;
+  int32_t num_io_threads_;
+  int32_t num_transform_threads_;
+  size_t buffer_limit_;
+  size_t batch_limit_;
 };
 
 }  // namespace hotbox

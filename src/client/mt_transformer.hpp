@@ -35,7 +35,7 @@ class MTTransformer {
  public:
   MTTransformer(const SessionProto &session_proto,
                 std::vector<std::function<void(TransDatum *)>> transforms,
-                BigInt data_begin, BigInt data_end,
+                size_t data_begin, size_t data_end,
                 int num_io_threads,
                 int num_transform_threads,
                 int transform_task_limit,
@@ -70,14 +70,14 @@ class MTTransformer {
   };
   // A IoTask may generate many TfTasks by IoTaskLoop()
   struct TfTask {
-    BigInt idx;  // index of datum_ids
+    int64_t idx;  // index of datum_ids
     std::shared_ptr<std::string> shared_buf;  // shared buffer
     std::size_t offset;  // offset within shared_buf
     std::size_t length;  // buffer length
   };
 
   // It will translate data range into io tasks and push them to io_queue_.
-  void Translate(BigInt data_begin, BigInt data_end);
+  void Translate(size_t data_begin, size_t data_end);
 
   // notify all workers to stop and delete unused batches
   void Destory();

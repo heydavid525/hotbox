@@ -33,13 +33,13 @@ OSchema Session::GetOSchema() const {
   return OSchema(session_proto_.o_schema());
 }
 
-BigInt Session::GetNumData() const {
+int64_t Session::GetNumData() const {
   return session_proto_.file_map().num_data();
 }
 
 /*
-DataIterator Session::NewDataIterator(BigInt data_begin,
-    BigInt data_end) const {
+DataIterator Session::NewDataIterator(size_t data_begin,
+    size_t data_end) const {
   if (data_end == -1) {
     data_end = GetNumData();
   }
@@ -49,10 +49,10 @@ DataIterator Session::NewDataIterator(BigInt data_begin,
 }
 */
 
-DataIterator Session::NewDataIterator(BigInt data_begin,
-        BigInt data_end, bool use_multi_threads,
-      BigInt num_io_threads, BigInt num_transform_threads,
-      BigInt buffer_limit, BigInt batch_limit) const {
+DataIterator Session::NewDataIterator(size_t data_begin,
+        size_t data_end, bool use_multi_threads,
+      int32_t num_io_threads, int32_t num_transform_threads,
+      size_t buffer_limit, size_t batch_limit) const {
   if (data_end == -1) {
     data_end = GetNumData();
   }

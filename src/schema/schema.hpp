@@ -90,6 +90,8 @@ public:
   // stored to disk.
   size_t Commit(RocksDB* db) const;
 
+  // bool IsFeaturesUnique() {return features_.unique();}
+
 private:
   // if store_offset == -1 (default), increment the appropriate
   // append_store_offset_ and assign the offset to new_feature. Otherwise set
