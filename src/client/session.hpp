@@ -33,8 +33,8 @@ public:
       size_t data_end = -1) const;
   */
 
-  DataIterator NewDataIterator(size_t data_begin = 0,
-        size_t data_end = -1, bool use_multi_threads = true,
+  DataIterator NewDataIterator(int64_t data_begin = 0,
+        int64_t data_end = -1, bool use_multi_threads = true,
       int32_t num_io_threads = 1, int32_t num_transform_threads = 4,
       size_t buffer_limit = 16, size_t batch_limit = 16) const;
 

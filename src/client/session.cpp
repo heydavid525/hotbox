@@ -49,8 +49,8 @@ DataIterator Session::NewDataIterator(size_t data_begin,
 }
 */
 
-DataIterator Session::NewDataIterator(size_t data_begin,
-        size_t data_end, bool use_multi_threads,
+DataIterator Session::NewDataIterator(int64_t data_begin,
+        int64_t data_end, bool use_multi_threads,
       int32_t num_io_threads, int32_t num_transform_threads,
       size_t buffer_limit, size_t batch_limit) const {
   if (data_end == -1) {
