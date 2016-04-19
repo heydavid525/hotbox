@@ -150,7 +150,7 @@ void MTTransformer::TransformTaskLoop() {
     auto output_dim = session_proto_.output_dim();
 
     // do transform
-    size_t datum_begin, datum_end, datum_base;
+    int datum_begin, datum_end, datum_base;
     datum_begin = datum_ids_[task.idx];
     datum_end = datum_ids_[task.idx + 1];
     if (datum_begin < data_begin_)
