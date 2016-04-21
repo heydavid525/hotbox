@@ -21,7 +21,7 @@ Schema::Schema(const SchemaConfig& config) :
   config_(config) {
   append_store_offset_.mutable_offsets()->Resize(
       FeatureStoreType::NUM_STORE_TYPES, 0);
-  internal_family_ = FeatureFamily(kInternalFamily, 
+  internal_family_ = FeatureFamily(kInternalFamily,
       append_store_offset_, curr_global_offset_);
   // Add label.
   auto store_type = config.int_label() ? FeatureStoreType::DENSE_CAT :
@@ -93,6 +93,9 @@ void Schema::AddFeature(FeatureFamilyIf* family, Feature* new_feature,
   if (family->IsSimple()) {
     BigInt family_offset_begin = family->GetOffsetBegin().offsets(
         new_feature->store_type());
+    if (family_idx == -1) {
+      family_idx = family->GetMaxFeatureId() + 1;
+    }
     UpdateStoreOffset(new_feature, family_offset_begin + family_idx);
   } else {
     new_feature->set_global_offset(curr_global_offset_++);
@@ -111,7 +114,8 @@ void Schema::AddFeatures(FeatureFamilyIf* family, BigInt num_features) {
   SimpleFeatureFamily* s_family = dynamic_cast<SimpleFeatureFamily*>(family);
   s_family->AddFeatures(num_features);
   StoreTypeAndOffset type_offset = s_family->GetStoreTypeAndOffset();
-  append_store_offset_.set_offsets(type_offset.store_type(), type_offset.offset_end());
+  append_store_offset_.set_offsets(type_offset.store_type(),
+      type_offset.offset_end());
   curr_global_offset_ += num_features;
 }
 
@@ -173,8 +177,8 @@ FeatureFamilyIf& Schema::GetOrCreateFamily(
     if (store_type == FeatureStoreType::OUTPUT) {
       output_families_.push_back(family_name);
     }
+    it = families_.find(family_name);
   }
-  it = families_.find(family_name);
   curr_global_offset_ += num_features;  // no-op if num_features == 0 (default)
   auto curr_offset = append_store_offset_.offsets(store_type);
   append_store_offset_.set_offsets(store_type, curr_offset + num_features);

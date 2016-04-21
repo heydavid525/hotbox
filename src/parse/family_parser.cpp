@@ -4,6 +4,7 @@
 #include <glog/logging.h>
 #include "schema/constants.hpp"
 #include "parse/family_parser.hpp"
+#include "util/util.hpp"
 
 namespace hotbox {
 
@@ -48,21 +49,22 @@ char* FamilyParser::ReadFamily(const std::string& line, char* ptr, Schema* schem
   while (ptr - line.data() < line.size()) {
     while (std::isspace(*ptr) && ptr - line.data() < line.size()) ++ptr;
     if (*ptr == '|' || ptr - line.data() == line.size()) break;
-    int32_t family_idx = strtol(ptr, &endptr, kBase);
+    int32_t family_idx = StringToInt(ptr, &endptr);
     ptr = endptr;
     CHECK_EQ(':', *ptr);
     ++ptr;
-    float val = strtod(ptr, &endptr);
+    float val = StringToFloat(ptr, &endptr);
     ptr = endptr;
-    std::pair<Feature, bool> ret = family.GetFeatureNoExcept(family_idx);
-    if (ret.second == false) {
+    bool found;
+    Feature f = family.GetFeatureNoExcept(family_idx, &found);
+    if (!found) {
       FeatureFinder not_found_feature;
       not_found_feature.family_name = family_name;
       not_found_feature.family_idx = family_idx;
       TypedFeatureFinder typed_finder(not_found_feature, InferType(val));
       not_found_features->push_back(typed_finder);
     } else {
-      datum->SetFeatureVal(ret.first, val);
+      datum->SetFeatureVal(f, val);
     }
   }
   return ptr;
@@ -84,7 +86,7 @@ std::vector<TypedFeatureFinder> ReadFamilyDeclaration(const std::string& line,
     if (ptr - line.data() == line.size()) {
       return not_found_features;
     }
-    BigInt num_features = strtol(ptr, &endptr, 10);
+    BigInt num_features = StringToInt(ptr, &endptr);
     ptr = endptr;
 
     bool simple_family = true;
@@ -121,7 +123,7 @@ std::vector<TypedFeatureFinder> FamilyParser::Parse(
   }
 
   // Read label.
-  float label = strtof(line.data(), &endptr);
+  float label = StringToFloat(line.data(), &endptr);
   ptr = endptr;
 
   while (std::isspace(*ptr) && ptr - line.data() < line.size()) ++ptr;
@@ -132,7 +134,7 @@ std::vector<TypedFeatureFinder> FamilyParser::Parse(
   // Read weight (if any).
   float weight = 1.;
   if (*ptr != '|') {
-    weight = strtof(ptr, &endptr);
+    weight = StringToFloat(ptr, &endptr);
     ptr = endptr;
   }
   this->SetLabelAndWeight(schema, datum, label, weight);

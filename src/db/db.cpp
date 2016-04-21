@@ -9,6 +9,9 @@
 #include "util/all.hpp"
 #include "transform/all.hpp"
 #include "schema/all.hpp"
+#include <thread>
+#include <future>
+#include <utility>
 
 
 namespace hotbox {
@@ -42,38 +45,6 @@ DB::DB(const std::string& db_path_meta) :
 
   // Assume only 1 stat.
   stats_.emplace_back(0, &meta_db_);
-  // schema_ = make_unique<Schema>(proto.schema_proto());
-
-  /*
-  for (int i = 0; i < proto.num_stat_proto_seqs(); ++i) {
-    std::string stat_key = kStatProtoSeqPrefix + std::to_string(i);
-    std::string stat_proto_seq_str = meta_db_.Get(stat_key);
-    FeatureStatProtoSeq proto_seq;
-    proto_seq.ParseFromString(stat_proto_seq_str);
-    StatProto* released_stat = nullptr;
-    int num_stats = proto_seq.stats_size();
-    CHECK_EQ(1, num_stats) << "Only support single stats for now";
-    proto_seq.mutable_stats()->ExtractSubrange(0, num_stats, &released_stat);
-    CHECK_NOTNULL(released_stat);
-    for (BigInt j = 0; j < proto_seq.stats_size(); ++j) {
-      stats_.emplace_back(&released_stat[i]);
-    }
-  }
-  */
-
-  //auto recorddb_file_path = db_path + kDBFile;
-
-  // Take over DBProto::stats.
-  /*
-  StatProto* released_stat = nullptr;
-  int num_stats = proto.stats_size();
-  CHECK_EQ(1, num_stats) << "Only support single stats for now";
-  proto.mutable_stats()->ExtractSubrange(0, num_stats, &released_stat);
-  CHECK_NOTNULL(released_stat);
-  for (int i = 0; i < num_stats; ++i) {
-    stats_.emplace_back(&released_stat[i]);
-  }
-  */
 
   LOG(INFO) << "DB " << meta_data_.db_config().db_name() << " is initialized ";
             // << " from " << metadb_file_path << ". "
@@ -114,55 +85,43 @@ int32_t DB::GetCurrentAtomID() {
   int64_t curr_global_bytes_offset = (curr_global_bytes_offset_size == 0)
     ? 0 : meta_data_.file_map().global_bytes_offsets(
         curr_global_bytes_offset_size - 1);
-
-  //LOG(INFO) << "curr_global_bytes_offset_size: " 
-  //          << curr_global_bytes_offset_size << ". ";
-  //LOG(INFO) << "curr_global_bytes_offset: " 
-  //          << curr_global_bytes_offset << ". ";
   int32_t curr_atom_id = curr_global_bytes_offset / atom_size_mb;
   return curr_atom_id;
 }
 
-size_t DB::WriteToAtomFiles(const DBAtom& atom, size_t* ori_sizes,
-    size_t* comp_sizes) {
+std::pair<size_t, size_t> DB::WriteToAtomFiles(const DBAtom& atom,
+    size_t cumulative_size) {
+  LOG(INFO) << "Writing to atom files";
   std::string output_file_dir = meta_data_.file_map().atom_path();
-  size_t serialized_size = 0;
-  std::string compressed_atom = StreamSerialize(atom, &serialized_size);
-  int curr_atom_id = io::WriteAtomFiles(output_file_dir, GetCurrentAtomID(),
-      compressed_atom);
-  *ori_sizes += serialized_size;
-  *comp_sizes += compressed_atom.size();
+  size_t uncompressed_size = 0;
+  LOG(INFO) << "StreamSerialize";
+  std::string compressed_atom =
+    StreamSerialize(atom, &uncompressed_size);
+  LOG(INFO) << "writing size: " << compressed_atom.size();
+  int curr_atom_id = io::WriteAtomFiles(output_file_dir,
+      GetCurrentAtomID(), compressed_atom);
   LOG(INFO) << "curr_atom_id: " << curr_atom_id
             << " This ingestion has written: "
-            << SizeToReadableString(*comp_sizes);
-  return compressed_atom.size();
+            << SizeToReadableString(cumulative_size +
+                compressed_atom.size());
+  return std::make_pair(compressed_atom.size(), uncompressed_size);
 }
 
-void DB::UpdateReadMetaData(const DBAtom& atom, size_t new_len) {
+void DB::UpdateReadMetaData(size_t new_len) {
   int32_t curr_global_bytes_offset_size = meta_data_.file_map()
     .global_bytes_offsets_size();
   int64_t curr_global_bytes_offset = (curr_global_bytes_offset_size == 0) ? 0 :
     meta_data_.file_map().global_bytes_offsets(curr_global_bytes_offset_size - 1);
   meta_data_.mutable_file_map()->add_global_bytes_offsets(
       curr_global_bytes_offset + new_len);
-  //LOG(INFO) << "Total data offset: " << curr_global_bytes_offset + new_len;
-
-  int64_t num_data_read = atom.datum_protos_size();
-  int64_t num_data_before_read = meta_data_.file_map().num_data();
-  meta_data_.mutable_file_map()->add_datum_ids(num_data_before_read);
-  meta_data_.mutable_file_map()->set_num_data(
-      num_data_before_read + num_data_read);
-  //LOG(INFO) << "# records read this interval: " << num_data_read << ". ";
-  //LOG(INFO) << "# records before: " << num_data_before_read << ". ";
-  //LOG(INFO) << "# records in DB: " << num_data_before_read + num_data_read 
-  //                                    << ". ";
 }
 
 // With Atom sized to 64MB (or other size) limited chunks.
 std::string DB::ReadFile(const ReadFileReq& req) {
   Timer timer;
-  size_t ori_size = 0;
-  size_t compressed_size = 0;
+  size_t total_write_size = 0, total_uncompressed_size = 0;
+  //size_t ori_size = 0;
+  //size_t compressed_size = 0;
   int32_t rec_counter = 0;
   int32_t ori_atom_id = GetCurrentAtomID();
   BigInt num_features_before = schema_->GetNumFeatures();
@@ -181,8 +140,10 @@ std::string DB::ReadFile(const ReadFileReq& req) {
     parser->SetConfig(req.parser_config());
     StatCollector stat_collector(&stats_);
     int32_t batch_size = kInitIngestBatchSize;
+    DBAtom atom1, atom2;
+    DBAtom* curr_atom_ptr = &atom1;
+    DBAtom* next_atom_ptr = &atom2;
     while (!in.eof()) {
-      DBAtom atom;
       for (int i = 0; i < batch_size && std::getline(in, line); i++) {
         ++rec_counter;
         CHECK_NOTNULL(parser.get());
@@ -200,17 +161,47 @@ std::string DB::ReadFile(const ReadFileReq& req) {
           LOG(INFO) << "Initial batch size: " << batch_size;
         }
         // Let DBAtom take the ownership of DatumProto release from datum.
-        atom.mutable_datum_protos()->AddAllocated(datum.ReleaseProto());
+        curr_atom_ptr->mutable_datum_protos()->AddAllocated(
+            datum.ReleaseProto());
       }
-      size_t write_size = WriteToAtomFiles(atom, &ori_size, &compressed_size);
+      // Wait till last write finish first.
+      size_t write_size = 64 * 1e6;
+      if (write_fut_.valid()) {
+        auto ret = write_fut_.get();
+        write_size = ret.first;
+        total_write_size += write_size;
+        total_uncompressed_size += ret.second;
+        CHECK_GT(next_atom_ptr->datum_protos_size(), 0);
+        UpdateReadMetaData(write_size);
+      }
+      write_fut_ = std::async(std::launch::async,
+          [this, curr_atom_ptr, total_write_size] {
+          return WriteToAtomFiles(*curr_atom_ptr, total_write_size);
+          }
+          );
+      int64_t num_data_before_read = meta_data_.file_map().num_data();
+      meta_data_.mutable_file_map()->add_datum_ids(num_data_before_read);
+      meta_data_.mutable_file_map()->set_num_data(
+          num_data_before_read + curr_atom_ptr->datum_protos_size());
+      std::swap(curr_atom_ptr, next_atom_ptr);
+      *curr_atom_ptr = DBAtom();
       // Update batch_size estimate.
-      float avg_bytes_per_datum = static_cast<float>(write_size) / batch_size;
+      float avg_bytes_per_datum = static_cast<float>(write_size)
+        / batch_size;
       batch_size = kAtomSizeInBytes / avg_bytes_per_datum;
-      LOG(INFO) << "Updated batch size: " << batch_size;
-      UpdateReadMetaData(atom, write_size);
+      // Wait for the last write.
+      if (in.eof()) {
+        auto ret = write_fut_.get();
+        write_size = ret.first;
+        total_write_size += write_size;
+        total_uncompressed_size += ret.second;
+        CHECK_GT(next_atom_ptr->datum_protos_size(), 0);
+        UpdateReadMetaData(write_size);
+      }
     }
     time = timer.elapsed();
 
+    LOG(INFO) << "committing DB";
     if (req.commit()) {
       CommitDB();
     }
@@ -219,8 +210,8 @@ std::string DB::ReadFile(const ReadFileReq& req) {
   // Print Log.
   std::string output_file_dir = meta_data_.file_map().atom_path();
   BigInt num_features_after = schema_->GetNumFeatures();
-  float compress_ratio = static_cast<float>(compressed_size)
-    / ori_size;
+  float compress_ratio = static_cast<float>(total_write_size)
+    / total_uncompressed_size;
   std::stringstream ss;
   ss << "Read " << rec_counter << " datum.\n"
     << "Time: " << time << "s\n"
@@ -229,10 +220,11 @@ std::string DB::ReadFile(const ReadFileReq& req) {
     << SizeToReadableString(static_cast<float>(read_size) / time) << "\n"
     << "Wrote to " << output_file_dir
     <<" [" << ori_atom_id << " - " << GetCurrentAtomID() << "]\n"
-    << "Written Size " << SizeToReadableString(compressed_size)
+    << "Written Size " << SizeToReadableString(total_write_size)
     << " (" << std::to_string(compress_ratio) << " compression).\n"
     << "Write throughput per sec: "
-    << SizeToReadableString(static_cast<float>(compressed_size) / time)
+    << SizeToReadableString(static_cast<float>(total_write_size)
+        / time)
     << "\n"
     << "# of features in schema: " << num_features_before 
     << " (before) --> " << num_features_after << " (after).\n";
@@ -297,22 +289,17 @@ SessionProto DB::CreateSession(const SessionOptionsProto& session_options) {
     }
     writer_config.set_output_family_name(output_family);
     // Create transform param before TransformWriter modifies trans_schema.
-    LOG(INFO) << "Preparing transform params";
     TransformParam trans_param(trans_schema, config);
-    LOG(INFO) << "Done preparing transform params";
 
     std::unique_ptr<TransformIf> transform =
       registry.CreateObject(config.config_case());
     transform->UpdateTransformWriterConfig(config, &writer_config);
     TransformWriter trans_writer(&trans_schema, writer_config);
 
-    LOG(INFO) << "Transforming schema...";
     transform->TransformSchema(trans_param, &trans_writer);
-    LOG(INFO) << "Done transforming schema";
     auto range = session.add_transform_output_ranges();
     *range = trans_writer.GetTransformOutputRange();
 
-    LOG(INFO) << "Creating proto for trans_param...";
     *(session.add_trans_params()) = trans_param.GetProto();
     LOG(INFO) << " trans_param proto created. Size: "
       << SizeToReadableString(session.trans_params(i).SpaceUsed());

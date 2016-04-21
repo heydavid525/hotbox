@@ -13,8 +13,40 @@
 #include "util/file_util.hpp"
 #include "util/hotbox_exceptions.hpp"
 
+#include <boost/spirit/include/qi.hpp>
+
 namespace hotbox {
 
+// Read till the first non-digit
+int StringToInt(const char* start, char** end) {
+  int val = 0;
+  *end = const_cast<char*>(start);
+  char* start_non_const = *end;
+  if (**end == '+' || **end == '-') ++(*end);
+  while (std::isdigit(**end)) ++(*end);
+  boost::spirit::qi::parse(start_non_const, *end,
+      boost::spirit::qi::int_, val);
+  return val;
+}
+
+// Read till the first character that's not a digit nor a dot '.'
+// See
+// https://tinodidriksen.com/2011/05/28/cpp-convert-string-to-double-speed/
+float StringToFloat(const char* start, char** end) {
+  float val = 0.;
+  *end = const_cast<char*>(start);
+  char* start_non_const = *end;
+  if (**end == '+' || **end == '-') ++(*end);
+  while (std::isdigit(**end) || **end == '.') ++(*end);
+  // Look out for 'e'
+  if (**end == 'e') ++(*end);
+  // Only integer can follow after 'e'
+  if (**end == '+' || **end == '-') ++(*end);
+  while (std::isdigit(**end)) ++(*end);
+  boost::spirit::qi::parse(start_non_const, *end,
+      boost::spirit::qi::float_, val);
+  return val;
+}
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -52,11 +84,13 @@ double process_mem_usage()
    stat_stream >> pid >> comm >> state >> ppid >> pgrp >> session >> tty_nr
                >> tpgid >> flags >> minflt >> cminflt >> majflt >> cmajflt
                >> utime >> stime >> cutime >> cstime >> priority >> nice
-               >> O >> itrealvalue >> starttime >> vsize >> rss; // don't care about the rest
+               >> O >> itrealvalue >> starttime >> vsize >> rss;
+  // don't care about the rest
 
    stat_stream.close();
 
-   long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024; // in case x86-64 is configured to use 2MB pages
+   // in case x86-64 is configured to use 2MB pages
+   long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024;
    vm_usage     = vsize / 1024.0 / 1024.0;
    resident_set = rss * page_size_kb / 1024.0;
    return resident_set;

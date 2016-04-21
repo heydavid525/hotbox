@@ -82,9 +82,9 @@ std::function<void(TransDatum*)> NgramTransform::GenerateTransform(
         (++wide_family_offsets.begin())->second);
     for (int i = 0; i < sparse_val1.size(); ++i) {
       for (int j = 0; j < sparse_val2.size(); ++j) {
-          datum->SetFeatureValRelativeOffset(
-              sparse_val1[i].first * num_features_fam2 + sparse_val2[j].first,
-              sparse_val1[i].second * sparse_val2[j].second);
+        datum->SetFeatureValRelativeOffset(
+            sparse_val1[i].first * num_features_fam2 + sparse_val2[j].first,
+            sparse_val1[i].second * sparse_val2[j].second);
       }
     }
   };

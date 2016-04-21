@@ -5,6 +5,7 @@
 #include <string>
 #include "parse/libsvm_parser.hpp"
 #include "schema/constants.hpp"
+#include "util/util.hpp"
 
 namespace hotbox {
 
@@ -25,31 +26,39 @@ std::vector<TypedFeatureFinder> LibSVMParser::Parse(const std::string& line,
   char* ptr = nullptr, *endptr = nullptr;
 
   // Read label.
-  float label = strtof(line.data(), &endptr);
+  float label = StringToFloat(line.data(), &endptr);
   this->SetLabelAndWeight(schema, datum, label);
   ptr = endptr;
 
   // Use only single store type.
   bool simple_family = true;
-  const auto& family = schema->GetOrCreateFamily(kDefaultFamily, simple_family,
-      FeatureStoreType::SPARSE_NUM);
+  const FeatureFamilyIf& family_if = schema->GetOrCreateFamily(kDefaultFamily,
+      simple_family, FeatureStoreType::SPARSE_NUM);
+  const auto& family = dynamic_cast<const SimpleFeatureFamily&>(family_if);
+  BigInt num_features = family.GetNumFeatures();
+  auto store_type_offset = family.GetStoreTypeAndOffset();
+  BigInt store_offset = store_type_offset.offset_begin();
+  BigInt global_offset = family.GetGlobalOffset();
+
+  // A bit hacky: construct features instead of looking up in schema.
+  Feature f;
+  f.set_store_type(store_type_offset.store_type());
 
   std::vector<TypedFeatureFinder> not_found_features;
 
   while (std::isspace(*ptr) && ptr - line.data() < line.size()) ++ptr;
   while (ptr - line.data() < line.size()) {
     // read a feature_id:feature_val pair
-    int32_t feature_id = strtol(ptr, &endptr, kBase);
+    int feature_id = StringToInt(ptr, &endptr);
     if (feature_one_based_) {
       --feature_id;
     }
     ptr = endptr;
     CHECK_EQ(':', *ptr);
     ++ptr;
-    float val = strtof(ptr, &endptr);
+    float val = StringToFloat(ptr, &endptr);
     ptr = endptr;
-    std::pair<Feature, bool> ret = family.GetFeatureNoExcept(feature_id);
-    if (ret.second == false) {
+    if (feature_id >= num_features) {
       FeatureFinder not_found_feature;
       not_found_feature.family_name = kDefaultFamily;
       not_found_feature.family_idx = feature_id;
@@ -57,7 +66,9 @@ std::vector<TypedFeatureFinder> LibSVMParser::Parse(const std::string& line,
           FeatureType::NUMERICAL);
       not_found_features.push_back(typed_finder);
     } else {
-      datum->SetFeatureVal(ret.first, val);
+      f.set_store_offset(store_offset + feature_id);
+      f.set_global_offset(global_offset + feature_id);
+      datum->SetFeatureVal(f, val);
     }
     while (isspace(*ptr) && ptr - line.data() < line.size()) ++ptr;
   }

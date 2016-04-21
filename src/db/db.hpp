@@ -8,6 +8,7 @@
 #include "util/proto/warp_msg.pb.h"
 #include "schema/all.hpp"
 #include "util/rocks_db.hpp"
+#include <future>
 
 namespace hotbox {
 
@@ -66,12 +67,14 @@ private:
 
   // Update related metadata after file ingestion.
   // Namely #global_byte_offset, #datam_records, #records total
-  void UpdateReadMetaData(const DBAtom& atom, size_t  compressed_size);
+  void UpdateReadMetaData(size_t compressed_size);
 
-  // Write ‘atom’ data to Atom files. Return bytes written.
-  // ori_sizes & comp_sizes totals uncompressed & compressed data size.
-  size_t WriteToAtomFiles(const DBAtom& atom, size_t* ori_sizes,
-            size_t* comp_sizes);
+  // Write ‘atom’ data to Atom files. Return pair p. p.first is bytes
+  // written (compressed size), p.second is uncompressed size.
+  std::pair<size_t, size_t> WriteToAtomFiles(const DBAtom& atom,
+      size_t cumulative_size);
+
+  std::future<std::pair<size_t, size_t>> write_fut_;
 
   //std::vector<Epoch> epochs_;
 

@@ -25,13 +25,13 @@ FeatureFamilyProto FeatureFamilyIf::GetProtoIntern() const {
 SimpleFeatureFamily::SimpleFeatureFamily(const std::string& family_name,
     const DatumProtoStoreOffset& store_offset,
     FeatureStoreType store_type,
-    BigInt global_offset_begin) : 
+    BigInt global_offset_begin) :
   FeatureFamilyIf(family_name, store_offset, global_offset_begin),
-  store_type_(store_type) { }
+  store_type_(store_type),
+  store_offset_begin_(store_offset.offsets(store_type_)) { }
 
 bool SimpleFeatureFamily::HasFeature(BigInt family_idx) const {
-  return family_idx < (offset_end_.offsets(store_type_) -
-      offset_begin_.offsets(store_type_));
+  return family_idx < store_offset_end_ - store_offset_begin_;
 }
 
 const Feature& SimpleFeatureFamily::GetFeature(const std::string& feature_name)
@@ -42,19 +42,20 @@ const Feature& SimpleFeatureFamily::GetFeature(const std::string& feature_name)
 
 Feature SimpleFeatureFamily::CreateFeature(BigInt family_idx) const {
   Feature f;
-  auto store_offset = GetStoreTypeAndOffset();
-  f.set_store_type(store_offset.store_type());
-  f.set_store_offset(store_offset.offset_begin() + family_idx);
+  f.set_store_type(store_type_);
+  f.set_store_offset(store_offset_begin_ + family_idx);
   f.set_global_offset(global_offset_begin_ + family_idx);
   return f;
 }
 
-std::pair<Feature, bool> SimpleFeatureFamily::GetFeatureNoExcept(BigInt family_idx)
-  const noexcept {
+Feature SimpleFeatureFamily::GetFeatureNoExcept(
+    BigInt family_idx, bool* found) const noexcept {
   if (!this->HasFeature(family_idx)) {
-    return std::make_pair(Feature(), false);
+    if (found != nullptr) *found = false;
+    return Feature();
   }
-  return std::make_pair(CreateFeature(family_idx), true);
+  if (found != nullptr) *found = true;
+  return CreateFeature(family_idx);
 }
 
 Feature SimpleFeatureFamily::GetFeature(BigInt family_idx) const {
@@ -78,30 +79,31 @@ void SimpleFeatureFamily::AddFeature(Feature* new_feature,
 }
 
 void SimpleFeatureFamily::ExtendFeature(BigInt family_idx) {
-  auto curr_offset_begin = offset_begin_.offsets(store_type_);
-  auto curr_offset_end = offset_end_.offsets(store_type_);
-  offset_end_.set_offsets(store_type_, std::max(curr_offset_end,
-        curr_offset_begin + family_idx + 1));
+  store_offset_end_ = std::max(store_offset_end_,
+        store_offset_begin_ + family_idx + 1);
+  offset_end_.set_offsets(store_type_, store_offset_end_);
 }
 
 void SimpleFeatureFamily::AddFeatures(BigInt num_features) {
-  ExtendFeature(GetNumFeatures() + num_features);
+  ExtendFeature(GetMaxFeatureId() + num_features);
 }
 
 StoreTypeAndOffset SimpleFeatureFamily::GetStoreTypeAndOffset() const {
   StoreTypeAndOffset store_type_offset;
   store_type_offset.set_store_type(store_type_);
-  store_type_offset.set_offset_begin(offset_begin_.offsets(store_type_));
+  store_type_offset.set_offset_begin(
+      offset_begin_.offsets(store_type_));
   store_type_offset.set_offset_end(offset_end_.offsets(store_type_));
   return store_type_offset;
 }
 
 BigInt SimpleFeatureFamily::GetNumFeatures() const {
-  return offset_end_.offsets(store_type_) - offset_begin_.offsets(store_type_);
+  return store_offset_end_ - store_offset_begin_;
 }
 
 BigInt SimpleFeatureFamily::GetMaxFeatureId() const {
-  return offset_end_.offsets(store_type_) - offset_begin_.offsets(store_type_) - 1;
+  return offset_end_.offsets(store_type_) -
+    offset_begin_.offsets(store_type_) - 1;
 }
 
 FeatureFamilyProto SimpleFeatureFamily::GetProto() const {
@@ -147,12 +149,14 @@ const Feature& FeatureFamily::GetFeature(const std::string& feature_name)
     return features_[family_idx];
   }
 
-std::pair<Feature, bool> FeatureFamily::GetFeatureNoExcept(BigInt family_idx)
-  const noexcept {
+Feature FeatureFamily::GetFeatureNoExcept(BigInt family_idx,
+    bool* found) const noexcept {
   if (!this->HasFeature(family_idx)) {
-    return std::make_pair(Feature(), false);
+    if (found != nullptr) *found = false;
+    return Feature();
   }
-  return std::make_pair(features_[family_idx], true);
+  if (found != nullptr) *found = true;
+  return features_[family_idx];
 }
 
 Feature FeatureFamily::GetFeature(BigInt family_idx) const {

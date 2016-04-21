@@ -40,7 +40,6 @@ protected:
   // Configure TransformWriter based on config and specific transform impl.
   virtual void SetTransformWriterConfig(const TransformConfig& config,
       TransformWriterConfig* writer_config) const {
-    LOG(INFO) << "TransformIf::SetTransformWriterConfig";
     // Default sets output to simple family.
     writer_config->set_output_simple_family(true);
   }

@@ -18,6 +18,16 @@ public:
     output_family_ = &(schema_->GetOrCreateFamily(
         config.output_family_name(), config.output_simple_family(),
         store_type_));
+    LOG(INFO) << "====== Writing family: " << config.output_family_name();
+  }
+
+  void AddFeature(const Feature& f) {
+    Feature new_feature = f;
+    new_feature.set_store_type(store_type_);
+    schema_->AddFeature(output_family_, &new_feature);
+    auto curr_end = output_store_offset_end_.offsets(store_type_);
+    output_store_offset_end_.set_offsets(store_type_,
+        std::max(curr_end, new_feature.store_offset() + 1));
   }
 
   // Add a feature to the storage type (default is OUTPUT, but could be
@@ -54,6 +64,7 @@ private:
   // Replace -1 in output_offset_begin_ to current schema's offset value.
   void InitializeOffset(DatumProtoStoreOffset* offset) {
     const auto& append_offset = schema_->GetAppendOffset();
+    //LOG(INFO) << "append offset from schema: " << append_offset.DebugString();
     offset->mutable_offsets()->Resize(FeatureStoreType::NUM_STORE_TYPES, -1);
     for (int i = 0; i < FeatureStoreType::NUM_STORE_TYPES; ++i) {
       offset->set_offsets(i, append_offset.offsets(i));

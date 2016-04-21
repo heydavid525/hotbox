@@ -27,23 +27,25 @@ bool StringInVector(const std::string& target,
 void SelectTransform::TransformSchema(const TransformParam& param,
     TransformWriter* writer) const {
   const auto& non_simple_input_features = param.GetInputFeaturesByFamily();
-  const auto& non_simple_input_features_desc =
-    param.GetInputFeaturesDescByFamily();
+  //const auto& non_simple_input_features_desc =
+  //  param.GetInputFeaturesDescByFamily();
   std::vector<std::string> wide_families = param.GetFamilyWideFamilies();
 
   // Add features that are not in wide-family.
   for (const auto& p : non_simple_input_features) {
     std::string family_name = p.first;
     const auto& family_features = p.second;
-    const auto& family_features_desc =
-      non_simple_input_features_desc.at(family_name);
+    //const auto& family_features_desc =
+    //  non_simple_input_features_desc.at(family_name);
     if (!StringInVector(family_name, wide_families)) {
       // This family isn't selected by family-wide. Add them.
       for (int i = 0; i < p.second.size(); ++i) {
         const auto& input_feature = family_features[i];
         CHECK(IsNumber(input_feature)) << "family: " << family_name << " "
           << input_feature.DebugString();
-        writer->AddFeature(family_features_desc[i]);
+        //LOG(INFO) << "adding feature to writer: " << family_features_desc[i];
+        //writer->AddFeature(family_features_desc[i]);
+        writer->AddFeature(input_feature);
       }
     }
   }

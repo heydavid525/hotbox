@@ -22,6 +22,11 @@ const int buffer_limit = std::numeric_limits<int>::max();
 
 }  // anonymous namespace
 
+// Faster string parser than strtod/strtof/strtol using Boost spirit.
+// Float convert speeds up at least 2x.
+int StringToInt(const char* start, char** end);
+float StringToFloat(const char* start, char** end);
+
 template<typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args) {
   return std::unique_ptr<T>(new T(std::forward<Args>(args)...));

@@ -88,6 +88,9 @@ void DatumBase::SetFeatureVal(const Feature& f, float val) {
     stat_collector_->UpdateStat(f, val);
   }
   switch (f.store_type()) {
+    case FeatureStoreType::SPARSE_NUM:
+      SetSparseNumFeatureVal(store_offset, val);
+      return;
     case FeatureStoreType::DENSE_CAT:
       SetDenseCatFeatureVal(store_offset, static_cast<int32_t>(val));
       return;
@@ -96,9 +99,6 @@ void DatumBase::SetFeatureVal(const Feature& f, float val) {
       return;
     case FeatureStoreType::SPARSE_CAT:
       SetSparseCatFeatureVal(store_offset, static_cast<int32_t>(val));
-      return;
-    case FeatureStoreType::SPARSE_NUM:
-      SetSparseNumFeatureVal(store_offset, val);
       return;
     default:
       LOG(FATAL) << "Unrecognized store_type: " << f.store_type();

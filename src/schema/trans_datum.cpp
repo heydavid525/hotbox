@@ -66,6 +66,9 @@ void TransDatum::SetFeatureValRelativeOffset(BigInt relative_offset,
 FlexiDatum TransDatum::GetFlexiDatum() {
   float label = base_->GetFeatureVal(label_);
   float weight = base_->GetFeatureVal(weight_);
+  if (weight == 0.) {
+    weight = 1.;
+  }
   switch (output_store_type_) {
     case OutputStoreType::SPARSE:
       return FlexiDatum(std::move(sparse_idx_), std::move(sparse_vals_),

@@ -8,9 +8,6 @@
 
 namespace hotbox {
 
-// useful for strtol function.
-const int kBase = 10;
-
 class ParserIf {
 public:
   virtual void SetConfig(const ParserConfig& config) = 0;

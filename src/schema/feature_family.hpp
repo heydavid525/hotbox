@@ -58,6 +58,10 @@ public:
     offset_begin_(proto.offset_begin()), offset_end_(proto.offset_end()),
     global_offset_begin_(proto.global_offset_begin()) { }
 
+  BigInt GetGlobalOffset() const {
+    return global_offset_begin_;
+  }
+
   virtual const Feature& GetFeature(const std::string& feature_name) const = 0;
 
   // Access feature by family_idx. NoExcept version does not throw exception
@@ -65,8 +69,8 @@ public:
   // Comment(wdai): GetFeature has to return value instead of reference because
   // SimpleFeatureFamily does not materialize any Feature.
   virtual Feature GetFeature(BigInt family_idx) const = 0;
-  virtual std::pair<Feature, bool> GetFeatureNoExcept(BigInt family_idx)
-    const noexcept = 0;
+  virtual Feature GetFeatureNoExcept(BigInt family_idx,
+      bool* found = nullptr) const noexcept = 0;
 
   // Return initialized/valid features only.
   //virtual FeatureSeq GetFeatures() const = 0;
@@ -133,18 +137,26 @@ public:
       BigInt global_offset_begin);
 
   SimpleFeatureFamily(const FeatureFamilyProto& proto) :
-    FeatureFamilyIf(proto), store_type_(proto.store_type()) {
+    FeatureFamilyIf(proto), store_type_(proto.store_type()),
+  store_offset_begin_(offset_begin_.offsets(store_type_)),
+  store_offset_end_(offset_end_.offsets(store_type_)) {
       LOG(INFO) << "SimpleFeatureFamily " << family_name_
         << " initialized. # features: " << GetNumFeatures()
-        << " features";
+        << " features"
+        << " store_offset_begin_: " << store_offset_begin_
+        << " store_offset_end_: " << store_offset_end_;
     }
 
+  // Not supported in SimpleFeatureFamily
   const Feature& GetFeature(const std::string& feature_name) const override;
 
-  // Access feature by family_idx. NoExcept version does not throw exception when
-  // feature is not found.
+
+  // Access feature by family_idx. NoExcept version does not throw
+  // exception when feature is not found.
   Feature GetFeature(BigInt family_idx) const override;
-  std::pair<Feature, bool> GetFeatureNoExcept(BigInt family_idx)
+  //std::pair<Feature, bool> GetFeatureNoExcept(BigInt family_idx)
+  //  const noexcept override;
+  Feature GetFeatureNoExcept(BigInt family_idx, bool* found = nullptr)
     const noexcept override;
 
   // Returns the store type and offset.
@@ -167,7 +179,7 @@ private:
   // Allow Schema to access AddFeatures.
   friend class Schema;
 
-  bool HasFeature(BigInt family_idx) const;
+  inline bool HasFeature(BigInt family_idx) const;
 
   Feature CreateFeature(BigInt family_idx) const;
 
@@ -183,8 +195,10 @@ private:
 
 private:
   FeatureStoreType store_type_;
-  //BigInt offset_begin_;
-  //BigInt offset_end_;
+
+  // This is the same offsets as FeatureFamilyIf. Duplicated here for speed.
+  BigInt store_offset_begin_;
+  BigInt store_offset_end_;
 };
 
 // ============ FeatureFamily ==============
@@ -207,8 +221,10 @@ public:
   Feature GetFeature(BigInt family_idx) const override;
   // Returns feature and whether it is found. If it's not found, then Feature
   // is invalid.
-  std::pair<Feature, bool> GetFeatureNoExcept(BigInt family_idx) const
-    noexcept override;
+  //std::pair<Feature, bool> GetFeatureNoExcept(BigInt family_idx) const
+  //  noexcept override;
+  Feature GetFeatureNoExcept(BigInt family_idx,
+      bool* found = nullptr) const noexcept override;
 
   //Feature& GetMutableFeature(BigInt family_idx);
 
@@ -229,7 +245,7 @@ public:
   }
 
 private:
-  bool HasFeature(BigInt family_idx) const;
+  inline bool HasFeature(BigInt family_idx) const;
 
   // Allow Schema to access AddFeature.
   //friend void Schema::AddFeature(const std::string& family_name,

@@ -44,7 +44,7 @@ DatumBase ParserIf::ParseAndUpdateSchema(const std::string& line,
         }
         Feature feature = CreateFeature(store_type);
         schema->AddFeature(finder.family_name, &feature, finder.family_idx);
-        LOG(INFO) << "feature global offset: " << feature.global_offset();
+        CHECK_GT(feature.global_offset(), 0) << feature.DebugString();
         stat_collector->AddFeatureStat(feature);
       }
     } else {
@@ -87,13 +87,11 @@ void ParserIf::SetLabelAndWeight(Schema* schema, DatumBase* datum,
     float label, float weight) {
   const auto& intern_family = schema->GetFamily(kInternalFamily);
   //const Feature& feature = intern_family.GetFeature(kLabelFamilyIdx);
-  auto ret = intern_family.GetFeatureNoExcept(kLabelFamilyIdx);
-  CHECK(ret.second);
-  datum->SetFeatureVal(ret.first, label);
+  Feature f = intern_family.GetFeature(kLabelFamilyIdx);
+  datum->SetFeatureVal(f, label);
   if (weight != 1.) {
-    auto ret = intern_family.GetFeatureNoExcept(kWeightFamilyIdx);
-    CHECK(ret.second);
-    datum->SetFeatureVal(ret.first, weight);
+    Feature f = intern_family.GetFeature(kWeightFamilyIdx);
+    datum->SetFeatureVal(f, weight);
   }
 }
 
