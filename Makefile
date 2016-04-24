@@ -59,8 +59,9 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
           -lpthread -lrt -lnsl \
           -lzmq \
           -lgflags \
-          -ltcmalloc \
 					-lprotobuf \
+          -ltcmalloc \
+					-lprofiler \
 					-D_GLIBCXX_USE_NANOSLEEP \
 					-lboost_filesystem \
 					-lboost_system \
@@ -70,6 +71,9 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
 	        -ldmlc \
 	        -lrocksdb \
           -lglog
+					# don't use tcmalloc in building shared library.
+          #-ltcmalloc \
+					-lprofiler \
           # lglog must come after ldmlc, which depends on glog.
           #-lrocksdb
 LDFLAGS += $(HDFS_LDFLAGS)
@@ -114,7 +118,7 @@ $(HB_SHARED_LIB): $(HB_OBJS) $(PROTO_OBJS)
 	@echo HB_LIB_SHARED_
 	mkdir -p $(@D)
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
-	$(CXX) -shared -o $@ $(HB_LIB_OBJS) $(LDFLAGS)
+	$(CXX) -shared -o $@ $(HB_LIB_OBJS) #$(LDFLAGS)
 	# Make $(BUILD)/ into a python module.
 	python $(PROJECT)/python/util/modularize.py $(BUILD)
 
