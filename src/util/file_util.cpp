@@ -58,17 +58,19 @@ std::string ReadCompressedFile(const std::string& file_path,
 int WriteAtomFiles(const std::string& file_dir, int curr_atom_id,
     const std::string& data) {
   int32_t size_written = 0;
-  std::string curr_file_path = file_dir + std::to_string(curr_atom_id);
+  std::string curr_file_path = file_dir +
+    std::to_string(curr_atom_id);
   size_t curr_atom_size = GetFileSize(curr_file_path);
   int32_t data_offset = kAtomSizeInBytes - curr_atom_size;
   // Assume that an atom obj will never excceed kAtomSizeInBytes, 
   // and thus span at most 2 files.
-  size_written += AppendFile(curr_file_path, data.substr(0, data_offset));
+  size_written += AppendFile(curr_file_path,
+      data.substr(0, data_offset));
   if (data_offset < data.size()) {
     curr_file_path = file_dir + std::to_string(++curr_atom_id);
-    size_written += AppendFile(curr_file_path, data.substr(data_offset, 
-                        kAtomSizeInBytes));
-  } 
+    size_written += AppendFile(curr_file_path,
+        data.substr(data_offset, kAtomSizeInBytes));
+  }
   return curr_atom_id;
 }
 

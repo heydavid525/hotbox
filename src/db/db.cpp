@@ -79,25 +79,21 @@ meta_db_(config.db_dir_meta() + kDBMeta) {
 
 int32_t DB::GetCurrentAtomID() {
   // meta_data_.file_map().datum_ids_size() is the number of atom files.
-  int32_t atom_size_mb = kAtomSizeInBytes;
   int32_t curr_global_bytes_offset_size = meta_data_.file_map()
-            .global_bytes_offsets_size();
+    .global_bytes_offsets_size();
   int64_t curr_global_bytes_offset = (curr_global_bytes_offset_size == 0)
     ? 0 : meta_data_.file_map().global_bytes_offsets(
         curr_global_bytes_offset_size - 1);
-  int32_t curr_atom_id = curr_global_bytes_offset / atom_size_mb;
+  int32_t curr_atom_id = curr_global_bytes_offset / kAtomSizeInBytes;
   return curr_atom_id;
 }
 
 std::pair<size_t, size_t> DB::WriteToAtomFiles(const DBAtom& atom,
     size_t cumulative_size) {
-  LOG(INFO) << "Writing to atom files";
   std::string output_file_dir = meta_data_.file_map().atom_path();
   size_t uncompressed_size = 0;
-  LOG(INFO) << "StreamSerialize";
   std::string compressed_atom =
     StreamSerialize(atom, &uncompressed_size);
-  LOG(INFO) << "writing size: " << compressed_atom.size();
   int curr_atom_id = io::WriteAtomFiles(output_file_dir,
       GetCurrentAtomID(), compressed_atom);
   LOG(INFO) << "curr_atom_id: " << curr_atom_id
@@ -151,7 +147,7 @@ std::string DB::ReadFile(const ReadFileReq& req) {
         DatumBase datum = parser->ParseAndUpdateSchema(line,
             schema_.get(), &stat_collector, &invalid);
         if (invalid) {
-          continue;
+          continue;   // possibly a comment line.
         }
         if (batch_size == kInitIngestBatchSize) {
           // For the first batch we make rough estimate, which will be adjust
