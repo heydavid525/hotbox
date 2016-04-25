@@ -34,11 +34,6 @@ DB::DB(const std::string& db_path_meta) :
   std::string db_proto_str = meta_db_.Get(kDBProto);
   LOG(INFO) << "Get Key (" << kDBProto << ") from DB ("
     << meta_db_.GetName() << ")";
-  /*
-  std::string db_str = DecompressString(db_proto_str);
-  DBProto proto;
-  CHECK(proto.ParseFromString(db_str));
-  */
   DBProto proto = StreamDeserialize<DBProto>(db_proto_str);
   meta_data_ = proto.meta_data();
   schema_.reset(new Schema(&meta_db_));
@@ -77,49 +72,27 @@ meta_db_(config.db_dir_meta() + kDBMeta) {
   stats_.emplace_back(0);
 }
 
-int32_t DB::GetCurrentAtomID() {
-  // meta_data_.file_map().datum_ids_size() is the number of atom files.
-  int32_t curr_global_bytes_offset_size = meta_data_.file_map()
-    .global_bytes_offsets_size();
-  int64_t curr_global_bytes_offset = (curr_global_bytes_offset_size == 0)
-    ? 0 : meta_data_.file_map().global_bytes_offsets(
-        curr_global_bytes_offset_size - 1);
-  int32_t curr_atom_id = curr_global_bytes_offset / kAtomSizeInBytes;
-  return curr_atom_id;
-}
-
-std::pair<size_t, size_t> DB::WriteToAtomFiles(const DBAtom& atom,
+std::pair<size_t, size_t> DB::WriteAtom(const DBAtom& atom, int atom_id,
     size_t cumulative_size) {
   std::string output_file_dir = meta_data_.file_map().atom_path();
   size_t uncompressed_size = 0;
   std::string compressed_atom =
     StreamSerialize(atom, &uncompressed_size);
-  int curr_atom_id = io::WriteAtomFiles(output_file_dir,
-      GetCurrentAtomID(), compressed_atom);
-  LOG(INFO) << "curr_atom_id: " << curr_atom_id
-            << " This ingestion has written: "
-            << SizeToReadableString(cumulative_size +
-                compressed_atom.size());
+  std::string output_file = output_file_dir + std::to_string(atom_id);
+  io::WriteCompressedFile(output_file, compressed_atom);
+  LOG(INFO) << "Wrote to atom " << atom_id
+    << " size: " << SizeToReadableString(compressed_atom.size())
+    << " This ingestion has written: "
+    << SizeToReadableString(cumulative_size + compressed_atom.size());
   return std::make_pair(compressed_atom.size(), uncompressed_size);
-}
-
-void DB::UpdateReadMetaData(size_t new_len) {
-  int32_t curr_global_bytes_offset_size = meta_data_.file_map()
-    .global_bytes_offsets_size();
-  int64_t curr_global_bytes_offset = (curr_global_bytes_offset_size == 0) ? 0 :
-    meta_data_.file_map().global_bytes_offsets(curr_global_bytes_offset_size - 1);
-  meta_data_.mutable_file_map()->add_global_bytes_offsets(
-      curr_global_bytes_offset + new_len);
 }
 
 // With Atom sized to 64MB (or other size) limited chunks.
 std::string DB::ReadFile(const ReadFileReq& req) {
   Timer timer;
   size_t total_write_size = 0, total_uncompressed_size = 0;
-  //size_t ori_size = 0;
-  //size_t compressed_size = 0;
   int32_t rec_counter = 0;
-  int32_t ori_atom_id = GetCurrentAtomID();
+  int32_t prev_atom_id = meta_data_.file_map().datum_ids_size();
   BigInt num_features_before = schema_->GetNumFeatures();
   size_t read_size = io::GetFileSize(req.file_path());
   int time = 0;
@@ -168,11 +141,12 @@ std::string DB::ReadFile(const ReadFileReq& req) {
         total_write_size += write_size;
         total_uncompressed_size += ret.second;
         CHECK_GT(next_atom_ptr->datum_protos_size(), 0);
-        UpdateReadMetaData(write_size);
+        //UpdateReadMetaData(write_size);
       }
+      int atom_id = meta_data_.file_map().datum_ids_size();
       write_fut_ = std::async(std::launch::async,
-          [this, curr_atom_ptr, total_write_size] {
-          return WriteToAtomFiles(*curr_atom_ptr, total_write_size);
+          [this, curr_atom_ptr, total_write_size, atom_id] {
+          return WriteAtom(*curr_atom_ptr, atom_id, total_write_size);
           }
           );
       int64_t num_data_before_read = meta_data_.file_map().num_data();
@@ -192,7 +166,6 @@ std::string DB::ReadFile(const ReadFileReq& req) {
         total_write_size += write_size;
         total_uncompressed_size += ret.second;
         CHECK_GT(next_atom_ptr->datum_protos_size(), 0);
-        UpdateReadMetaData(write_size);
       }
     }
     time = timer.elapsed();
@@ -215,13 +188,11 @@ std::string DB::ReadFile(const ReadFileReq& req) {
     << "Read throughput per sec: "
     << SizeToReadableString(static_cast<float>(read_size) / time) << "\n"
     << "Wrote to " << output_file_dir
-    <<" [" << ori_atom_id << " - " << GetCurrentAtomID() << "]\n"
-    << "Written Size " << SizeToReadableString(total_write_size)
+    <<" [" << prev_atom_id << " - " << meta_data_.file_map().datum_ids_size()
+    << ")\nWritten Size " << SizeToReadableString(total_write_size)
     << " (" << std::to_string(compress_ratio) << " compression).\n"
     << "Write throughput per sec: "
-    << SizeToReadableString(static_cast<float>(total_write_size)
-        / time)
-    << "\n"
+    << SizeToReadableString(static_cast<float>(total_write_size) / time) << "\n"
     << "# of features in schema: " << num_features_before 
     << " (before) --> " << num_features_after << " (after).\n";
   auto meta_data_str = PrintMetaData();

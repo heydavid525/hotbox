@@ -62,17 +62,10 @@ private:
   // Currently we only support a single Stat
   std::vector<Stat> stats_;
 
-  // Infer Current Atom.# according to file_map globl_offset.
-  int32_t GetCurrentAtomID();
-
-  // Update related metadata after file ingestion.
-  // Namely #global_byte_offset, #datam_records, #records total
-  void UpdateReadMetaData(size_t compressed_size);
-
   // Write ‘atom’ data to Atom files. Return pair p. p.first is bytes
   // written (compressed size), p.second is uncompressed size.
-  std::pair<size_t, size_t> WriteToAtomFiles(const DBAtom& atom,
-      size_t cumulative_size);
+  std::pair<size_t, size_t> WriteAtom(const DBAtom& atom,
+      int atom_id, size_t cumulative_size);
 
   std::future<std::pair<size_t, size_t>> write_fut_;
 

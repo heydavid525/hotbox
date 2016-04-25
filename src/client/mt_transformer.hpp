@@ -191,7 +191,6 @@ class MTTransformer {
   const BigInt data_begin_;
   const BigInt data_end_;
   std::vector<BigInt> datum_ids_;
-  std::vector<std::size_t> global_bytes_offsets_;
 };
 
 }  // namespace hotbox

@@ -20,16 +20,9 @@ MTTransformer::MTTransformer(const SessionProto &session_proto,
   tf_limit_(transform_task_limit), bt_limit_(batch_limit),
   data_begin_(data_begin), data_end_(data_end),
   datum_ids_(session_proto_.file_map().datum_ids().cbegin(),
-             session_proto_.file_map().datum_ids().cend()),
-             global_bytes_offsets_(
-              session_proto_.file_map().global_bytes_offsets().size() + 1) {
-  // datum_ids does not contain num_data, just put it in for convenience
-  // global_bytes_offsets does not start from 0, just put 0 in the beginning
+             session_proto_.file_map().datum_ids().cend()) {
+  // Last atom file range ends with num_data.
   datum_ids_.push_back(session_proto_.file_map().num_data());
-  global_bytes_offsets_[0] = (0);
-  std::copy(session_proto_.file_map().global_bytes_offsets().cbegin(),
-            session_proto_.file_map().global_bytes_offsets().cend(),
-            global_bytes_offsets_.begin() + 1);
   Start();
 }
 
@@ -85,6 +78,7 @@ void MTTransformer::IoTaskLoop() {
     // generate TfTasks sharing shared_buf
     std::shared_ptr<std::string> shared_buf(content);
     {
+      /*
       std::lock_guard<std::mutex> lock(tf_mtx_);
       for (auto idx = iotask.global_bytes_offsets_begin;
           idx < iotask.global_bytes_offsets_end;
@@ -98,6 +92,7 @@ void MTTransformer::IoTaskLoop() {
         tf_queue_.push(task);
         tf_size_++;
       }
+      */
     }
     tf_cv_.notify_all();
     {
@@ -265,6 +260,7 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
       data_begin);
   auto high = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(),
       data_end);
+  /*
   auto global_bytes_offsets_begin = low - datum_ids_.cbegin() - 1;
   size_t global_bytes_offsets_end;
   if (high == datum_ids_.cend())
@@ -297,6 +293,7 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
 
   total_tf_tasks_ = global_bytes_offsets_end - global_bytes_offsets_begin;
   total_batches_ = global_bytes_offsets_end - global_bytes_offsets_begin;
+  */
 
   // LOG(INFO) << "Total Buffers :" << total_tf_tasks_;
   LOG(INFO) << "Total Batches :" << total_batches_;

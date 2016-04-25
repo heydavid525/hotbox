@@ -28,13 +28,13 @@ int main(int argc, char *argv[]) {
   auto p = o_schema.GetName(4);
   LOG(INFO) << "o_schema(4): family: " << p.first << " feature_name: "
                            << p.second;
-  p = o_schema.GetName(3231962);
-  LOG(INFO) << "o_schema(3231962): family: " << p.first << " feature_name: "
-                           << p.second;
+  //p = o_schema.GetName(3231962);
+  //LOG(INFO) << "o_schema(3231962): family: " << p.first << " feature_name: "
+  //                         << p.second;
   int i = 0;
   hotbox::Timer timer;
   // Test move constructor of DataIterator.
-  //hotbox::DataIterator iter = session.NewDataIterator(0, 10);
+  //hotbox::DataIterator iter = session.NewDataIterator();
   hotbox::DataIterator iter = session.NewDataIterator(0, -1, false, 1, 1);
   iter.Restart();
   hotbox::DataIterator it = std::move(iter);
