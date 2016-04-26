@@ -42,7 +42,6 @@ DB::DB(const std::string& db_path_meta) :
   stats_.emplace_back(0, &meta_db_);
 
   LOG(INFO) << "DB " << meta_data_.db_config().db_name() << " is initialized ";
-            // << " from " << metadb_file_path << ". "
   LOG(INFO) << "# features in schema: "  << schema_->GetNumFeatures();
   // TODO(wdai): Throw exception and catch and handle it in DBServer.
   if (kFeatureIndexType == FeatureIndexType::INT32 &&
@@ -141,7 +140,6 @@ std::string DB::ReadFile(const ReadFileReq& req) {
         total_write_size += write_size;
         total_uncompressed_size += ret.second;
         CHECK_GT(next_atom_ptr->datum_protos_size(), 0);
-        //UpdateReadMetaData(write_size);
       }
       int atom_id = meta_data_.file_map().datum_ids_size();
       write_fut_ = std::async(std::launch::async,

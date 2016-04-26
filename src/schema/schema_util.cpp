@@ -25,6 +25,24 @@ Feature CreateFeature(FeatureStoreType store_type, const std::string& name) {
   return f;
 }
 
+namespace {
+
+FeatureFinder CreateFeatureFinder(const std::string& family,
+    const std::string& feature_name) {
+  FeatureFinder finder;
+  finder.family_name = family;
+  auto trimmed = Trim(feature_name);
+  if (std::isdigit(trimmed[0])) {
+    // interpret as family_idx
+    finder.family_idx = std::stoi(trimmed);
+  } else {
+    finder.feature_name = trimmed;
+  }
+  return finder;
+}
+
+}  // anonymous namespace
+
 std::vector<FeatureFinder> ParseFeatureDesc(const std::string& feature_desc) {
   std::vector<FeatureFinder> finders;
   // remove trailing/leading commas
@@ -60,18 +78,29 @@ std::vector<FeatureFinder> ParseFeatureDesc(const std::string& feature_desc) {
       finder.all_family = true;
       finders.push_back(finder);
     } else {
-      auto split_names = SplitString(feature_name, '+');
-      for (const auto& name : split_names) {
-        FeatureFinder finder;
-        finder.family_name = family;
-        auto trimmed = Trim(name);
-        if (std::isdigit(trimmed[0])) {
-          // interpret as family_idx
-          finder.family_idx = std::atoi(trimmed.c_str());
-        } else {
-          finder.feature_name = trimmed;
+      found = feature_name.find("+");
+      bool has_plus = found != std::string::npos;
+      found = feature_name.find("-");
+      bool has_minus = found != std::string::npos;
+      CHECK(!has_plus || !has_minus)
+        << "Can't have both + and - in feature name.";
+      if (has_plus) {
+        auto split_names = SplitString(feature_name, '+');
+        for (const auto& name : split_names) {
+          finders.push_back(CreateFeatureFinder(family, name));
         }
-        finders.push_back(finder);
+      } else if (has_minus) {
+        auto split_names = SplitString(feature_name, '-');
+        // example: "fam:1-10". Expect exactly 2 numeric features around '-'
+        CHECK_EQ(2, split_names.size());
+        BigInt start_idx = std::stoi(split_names[0]);
+        BigInt end_idx = std::stoi(split_names[1]);
+        for (BigInt i = start_idx; i <= end_idx; ++i) {
+          FeatureFinder finder;
+          finder.family_name = family;
+          finder.family_idx = i;
+          finders.push_back(finder);
+        }
       }
     }
   }

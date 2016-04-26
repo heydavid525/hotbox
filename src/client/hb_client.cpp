@@ -8,7 +8,8 @@ HBClient::HBClient() {
   RegisterAll();
 }
 
-Session HBClient::CreateSession(const SessionOptions& session_options) noexcept {
+Session HBClient::CreateSession(
+    const SessionOptions& session_options) noexcept {
   ClientMsg client_msg;
   auto mutable_req = client_msg.mutable_create_session_req();
   *mutable_req->mutable_session_options() = session_options.GetProto();
@@ -20,7 +21,8 @@ Session HBClient::CreateSession(const SessionOptions& session_options) noexcept 
       session_reply.session_proto());
 }
 
-Session* HBClient::CreateSessionWithPointer(const SessionOptions& session_options) noexcept {
+Session* HBClient::CreateSessionWithPointer(
+    const SessionOptions& session_options) noexcept {
   ClientMsg client_msg;
   auto mutable_req = client_msg.mutable_create_session_req();
   *mutable_req->mutable_session_options() = session_options.GetProto();
