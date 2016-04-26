@@ -11,7 +11,6 @@
 #include "schema/all.hpp"
 
 namespace hotbox {
-
 /*
 MTTransformer works as described below:
 
@@ -24,11 +23,11 @@ MTTransformer works as described below:
 /** Some explaination:
  *  tf. tf is short for transform
  *  bt. bt is short for batch
- *  Batch. In a atom file, there are many individual blocks that can be 
+ *  Batch. In a atom file, there are many individual blocks that can be
  *    decompressed and transformed individually. I call the transformed data
  *    from a block "batch". If some datums in a block if out of the requested
  *    data range, such datums will be abandoned before transforming.
- *  
+ *
  */
 
 class MTTransformer {
@@ -55,25 +54,13 @@ class MTTransformer {
   void Start();
 
  private:
-  // A IoTask contains a group of continuous atom blocks that may cross two atom
-  // files if the last block cross two atom files.
-  // IoTask is to optimize I/O because sequentially reading a file is faster
-  // than randomly reading each part of a file.
-  // Data range [data_begin_, data_end_) will be translated into IoTasks.
-  struct IoTask {
-    std::size_t file_begin;
-    std::size_t file_end;
-    // first block index of global_bytes_offsets within this IoTask
-    std::size_t global_bytes_offsets_begin;
-    // last block index of global_bytes_offsets within this IoTask
-    std::size_t global_bytes_offsets_end;
-  };
-  // A IoTask may generate many TfTasks by IoTaskLoop()
-  struct TfTask {
-    int64_t idx;  // index of datum_ids
-    std::shared_ptr<std::string> shared_buf;  // shared buffer
-    std::size_t offset;  // offset within shared_buf
-    std::size_t length;  // buffer length
+  // One task for one atom file.
+  // Both IoTaskLoop and TransformTaskLoop use this structure.
+  struct Task {
+    int atom_id;
+    BigInt datum_begin;  // datum range within atom file
+    BigInt datum_end;
+    std::string buffer;  // will be filled in IoTaskLoop
   };
 
   // It will translate data range into io tasks and push them to io_queue_.
@@ -82,13 +69,13 @@ class MTTransformer {
   // notify all workers to stop and delete unused batches
   void Destory();
 
-  // IoTaskLoop will take io task from io_queue_ and load file into buffer, then
-  // generate many transform tasks sharing the buffer and push them to
-  // tf_queue_. It will do such thing until io_queue_ is empty.
+  // 1. IoTaskLoop will take Task from io_queue_ and load file into Task.buffer,
+  // 2. then push the Task into tf_queue_
+  // 3. Loop 1 and 2 until io_queue_ is empty.
   // each io_worker will run this function.
   void IoTaskLoop();
 
-  // TransformTaskLoop will take transform task from tf_queue_, then decompress,
+  // TransformTaskLoop will take Task from tf_queue_, then decompress,
   // deserialize it into a batch. Then it will do transforms on the batch and
   // push the batch to bt_queue_.
   // each transform worker will run this function.
@@ -100,8 +87,9 @@ class MTTransformer {
   std::vector<std::thread> io_workers_;
   std::vector<std::thread> tf_workers_;
   std::vector<std::function<void(TransDatum *)>> transforms_;
-  std::queue<IoTask> io_queue_;  // io files queue
-  std::queue<TfTask> tf_queue_;  // buffer queue
+  // imagine blocking queue
+  std::queue<Task> io_queue_;  // io files queue
+  std::queue<Task> tf_queue_;  // buffer queue
   std::queue<std::vector<FlexiDatum> *> bt_queue_;  // batch queue
 
   // mutex
@@ -185,8 +173,10 @@ class MTTransformer {
   const int num_io_workers_;
   const int num_tf_workers_;
 
-  const int tf_limit_;  // transform task queue size limit, used for io speed control
-  const int bt_limit_;  // batch queue size limit, used for transform speed control
+  // transform task queue size limit, used for io speed control
+  const int tf_limit_;
+  // batch queue size limit, used for transform speed control
+  const int bt_limit_;
 
   const BigInt data_begin_;
   const BigInt data_end_;
