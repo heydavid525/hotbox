@@ -199,7 +199,6 @@ void MTTransformer::TransformTaskLoop() {
 }
 
 void MTTransformer::Destory() {
-  // LOG(INFO) << "Destory...";
   // set stop flag
   stop_flag_ = true;
 
@@ -241,10 +240,6 @@ std::vector<FlexiDatum> *MTTransformer::NextBatch() {
       });
   vec = bt_queue_.front();
   bt_queue_.pop();
-  ///
-  //for (int i = 0; i < vec->size(); ++i) {
-  //  LOG(INFO) << (*vec)[i].ToString();
-  //}
   total_batches_--;
   bt_size_--;
   lock.unlock();
@@ -252,6 +247,7 @@ std::vector<FlexiDatum> *MTTransformer::NextBatch() {
   return vec;
 }
 
+/*
 // split data range into subrange group by atom file
 void
 MTTransformer::Translate(size_t data_begin, size_t data_end) {
@@ -260,49 +256,15 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
       data_begin);
   auto high = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(),
       data_end);
-  /*
-  auto global_bytes_offsets_begin = low - datum_ids_.cbegin() - 1;
-  size_t global_bytes_offsets_end;
-  if (high == datum_ids_.cend())
-    global_bytes_offsets_end = high - datum_ids_.cbegin() - 1;
-  else
-    global_bytes_offsets_end = high - datum_ids_.cbegin();
-  auto file_begin = global_bytes_offsets_[global_bytes_offsets_begin];
-  auto file_end = global_bytes_offsets_[global_bytes_offsets_end];
-  auto file_size = kAtomSizeInBytes;
-  auto global_bytes_offsets_index = global_bytes_offsets_begin;
-  for (auto offset = file_begin; offset < file_end;) {
-    IoTask task;
-    task.file_begin = offset;
-    task.global_bytes_offsets_begin = global_bytes_offsets_index;
-    offset += file_size - offset % file_size;
-    auto upper = std::upper_bound(global_bytes_offsets_.cbegin(),
-        global_bytes_offsets_.cend(), offset);
-    if (upper == global_bytes_offsets_.cend())
-      upper--;
-    global_bytes_offsets_index = upper - global_bytes_offsets_.cbegin();
-    task.file_end = *(upper);
-    task.global_bytes_offsets_end = global_bytes_offsets_index;
-    if (task.file_end > file_end) {
-      task.file_end = file_end;
-      task.global_bytes_offsets_end = global_bytes_offsets_end;
-    }
-    offset = task.file_end;
-    io_queue_.push(task);
-  }
 
-  total_tf_tasks_ = global_bytes_offsets_end - global_bytes_offsets_begin;
-  total_batches_ = global_bytes_offsets_end - global_bytes_offsets_begin;
-  */
-
-  // LOG(INFO) << "Total Buffers :" << total_tf_tasks_;
-  LOG(INFO) << "Total Batches :" << total_batches_;
+  //LOG(INFO) << "Total Batches :" << total_batches_;
 }
+*/
 
 
 void MTTransformer::Start() {
   // translate data range into io tasks
-  Translate(data_begin_, data_end_);
+  //Translate(data_begin_, data_end_);
 
   bt_size_ = 0;
   tf_size_ = 0;

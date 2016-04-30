@@ -50,20 +50,31 @@ DataIterator Session::NewDataIterator(size_t data_begin,
 */
 
 DataIterator Session::NewDataIterator(int64_t data_begin,
-        int64_t data_end, bool use_multi_threads,
-      int32_t num_io_threads, int32_t num_transform_threads,
-      size_t buffer_limit, size_t batch_limit) const {
-  if (data_end == -1) {
+        int64_t data_end, int32_t num_transform_threads,
+      int32_t num_io_threads, size_t buffer_limit,
+      size_t batch_limit) const {
+  if (data_end == kDataEnd) {
     data_end = GetNumData();
   }
-  LOG(INFO) << "NewDataIterator [" << data_begin << ", " << data_end << ")";
-
-  if (use_multi_threads) {
-    LOG(INFO) << "\twith " << num_io_threads << " io threads, "
-              << num_transform_threads << " transform threads";
-  }
+  bool use_multi_threads = num_transform_threads > 1
+    || num_io_threads > 1;
 
   return DataIterator(session_proto_, transforms_, data_begin, data_end,
+          use_multi_threads, num_io_threads, num_transform_threads,
+          buffer_limit, batch_limit);
+}
+
+DataIterator* Session::NewDataIteratorPtr(int64_t data_begin,
+        int64_t data_end, int32_t num_transform_threads,
+      int32_t num_io_threads, size_t buffer_limit,
+      size_t batch_limit) const {
+  if (data_end == kDataEnd) {
+    data_end = GetNumData();
+  }
+  bool use_multi_threads = num_transform_threads > 1
+    || num_io_threads > 1;
+
+  return new DataIterator(session_proto_, transforms_, data_begin, data_end,
           use_multi_threads, num_io_threads, num_transform_threads,
           buffer_limit, batch_limit);
 }

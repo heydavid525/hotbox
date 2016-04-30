@@ -10,7 +10,12 @@
 #include "client/session.hpp"
 #include "client/session_options.hpp"
 
+DECLARE_string(hb_config_path);
+
 namespace hotbox {
+
+// hotbox::kDataEnd signal reading to the last data.
+const int kDataEnd = -1;
 
 // A read client that performs transform using a pool of threads.
 //
@@ -22,7 +27,7 @@ public:
   // Create a session. HBClient must outlive the created Session.
   Session CreateSession(const SessionOptions& session_options) noexcept;
 
-  Session* CreateSessionWithPointer(const SessionOptions& session_options) noexcept;
+  Session* CreateSessionPtr(const SessionOptions& session_options) noexcept;
 
 private:
   WarpClient warp_client_;

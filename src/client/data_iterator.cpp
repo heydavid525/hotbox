@@ -6,17 +6,6 @@
 #include "util/all.hpp"
 
 namespace hotbox {
-/*
-DataIterator::DataIterator(const SessionProto& session_proto,
-      std::vector<std::function<void(TransDatum*)>> transforms,
-      BigInt data_begin, BigInt data_end)
-    : session_proto_(session_proto), transforms_(transforms),
-      data_begin_(data_begin), data_end_(data_end), next_(data_begin),
-      datum_ids_(session_proto_.file_map().datum_ids().cbegin(),
-      session_proto_.file_map().datum_ids().cend()) {
-  Restart();
-}
-*/
 
 DataIterator::DataIterator(const SessionProto& session_proto,
     std::vector<std::function<void(TransDatum*)>> transforms,
@@ -54,11 +43,10 @@ FlexiDatum&& DataIterator::GetDatum() {
     }
     chunk_begin_ = chunk_end_;
     chunk_end_ = chunk_begin_ + data_buffer_.size();
-    LOG(INFO) << "Chunk Info: " << "[" << chunk_begin_
-              << " - " << chunk_end_ << ")";
-    LOG(INFO) << "-------------------------------------";
+    //LOG(INFO) << "Loaded data range: " << "[" << chunk_begin_
+    //          << ", " << chunk_end_ << ")";
   }
-  return std::move(data_buffer_[next_ - chunk_begin_]);
+  return std::move(data_buffer_[next_++ - chunk_begin_]);
 }
 
 void DataIterator::ReadAtomAndTransform(int atom_id) {

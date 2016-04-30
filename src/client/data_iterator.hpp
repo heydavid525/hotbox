@@ -14,10 +14,6 @@ public:
     return next_ < data_end_;
   }
 
-  inline void Next() {
-    next_++;
-  }
-
   inline void Restart() {
     next_ = data_begin_;
     chunk_begin_ = data_begin_;
@@ -32,6 +28,7 @@ public:
     }
   }
 
+  // This advances the iterator as it returns a r-reference.
   FlexiDatum&& GetDatum();
 
   ~DataIterator() {

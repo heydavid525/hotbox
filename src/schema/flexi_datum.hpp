@@ -28,7 +28,6 @@ public:
   FlexiDatum& operator=(FlexiDatum&& other);  // move assignment
   FlexiDatum& operator=(const FlexiDatum&& other);  // copy assignment
 
-  // Move accessors can only be called once.
   const std::vector<float>& GetDenseStore() const;
   const std::vector<BigInt>& GetSparseIdx() const;
   const std::vector<float>& GetSparseVals() const;

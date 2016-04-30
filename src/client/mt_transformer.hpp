@@ -77,7 +77,7 @@ class MTTransformer {
   };
 
   // It will translate data range into io tasks and push them to io_queue_.
-  void Translate(size_t data_begin, size_t data_end);
+  //void Translate(size_t data_begin, size_t data_end);
 
   // notify all workers to stop and delete unused batches
   void Destory();

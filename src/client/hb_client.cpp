@@ -21,7 +21,7 @@ Session HBClient::CreateSession(
       session_reply.session_proto());
 }
 
-Session* HBClient::CreateSessionWithPointer(
+Session* HBClient::CreateSessionPtr(
     const SessionOptions& session_options) noexcept {
   ClientMsg client_msg;
   auto mutable_req = client_msg.mutable_create_session_req();
