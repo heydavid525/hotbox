@@ -12,6 +12,8 @@
 #include <thread>
 #include <future>
 #include <utility>
+#include <limits>
+
 
 
 namespace hotbox {
@@ -108,10 +110,19 @@ std::string DB::ReadFile(const ReadFileReq& req) {
     parser->SetConfig(req.parser_config());
     StatCollector stat_collector(&stats_);
     int32_t batch_size = kInitIngestBatchSize;
-    DBAtom atom1, atom2;
-    DBAtom* curr_atom_ptr = &atom1;
-    DBAtom* next_atom_ptr = &atom2;
+    DBAtom* curr_atom_ptr = nullptr;
+    float compression_rate = 0.5;
+    float over_estimate_rate = 1.0; // space used / memory size
+    int total_atom_space_used = 0;  // size in bytes
+    int atom_space_used_threshold = 0; // size in bytes
+    bool use_global_estimate = false;
+    bool has_estimate_init = false;
+    LOG(INFO) << "Initial batch size: " << batch_size;
     while (!in.eof()) {
+      curr_atom_ptr = new DBAtom();
+      if(atom_space_used_threshold) {
+        batch_size = std::numeric_limits<int>::max(); // infinite batch size
+      }
       for (int i = 0; i < batch_size && std::getline(in, line); i++) {
         ++rec_counter;
         CHECK_NOTNULL(parser.get());
@@ -121,41 +132,62 @@ std::string DB::ReadFile(const ReadFileReq& req) {
         if (invalid) {
           continue;   // possibly a comment line.
         }
-        if (batch_size == kInitIngestBatchSize) {
-          // For the first batch we make rough estimate, which will be adjust
-          // after the first batch is written. 0.5 for snappy compression.
-          batch_size =
-            kAtomSizeInBytes / (datum.GetDatumProto().SpaceUsed() * 0.5);
-          LOG(INFO) << "Initial batch size: " << batch_size;
+        // For the first two batch we make rough estimate, which will be adjust
+        // after the first two batch is written. 0.5 for snappy compression.
+        if(!atom_space_used_threshold && batch_size == kInitIngestBatchSize){
+          batch_size = kAtomSizeInBytes / (datum.GetDatumProto().SpaceUsed() * 0.5);
         }
         // Let DBAtom take the ownership of DatumProto release from datum.
         curr_atom_ptr->mutable_datum_protos()->AddAllocated(
             datum.ReleaseProto());
+        // TODO(Yangyang): is SpaceUsed very expensive?
+        if (atom_space_used_threshold && i % 40000 == 0) {
+            int space_used = curr_atom_ptr->SpaceUsed();
+            if (space_used >= atom_space_used_threshold) {
+              batch_size = i;
+              break;
+            }
+        }
       }
       // Wait till last write finish first.
       size_t write_size = 64 * 1e6;
+      int atom_id = meta_data_.file_map().datum_ids_size();
       if (write_fut_.valid()) {
         auto ret = write_fut_.get();
         write_size = ret.first;
         total_write_size += write_size;
         total_uncompressed_size += ret.second;
-        CHECK_GT(next_atom_ptr->datum_protos_size(), 0);
+        if (use_global_estimate || !has_estimate_init){
+          compression_rate = (float)total_write_size / total_uncompressed_size;
+          over_estimate_rate = (float)total_atom_space_used / total_uncompressed_size;
+          atom_space_used_threshold = kAtomSizeInBytes / compression_rate * over_estimate_rate;
+          LOG(INFO) << "\nCompression Rate  : " << compression_rate * 100 << "% "
+                    << "\nOver Estimate Rate: " << over_estimate_rate * 100 << "%"
+                    << "\nAtom Space Used Threshold: "
+                    << (double)atom_space_used_threshold / (1<<20) << " MB";
+          has_estimate_init = true;
+        }
       }
-      int atom_id = meta_data_.file_map().datum_ids_size();
-      write_fut_ = std::async(std::launch::async,
-          [this, curr_atom_ptr, total_write_size, atom_id] {
-          return WriteAtom(*curr_atom_ptr, atom_id, total_write_size);
-          }
-          );
+      total_atom_space_used += curr_atom_ptr->SpaceUsed();
       int64_t num_data_before_read = meta_data_.file_map().num_data();
       meta_data_.mutable_file_map()->add_datum_ids(num_data_before_read);
       meta_data_.mutable_file_map()->set_num_data(
           num_data_before_read + curr_atom_ptr->datum_protos_size());
-      std::swap(curr_atom_ptr, next_atom_ptr);
-      *curr_atom_ptr = DBAtom();
+      write_fut_ = std::async(std::launch::async,
+          [this, curr_atom_ptr, total_write_size, atom_id, batch_size] {
+          auto ret = WriteAtom(*curr_atom_ptr, atom_id, total_write_size);
+          LOG(INFO) << "Atom #" << atom_id
+                    << "\nBatch Size    : " << batch_size
+                    << "\nFile Size     : " << (double)ret.first / (1<<20) << " MB"
+                    << "\nSpace Used    : " << (double)curr_atom_ptr->SpaceUsed() / (1<<20) << "MB"
+                    << "\nRaw Size      : " << (double)ret.second / (1<<20) << " MB"
+                    << "\nCompress Rate : " << (double)ret.first / ret.second * 100 << "%"
+                    << "\nOver Estimate : " << (double)curr_atom_ptr->SpaceUsed() / ret.second;
+          delete curr_atom_ptr;
+          return ret;
+      });
       // Update batch_size estimate.
-      float avg_bytes_per_datum = static_cast<float>(write_size)
-        / batch_size;
+      float avg_bytes_per_datum = static_cast<float>(write_size) / batch_size;
       batch_size = kAtomSizeInBytes / avg_bytes_per_datum;
       // Wait for the last write.
       if (in.eof()) {
@@ -163,7 +195,7 @@ std::string DB::ReadFile(const ReadFileReq& req) {
         write_size = ret.first;
         total_write_size += write_size;
         total_uncompressed_size += ret.second;
-        CHECK_GT(next_atom_ptr->datum_protos_size(), 0);
+        // CHECK_GT(curr_atom_ptr->datum_protos_size(), 0);
       }
     }
     time = timer.elapsed();
