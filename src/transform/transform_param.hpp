@@ -26,9 +26,12 @@ public:
   }
 
   TransformParam(const TransformParamProto& proto) :
-    config_(proto.config()),
-    wide_family_offsets_(proto.wide_family_offsets().cbegin(),
-        proto.wide_family_offsets().cend()) {
+    config_(proto.config()) {
+      for (auto it = proto.wide_family_offsets().cbegin();
+          it != proto.wide_family_offsets().cend(); ++it) {
+        wide_family_offsets_.insert(
+            std::make_pair(it->family_name(), it->offset()));
+      }
       for (auto it = proto.input_families().cbegin();
           it != proto.input_families().cend(); ++it) {
         const auto& input_features = it->second.input_features();
@@ -53,7 +56,7 @@ public:
   }
 
   // Get each family-wide family's store offsets (begin & end).
-  const std::map<std::string, StoreTypeAndOffset>&
+  const std::multimap<std::string, StoreTypeAndOffset>&
     GetFamilyWideStoreOffsets() const {
       return wide_family_offsets_;
     }
@@ -74,10 +77,10 @@ public:
       return ns_input_features_;
   }
 
-  const std::map<std::string, std::vector<std::string>>&
-    GetInputFeaturesDescByFamily() const {
-      return input_features_desc_;
-  }
+  //const std::map<std::string, std::vector<std::string>>&
+  //  GetInputFeaturesDescByFamily() const {
+  //    return input_features_desc_;
+  //}
 
   std::vector<std::string> GetInputFeaturesDesc() const {
     std::vector<std::string> desc;
@@ -112,7 +115,9 @@ public:
 
     // Instantiate TransformParamProto::wide_family_offsets
     for (const auto& p : wide_family_offsets_) {
-      (*proto.mutable_wide_family_offsets())[p.first] = p.second;
+      auto pair = proto.add_wide_family_offsets();
+      pair->set_family_name(p.first);
+      *(pair->mutable_offset()) = p.second;
     }
     /*
     proto.mutable_input_features()->Reserve(ns_input_features_.size());
@@ -160,8 +165,10 @@ private:
     const auto& input_family = schema.GetFamily(family_name);
     CHECK(input_family.IsSimple());
     // Get the family offsets only for family-wide selection.
-    wide_family_offsets_[family_name] =
-      dynamic_cast<const SimpleFeatureFamily&>(input_family).GetStoreTypeAndOffset();
+    //wide_family_offsets_[family_name] =
+    wide_family_offsets_.insert(
+        std::make_pair(family_name, dynamic_cast<const SimpleFeatureFamily&>(
+        input_family).GetStoreTypeAndOffset()));
     // Just give empty vector for input_features_desc_ and ns_input_features_.
     ns_input_features_[family_name] = std::vector<Feature>();
     input_features_desc_[family_name] = std::vector<std::string>();
@@ -193,7 +200,7 @@ private:
   std::map<std::string, std::vector<std::string>> input_features_desc_;
 
   // Each wide-family using single store will be in this map.
-  std::map<std::string, StoreTypeAndOffset> wide_family_offsets_;
+  std::multimap<std::string, StoreTypeAndOffset> wide_family_offsets_;
 };
 
 }  // namespace hotbox

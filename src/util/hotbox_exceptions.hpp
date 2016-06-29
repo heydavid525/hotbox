@@ -12,7 +12,7 @@ public:
   HotboxException(const std::string& msg);
   virtual const char* what() const throw();
 
-private:
+protected:
   std::string msg_;
 };
 

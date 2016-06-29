@@ -30,7 +30,11 @@ message TransformParamProto {
 
   // Wide families are families selected under family-wide selection
   // and uses only single store.
-  map<string, StoreTypeAndOffset> wide_family_offsets = 3;
+  message OffsetPair {
+    string family_name = 1;
+    StoreTypeAndOffset offset = 2;
+  }
+  repeated OffsetPair wide_family_offsets = 3;
 }
 
 message TransformConfig {

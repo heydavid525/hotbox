@@ -1,4 +1,5 @@
 #include "util/hotbox_exceptions.hpp"
+#include <string>
 
 namespace hotbox {
 
@@ -30,8 +31,10 @@ std::string FamilyNotFoundException::GetFamilyName() const {
 
 FeatureNotFoundException::FeatureNotFoundException(
     const FeatureFinder& not_found_feature) :
-  not_found_feature_(not_found_feature)
-{ }
+  not_found_feature_(not_found_feature) {
+    this->msg_ = "Requested feature: " + not_found_feature_.family_name + ":" +
+      std::to_string(not_found_feature_.family_idx);
+  }
 
 const FeatureFinder& FeatureNotFoundException::GetNotFoundFeature() const {
   return not_found_feature_;

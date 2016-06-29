@@ -262,7 +262,6 @@ private:
   void UpdateOffsets(const Feature& new_feature);
 
 private:
-  // All schema Features across FeatureFamily are here. Indexed by global_idx.
   std::vector<Feature> features_;
 
   // initialized_[family_idx] == true means features_[family_idx] is

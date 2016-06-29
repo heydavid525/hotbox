@@ -19,9 +19,9 @@ public:
   virtual ~ParserIf();
 
 protected:
-  // datum's dense store is preallocated according to schema.
-  // May throw TypedFeaturesNotFoundException. Caller needs to free datum even
-  // during exception. 'invalid' = true if the line is a comment.
+  // datum's dense store is preallocated according to schema.  Return features
+  // that are not found, and not parse this line. Caller needs to free datum
+  // even during exception. 'invalid' = true if the line is a comment.
   virtual std::vector<TypedFeatureFinder> Parse(const std::string& line, Schema* schema,
       DatumBase* datum, bool* invalid) const = 0;
 

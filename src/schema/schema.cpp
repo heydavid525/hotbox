@@ -179,7 +179,8 @@ FeatureFamilyIf& Schema::GetOrCreateFamily(
     }
     it = families_.find(family_name);
   }
-  curr_global_offset_ += num_features;  // no-op if num_features == 0 (default)
+  // no-op if num_features == 0 (default)
+  curr_global_offset_ += num_features;
   auto curr_offset = append_store_offset_.offsets(store_type);
   append_store_offset_.set_offsets(store_type, curr_offset + num_features);
   return *it->second;

@@ -33,6 +33,7 @@ if __name__ == "__main__":
   parser.add_argument("--path")
   parser.add_argument("--db")
   parser.add_argument("--format")
+  parser.add_argument("--reps")  # repeating ingest
   args = parser.parse_args()
 
   if not args.path:
@@ -41,6 +42,9 @@ if __name__ == "__main__":
   if not args.db:
     print('--db must be specified.')
     sys.exit(1)
+  num_reps = int(args.reps) if args.reps else 1
+  if num_reps > 1:
+    print('Repeat data', num_reps, 'times')
 
   hb_client = HBClient(yconfig['server_ip'])
   db = hb_client.CreateDB(args.db, use_dense_weight=False)
@@ -50,6 +54,7 @@ if __name__ == "__main__":
         os.path.isfile(join(args.path, f))]
   else:
     files = [args.path]
+  files = files * num_reps
   for i, f in enumerate(files):
     commit = True if i == len(files) - 1 else False
     print('-' * 10, 'Ingesting', f)

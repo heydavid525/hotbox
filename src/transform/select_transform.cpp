@@ -52,10 +52,14 @@ void SelectTransform::TransformSchema(const TransformParam& param,
 
   // Add the family-wide selected families. Note: Family-wide and wide_family
   // are used synonymously
-  const std::map<std::string, StoreTypeAndOffset>& wide_family_offsets
+  const std::multimap<std::string, StoreTypeAndOffset>& wide_family_offsets
     = param.GetFamilyWideStoreOffsets();
   for (const std::string& f : wide_families) {
-    StoreTypeAndOffset offsets = wide_family_offsets.at(f);
+    //StoreTypeAndOffset offsets = wide_family_offsets.at(f);
+    const auto it = wide_family_offsets.find(f);
+    CHECK(it != wide_family_offsets.cend()) << f
+      << " is not found in wide_family_offset";
+    StoreTypeAndOffset offsets = it->second;
     writer->AddFeatures(offsets.offset_end() - offsets.offset_begin());
   }
 }
@@ -85,7 +89,7 @@ std::function<void(TransDatum*)> SelectTransform::GenerateTransform(
   }
 
   // wide_family_offsets is the offset on input store.
-  const std::map<std::string, StoreTypeAndOffset>& wide_family_offsets
+  const std::multimap<std::string, StoreTypeAndOffset>& wide_family_offsets
     = param.GetFamilyWideStoreOffsets();
 
   return [input_features, wide_families, wide_family_offsets,

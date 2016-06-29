@@ -212,7 +212,6 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
 
   total_tf_tasks_ = io_queue_.size();
   total_batches_ = io_queue_.size();
-  LOG(INFO) << "Total Batches :" << total_batches_;
 }
 
 

@@ -13,7 +13,7 @@ namespace hotbox {
 // Currently only support 2-gram of two simple families.
 void NgramTransform::TransformSchema(const TransformParam& param,
     TransformWriter* writer) const {
-  const std::map<std::string, StoreTypeAndOffset>& wide_family_offsets
+  const std::multimap<std::string, StoreTypeAndOffset>& wide_family_offsets
     = param.GetFamilyWideStoreOffsets();
   CHECK_EQ(2, wide_family_offsets.size())
     << "Only support 2-gram of two simple family for now";
@@ -62,7 +62,7 @@ std::vector<std::pair<BigInt, float>> GetSparseVals(const TransDatum& datum,
         break;
       }
     default:
-      LOG(FATAL) << "Not supported yet.";
+      LOG(FATAL) << type_and_offset.store_type() << " is not supported yet.";
   }
   return sparse_vals;
 }
@@ -70,14 +70,15 @@ std::vector<std::pair<BigInt, float>> GetSparseVals(const TransDatum& datum,
 
 std::function<void(TransDatum*)> NgramTransform::GenerateTransform(
     const TransformParam& param) const {
-  const std::map<std::string, StoreTypeAndOffset>& wide_family_offsets
+  const std::multimap<std::string, StoreTypeAndOffset>& wide_family_offsets
     = param.GetFamilyWideStoreOffsets();
   StoreTypeAndOffset type_and_offset = (++wide_family_offsets.begin())->second;
   BigInt num_features_fam2 = type_and_offset.offset_end() -
     type_and_offset.offset_begin();
   return [wide_family_offsets, num_features_fam2] (TransDatum* datum) {
     // Get the sparse value indexed by family_idx for both families.
-    const auto& sparse_val1 = GetSparseVals(*datum, wide_family_offsets.begin()->second);
+    const auto& sparse_val1 = GetSparseVals(*datum,
+        wide_family_offsets.begin()->second);
     const auto& sparse_val2 = GetSparseVals(*datum,
         (++wide_family_offsets.begin())->second);
     for (int i = 0; i < sparse_val1.size(); ++i) {
