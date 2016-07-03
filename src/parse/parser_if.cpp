@@ -22,8 +22,8 @@ DatumBase ParserIf::ParseAndUpdateSchema(const std::string& line,
     DatumBase datum(proto, stat_collector);
     // By default a datum is valid. invalid is set to true by Parse if a line
     // is a comment.
-    std::vector<TypedFeatureFinder> not_found_features = Parse(line, schema, &datum,
-        invalid);
+    std::vector<TypedFeatureFinder> not_found_features = Parse(line, schema,
+        &datum, invalid);
     if (not_found_features.size() > 0) {
       // Add the missing features to schema.
       for (const TypedFeatureFinder& finder : not_found_features) {

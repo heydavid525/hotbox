@@ -75,7 +75,7 @@ std::vector<FeatureFinder> ParseFeatureDesc(const std::string& feature_desc) {
     if (trimmed_feature_name.empty() || trimmed_feature_name == "*") {
       FeatureFinder finder;
       finder.family_name = family;
-      finder.all_family = true;
+      finder.mode = kRangeSelect;
       finders.push_back(finder);
     } else {
       found = feature_name.find("+");
@@ -95,12 +95,12 @@ std::vector<FeatureFinder> ParseFeatureDesc(const std::string& feature_desc) {
         CHECK_EQ(2, split_names.size());
         BigInt start_idx = std::stoi(split_names[0]);
         BigInt end_idx = std::stoi(split_names[1]);
-        for (BigInt i = start_idx; i <= end_idx; ++i) {
-          FeatureFinder finder;
-          finder.family_name = family;
-          finder.family_idx = i;
-          finders.push_back(finder);
-        }
+        FeatureFinder finder;
+        finder.family_name = family;
+        finder.mode = kRangeSelect;
+        finder.range_selector.family_idx_begin = start_idx;
+        finder.range_selector.family_idx_end = end_idx + 1;
+        finders.push_back(finder);
       }
     }
   }

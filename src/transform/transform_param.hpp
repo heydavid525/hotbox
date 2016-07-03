@@ -10,6 +10,11 @@
 
 namespace hotbox {
 
+struct WideFamilySelector {
+  StoreTypeAndOffset offset;
+  RangeSelector range_selector;
+};
+
 // TODO(wdai): Add stat.
 class TransformParam {
 public:
@@ -27,10 +32,14 @@ public:
 
   TransformParam(const TransformParamProto& proto) :
     config_(proto.config()) {
-      for (auto it = proto.wide_family_offsets().cbegin();
-          it != proto.wide_family_offsets().cend(); ++it) {
-        wide_family_offsets_.insert(
-            std::make_pair(it->family_name(), it->offset()));
+      for (auto it = proto.wide_family_selectors().cbegin();
+          it != proto.wide_family_selectors().cend(); ++it) {
+        WideFamilySelector w_selector;
+        w_selector.offset = it->offset();
+        w_selector.range_selector.family_idx_begin = it->family_idx_begin();
+        w_selector.range_selector.family_idx_end = it->family_idx_end();
+        wide_family_selectors_.insert(
+            std::make_pair(it->family_name(), w_selector));
       }
       for (auto it = proto.input_families().cbegin();
           it != proto.input_families().cend(); ++it) {
@@ -49,16 +58,16 @@ public:
   // selection.
   std::vector<std::string> GetFamilyWideFamilies() const {
     std::vector<std::string> families;
-    for (const auto& p : wide_family_offsets_) {
+    for (const auto& p : wide_family_selectors_) {
       families.push_back(p.first);
     }
     return families;
   }
 
   // Get each family-wide family's store offsets (begin & end).
-  const std::multimap<std::string, StoreTypeAndOffset>&
-    GetFamilyWideStoreOffsets() const {
-      return wide_family_offsets_;
+  const std::multimap<std::string, WideFamilySelector>&
+    GetWideFamilySelectors() const {
+      return wide_family_selectors_;
     }
 
   // Get all the selected input features.
@@ -113,11 +122,13 @@ public:
       (*proto.mutable_input_families())[p.first] = family_feature;
     }
 
-    // Instantiate TransformParamProto::wide_family_offsets
-    for (const auto& p : wide_family_offsets_) {
-      auto pair = proto.add_wide_family_offsets();
-      pair->set_family_name(p.first);
-      *(pair->mutable_offset()) = p.second;
+    // Instantiate TransformParamProto::wide_family_selectors
+    for (const auto& p : wide_family_selectors_) {
+      auto selector = proto.add_wide_family_selectors();
+      selector->set_family_name(p.first);
+      *(selector->mutable_offset()) = p.second.offset;
+      selector->set_family_idx_begin(p.second.range_selector.family_idx_begin);
+      selector->set_family_idx_end(p.second.range_selector.family_idx_end);
     }
     /*
     proto.mutable_input_features()->Reserve(ns_input_features_.size());
@@ -137,15 +148,21 @@ private:
     for (const auto& finder : finders) {
       // wildcard to select all features in all-family.
       if (finder.family_name == "*") {
-        CHECK(finder.all_family) << "Must select all family and all features";
-        const std::map<std::string, std::unique_ptr<FeatureFamilyIf>>& families =
+        CHECK_EQ(kRangeSelect, finder.mode)
+          << "Must select all family and all features";
+        CHECK_EQ(finder.range_selector.family_idx_begin,
+            finder.range_selector.family_idx_end)
+          << "Must select all family and all features";
+        const std::map<std::string,
+              std::unique_ptr<FeatureFamilyIf>>& families =
           schema.GetFamilies();
         for (const auto& p : families) {
-          FamilyWideSelection(schema, p.first);
+          FamilyWideSelection(schema, p.first, finder.range_selector);
         }
       } else {
-        if (finder.all_family) {
-          FamilyWideSelection(schema, finder.family_name);
+        if (finder.mode == kRangeSelect) {
+          FamilyWideSelection(schema, finder.family_name,
+              finder.range_selector);
         } else {
           ns_input_features_[finder.family_name].push_back(
               schema.GetFeature(finder));
@@ -161,14 +178,15 @@ private:
   // Select all features in family 'family_name', which has to be simple
   // family.
   void FamilyWideSelection(const Schema& schema,
-      const std::string& family_name) {
+      const std::string& family_name, const RangeSelector& selector) {
     const auto& input_family = schema.GetFamily(family_name);
     CHECK(input_family.IsSimple());
     // Get the family offsets only for family-wide selection.
-    //wide_family_offsets_[family_name] =
-    wide_family_offsets_.insert(
-        std::make_pair(family_name, dynamic_cast<const SimpleFeatureFamily&>(
-        input_family).GetStoreTypeAndOffset()));
+    WideFamilySelector w_selector;
+    w_selector.offset = dynamic_cast<const SimpleFeatureFamily&>(
+            input_family).GetStoreTypeAndOffset();
+    w_selector.range_selector = selector;
+    wide_family_selectors_.insert(std::make_pair(family_name, w_selector));
     // Just give empty vector for input_features_desc_ and ns_input_features_.
     ns_input_features_[family_name] = std::vector<Feature>();
     input_features_desc_[family_name] = std::vector<std::string>();
@@ -200,7 +218,7 @@ private:
   std::map<std::string, std::vector<std::string>> input_features_desc_;
 
   // Each wide-family using single store will be in this map.
-  std::multimap<std::string, StoreTypeAndOffset> wide_family_offsets_;
+  std::multimap<std::string, WideFamilySelector> wide_family_selectors_;
 };
 
 }  // namespace hotbox

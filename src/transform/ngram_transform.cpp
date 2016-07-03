@@ -13,14 +13,21 @@ namespace hotbox {
 // Currently only support 2-gram of two simple families.
 void NgramTransform::TransformSchema(const TransformParam& param,
     TransformWriter* writer) const {
-  const std::multimap<std::string, StoreTypeAndOffset>& wide_family_offsets
-    = param.GetFamilyWideStoreOffsets();
-  CHECK_EQ(2, wide_family_offsets.size())
+  const std::multimap<std::string, WideFamilySelector>& w_family_selectors
+    = param.GetWideFamilySelectors();
+  CHECK_EQ(2, w_family_selectors.size())
     << "Only support 2-gram of two simple family for now";
   std::vector<BigInt> num_features;
-  for (const auto& p : wide_family_offsets) {
-    StoreTypeAndOffset offsets = p.second;
-    num_features.push_back(offsets.offset_end() - offsets.offset_begin());
+  for (const auto& p : w_family_selectors) {
+    StoreTypeAndOffset offsets = p.second.offset;
+    auto range = p.second.range_selector;
+    int64_t family_idx_begin = range.family_idx_begin;
+    int64_t family_idx_end = range.family_idx_end;
+    int64_t family_num_features = offsets.offset_end() - offsets.offset_begin();
+    if (family_idx_begin != family_idx_end) {
+      family_num_features = family_idx_end - family_idx_begin;
+    }
+    num_features.push_back(family_num_features);
   }
   // Add only anonymous features to reduce schema size.
   writer->AddFeatures(num_features[0] * num_features[1]);
@@ -31,11 +38,20 @@ namespace {
 // Get sparse value of a simple family based on type_and_offset, indexed by
 // family_idx (BigInt).
 std::vector<std::pair<BigInt, float>> GetSparseVals(const TransDatum& datum,
-    const StoreTypeAndOffset& type_and_offset) {
+    const WideFamilySelector& selector) {
   std::vector<std::pair<BigInt, float>> sparse_vals;
   const DatumProto& proto = datum.GetDatumBase().GetDatumProto();
-  auto offset_begin = type_and_offset.offset_begin();
-  auto offset_end = type_and_offset.offset_end();
+  StoreTypeAndOffset type_and_offset = selector.offset;
+  auto offset_begin = selector.offset.offset_begin();
+  auto offset_end = selector.offset.offset_end();
+  auto range = selector.range_selector;
+  BigInt family_idx_begin = range.family_idx_begin;
+  BigInt family_idx_end = range.family_idx_end;
+  if (family_idx_begin != family_idx_end) {
+    // Further limit the offset using range, if applicable.
+    offset_end = family_idx_end + offset_begin;
+    offset_begin = family_idx_begin + offset_begin;
+  }
   switch (type_and_offset.store_type()) {
     case SPARSE_NUM:
       {
@@ -70,17 +86,21 @@ std::vector<std::pair<BigInt, float>> GetSparseVals(const TransDatum& datum,
 
 std::function<void(TransDatum*)> NgramTransform::GenerateTransform(
     const TransformParam& param) const {
-  const std::multimap<std::string, StoreTypeAndOffset>& wide_family_offsets
-    = param.GetFamilyWideStoreOffsets();
-  StoreTypeAndOffset type_and_offset = (++wide_family_offsets.begin())->second;
-  BigInt num_features_fam2 = type_and_offset.offset_end() -
-    type_and_offset.offset_begin();
-  return [wide_family_offsets, num_features_fam2] (TransDatum* datum) {
+  const std::multimap<std::string, WideFamilySelector>& w_family_selectors
+    = param.GetWideFamilySelectors();
+  WideFamilySelector selector = (++w_family_selectors.begin())->second;
+  BigInt num_features_fam2 = selector.offset.offset_end() -
+    selector.offset.offset_begin();
+  auto range = selector.range_selector;
+  if (range.family_idx_begin != range.family_idx_end) {
+    num_features_fam2 = range.family_idx_end - range.family_idx_begin;
+  }
+  return [w_family_selectors, num_features_fam2] (TransDatum* datum) {
     // Get the sparse value indexed by family_idx for both families.
-    const auto& sparse_val1 = GetSparseVals(*datum,
-        wide_family_offsets.begin()->second);
+    WideFamilySelector selector = w_family_selectors.begin()->second;
+    const auto& sparse_val1 = GetSparseVals(*datum, selector);
     const auto& sparse_val2 = GetSparseVals(*datum,
-        (++wide_family_offsets.begin())->second);
+        (++w_family_selectors.begin())->second);
     for (int i = 0; i < sparse_val1.size(); ++i) {
       for (int j = 0; j < sparse_val2.size(); ++j) {
         datum->SetFeatureValRelativeOffset(

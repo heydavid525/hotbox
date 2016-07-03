@@ -28,13 +28,15 @@ message TransformParamProto {
   // Keyed on family_name
   map<string, TransformFamilyFeatureProto> input_families = 2;
 
-  // Wide families are families selected under family-wide selection
+  // RangeSelector. Wide families are families selected under family-wide selection
   // and uses only single store.
-  message OffsetPair {
+  message RSelector {
     string family_name = 1;
     StoreTypeAndOffset offset = 2;
+    int64 family_idx_begin = 3;
+    int64 family_idx_end = 4;
   }
-  repeated OffsetPair wide_family_offsets = 3;
+  repeated RSelector wide_family_selectors = 3;
 }
 
 message TransformConfig {

@@ -35,16 +35,12 @@ void SelectTransform::TransformSchema(const TransformParam& param,
   for (const auto& p : non_simple_input_features) {
     std::string family_name = p.first;
     const auto& family_features = p.second;
-    //const auto& family_features_desc =
-    //  non_simple_input_features_desc.at(family_name);
     if (!StringInVector(family_name, wide_families)) {
       // This family isn't selected by family-wide. Add them.
       for (int i = 0; i < p.second.size(); ++i) {
         const auto& input_feature = family_features[i];
         CHECK(IsNumber(input_feature)) << "family: " << family_name << " "
           << input_feature.DebugString();
-        //LOG(INFO) << "adding feature to writer: " << family_features_desc[i];
-        //writer->AddFeature(family_features_desc[i]);
         writer->AddFeature(input_feature);
       }
     }
@@ -52,15 +48,19 @@ void SelectTransform::TransformSchema(const TransformParam& param,
 
   // Add the family-wide selected families. Note: Family-wide and wide_family
   // are used synonymously
-  const std::multimap<std::string, StoreTypeAndOffset>& wide_family_offsets
-    = param.GetFamilyWideStoreOffsets();
+  const std::multimap<std::string, WideFamilySelector>& wide_family_selectors
+    = param.GetWideFamilySelectors();
   for (const std::string& f : wide_families) {
-    //StoreTypeAndOffset offsets = wide_family_offsets.at(f);
-    const auto it = wide_family_offsets.find(f);
-    CHECK(it != wide_family_offsets.cend()) << f
+    const auto it = wide_family_selectors.find(f);
+    CHECK(it != wide_family_selectors.cend()) << f
       << " is not found in wide_family_offset";
-    StoreTypeAndOffset offsets = it->second;
-    writer->AddFeatures(offsets.offset_end() - offsets.offset_begin());
+    StoreTypeAndOffset offsets = it->second.offset;
+    BigInt num_features = offsets.offset_end() - offsets.offset_begin();
+    auto range = it->second.range_selector;
+    if (range.family_idx_end != range.family_idx_begin) {
+      num_features = range.family_idx_end - range.family_idx_begin;
+    }
+    writer->AddFeatures(num_features);
   }
 }
 
@@ -88,11 +88,11 @@ std::function<void(TransDatum*)> SelectTransform::GenerateTransform(
     curr_family_offset += num_features_this_family;
   }
 
-  // wide_family_offsets is the offset on input store.
-  const std::multimap<std::string, StoreTypeAndOffset>& wide_family_offsets
-    = param.GetFamilyWideStoreOffsets();
+  // wide_family_selectors is the offset on input store.
+  const std::multimap<std::string, WideFamilySelector>& wide_family_selectors
+    = param.GetWideFamilySelectors();
 
-  return [input_features, wide_families, wide_family_offsets,
+  return [input_features, wide_families, wide_family_selectors,
          wide_family_output_offsets] (TransDatum* datum) {
     for (const auto& p : input_features) {
       std::string family_name = p.first;
@@ -107,10 +107,18 @@ std::function<void(TransDatum*)> SelectTransform::GenerateTransform(
     }
     // Family-wide families that use single store.
     const DatumProto& proto = datum->GetDatumBase().GetDatumProto();
-    for (const auto& p : wide_family_offsets) {
-      StoreTypeAndOffset type_and_offset = p.second;
+    for (const auto& p : wide_family_selectors) {
+      StoreTypeAndOffset type_and_offset = p.second.offset;
       auto offset_begin = type_and_offset.offset_begin();
       auto offset_end = type_and_offset.offset_end();
+      auto range = p.second.range_selector;
+      BigInt family_idx_begin = range.family_idx_begin;
+      BigInt family_idx_end = range.family_idx_end;
+      if (family_idx_begin != family_idx_end) {
+        // Further limit the offset using range, if available.
+        offset_end = family_idx_end + offset_begin;
+        offset_begin = family_idx_begin + offset_begin;
+      }
       BigInt output_offset = wide_family_output_offsets.at(p.first);
       switch (type_and_offset.store_type()) {
         case SPARSE_NUM:
