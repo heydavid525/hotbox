@@ -51,6 +51,7 @@ INCFLAGS =  -I$(SRC_DIR) -I$(THIRD_PARTY_INCLUDE)
 INCFLAGS += -Ibuild/ # include generated *pb.h
 INCFLAGS += -I$(JAVA_HOME)/include # include java for HDFS/DMLC access
 INCFLAGS += $(HDFS_INCFLAGS)
+INCFLAGS += -I/usr/include/python2.7
 
 LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
           -L$(THIRD_PARTY_LIB) \
@@ -77,7 +78,9 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
           # lglog must come after ldmlc, which depends on glog.
           #-lrocksdb
 LDFLAGS += $(HDFS_LDFLAGS)
-
+LDFLAGS += -L/usr/lib/python2.7/config \
+           -lboost_python \
+           -lpython2.7
 HB_SRC = $(shell find src -type f -name "*.cpp")
 HB_PROTO = $(shell find src -type f -name "*.proto")
 HB_HEADERS = $(shell find src -type f -name "*.hpp")

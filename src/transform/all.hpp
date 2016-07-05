@@ -9,3 +9,4 @@
 #include "transform/constant_transform.hpp"
 #include "transform/select_transform.hpp"
 #include "transform/ngram_transform.hpp"
+#include "transform/dnn_transform.hpp"
