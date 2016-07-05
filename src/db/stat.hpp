@@ -6,6 +6,9 @@
 
 namespace hotbox {
 
+// Track # of unique values up to kNumUniqueMax.
+const int kNumUniqueMax = 100;
+
 // A zero-copy wrapper around StatProto. Not copyable.
 class Stat {
 public:

@@ -39,6 +39,7 @@ message StatProto {
   // Should have the same # of features as in schema.
   repeated FeatureStatProto stats = 2;
 
+  // Features that have not appeared yet are uninitialized.
   repeated bool initialized = 4;
 }
 

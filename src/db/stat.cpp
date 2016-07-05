@@ -3,6 +3,7 @@
 #include <glog/logging.h>
 #include <string>
 #include "schema/constants.hpp"
+#include "schema/all.hpp"
 #include "util/all.hpp"
 
 namespace hotbox {
@@ -40,6 +41,7 @@ Stat::Stat(int id, RocksDB* db) {
     auto segment_proto =
       StreamDeserialize<FeatureStatProtoSegment>(seg_proto_str);
     BigInt id_begin = segment_proto.id_begin();
+    proto_->mutable_stats()->Reserve(segment_proto.stats_size());
     for (int j = 0; j < segment_proto.stats_size(); ++j) {
       *(proto_->add_stats()) = segment_proto.stats(j);
       proto_->set_initialized(j + id_begin, segment_proto.initialized(j));
@@ -70,6 +72,14 @@ void Stat::AddFeatureStat(const Feature& feature) {
   CHECK(!proto_->initialized(offset)) << "Feature "
     << offset << " already exists in stat.";
   proto_->set_initialized(offset, true);
+  // Add 0 to unique values.
+  // TODO(wdai): This is only valid for sparse data format. Make this more
+  // flexible.
+  if (IsNumerical(feature)) {
+    proto_->mutable_stats(offset)->add_unique_num_values(0.);
+  } else {
+    proto_->mutable_stats(offset)->add_unique_cat_values(0);
+  }
 }
 
 int Stat::UpdateStat(const Feature& feature, float val) {
@@ -78,7 +88,22 @@ int Stat::UpdateStat(const Feature& feature, float val) {
     << feature.DebugString() << " feature val: " << val
     << " num data: " << proto_->num_data();
   auto stat = proto_->mutable_stats(global_offset);
-  if (feature.is_factor()) {
+  if (IsNumerical(feature) && stat->unique_num_values_size() < kNumUniqueMax) {
+    // TODO(wdai): Use approximate counter for large cardinality.
+    bool exist = false;
+    for (int i = 0; i < stat->unique_num_values_size(); ++i) {
+      if (val == stat->unique_num_values(i)) {
+        exist = true;
+        break;
+      }
+    }
+    if (!exist) {
+      // LOG(INFO) << "Adding to unique values";
+      stat->add_unique_num_values(val);
+    }
+  } else if (IsCategorical(feature) &&
+      stat->unique_cat_values_size() < kNumUniqueMax) {
+  //if (feature.is_factor()) {
     // LOG(INFO) << "feature " << feature.global_offset() << " is factor";
     bool exist = false;
     for (int i = 0; i < stat->unique_cat_values_size(); ++i) {

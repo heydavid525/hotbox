@@ -5,6 +5,7 @@
 #include "transform/proto/transform.pb.h"
 #include <glog/logging.h>
 #include <string>
+#include <unordered_map>
 #include <map>
 #include <utility>
 
@@ -23,7 +24,8 @@ public:
   //
   // TODO(wdai): consider using shared_ptr.
   TransformParam(const Schema& schema,
-      const TransformConfig& config) : config_(config) {
+      const TransformConfig& config, const Stat& stat) : config_(config),
+  stat_(&stat) {
     const auto& feature_str = config_.base_config().input_features();
     std::vector<std::string> input_features_str(feature_str.begin(),
         feature_str.end());
@@ -50,6 +52,13 @@ public:
         const auto& input_features_desc = it->second.input_features_desc();
         //input_features_desc_[it->first] = std::vector<std::string>(
         //    input_features_desc.cbegin(), input_features_desc.cend());
+      }
+
+      // Populate cached_stat_
+      for (auto it = proto.stats().cbegin();
+          it != proto.stats().cend(); ++it) {
+        cached_stats_.emplace(it->feature().global_offset(),
+            it->stat());
       }
     }
 
@@ -103,6 +112,22 @@ public:
     return config_;
   }
 
+  // GetStat(feature) must be called in TransformSchema() before calling it
+  // in GenerateTransform().
+  const FeatureStatProto& GetStat(const Feature& f) const {
+    if (stat_ != nullptr) {
+      // stat_ is initialized.
+      stat_requests_.emplace(f.global_offset(), f);
+      return stat_->GetFeatureStat(f);
+    }
+    // This TransformParam instance must have been initialized from
+    // TransformParamProto.
+    auto it = cached_stats_.find(f.global_offset());
+    CHECK(it != cached_stats_.cend()) << "Cannot find stats for feature "
+      << f.DebugString();
+    return it->second;
+  }
+
   TransformParamProto GetProto() const {
     TransformParamProto proto;
     *(proto.mutable_config()) = config_;
@@ -129,6 +154,12 @@ public:
       *(selector->mutable_offset()) = p.second.offset;
       selector->set_family_idx_begin(p.second.range_selector.family_idx_begin);
       selector->set_family_idx_end(p.second.range_selector.family_idx_end);
+    }
+
+    for (const auto& p : stat_requests_) {
+      auto stat_pair_ptr = proto.add_stats();
+      *(stat_pair_ptr->mutable_feature()) = p.second;
+      *(stat_pair_ptr->mutable_stat()) = stat_->GetFeatureStat(p.second);
     }
     /*
     proto.mutable_input_features()->Reserve(ns_input_features_.size());
@@ -219,6 +250,17 @@ private:
 
   // Each wide-family using single store will be in this map.
   std::multimap<std::string, WideFamilySelector> wide_family_selectors_;
+
+  const Stat* stat_ = nullptr;
+
+  // Record the features that need stats so we can store them in
+  // TransformParamProto. global_offset --> feature
+  // Comment(wdai): It's mutable because we want GetStat to be const.
+  // Comment(wdai): use map set or unordered_set of Feature because Feature is not
+  // hashable nor comparable. Use global_offset as hash value.
+  mutable std::unordered_map<int64_t, Feature> stat_requests_;
+
+  std::unordered_map<int64_t, FeatureStatProto> cached_stats_;
 };
 
 }  // namespace hotbox

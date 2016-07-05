@@ -37,6 +37,12 @@ message TransformParamProto {
     int64 family_idx_end = 4;
   }
   repeated RSelector wide_family_selectors = 3;
+
+  message StatPair {
+    Feature feature = 1;
+    FeatureStatProto stat = 2;
+  }
+  repeated StatPair stats = 4;
 }
 
 message TransformConfig {
