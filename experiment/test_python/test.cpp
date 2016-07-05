@@ -17,8 +17,8 @@ try{
   cout << 2 << endl;
   object main_namespace_ = main_module_.attr("__dict__");
   cout << 3 << endl;
-  string model_path = "/home/wanghy/model.json";
-  string weight_path = "/home/wanghy/weight";
+  string model_path = "../../test/resource/dataset/model.json";
+  string weight_path = "../../test/resource/dataset/weight";
   exec(str("import sys\n"
     "sys.path.append('/home/wanghy/github/hotbox/python/util/')\n"
     "import dnn_transform as dt\n"),
