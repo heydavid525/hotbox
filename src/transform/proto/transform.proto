@@ -28,15 +28,9 @@ message TransformParamProto {
   // Keyed on family_name
   map<string, TransformFamilyFeatureProto> input_families = 2;
 
-  // RangeSelector. Wide families are families selected under family-wide selection
+  // Wide families are families selected under family-wide selection
   // and uses only single store.
-  message RSelector {
-    string family_name = 1;
-    StoreTypeAndOffset offset = 2;
-    int64 family_idx_begin = 3;
-    int64 family_idx_end = 4;
-  }
-  repeated RSelector wide_family_selectors = 3;
+  map<string, StoreTypeAndOffset> wide_family_offsets = 3;
 }
 
 message TransformConfig {
@@ -51,6 +45,7 @@ message TransformConfig {
     LogitTransformConfig logit_transform = 5;
     ConstantTransformConfig constant_transform = 6;
     SelectTransformConfig select_transform = 7;
+    DnnTransformConfig dnn_transform = 8;
   }
 }
 
@@ -118,6 +113,11 @@ message ConstantTransformConfig {
   float constant = 1;
 }
 
+message DnnTransformConfig {
+  string model_path = 1;
+  string weight_path = 2;
+  uint64 num_neurals = 3;
+}
 // Take cartesian products between input_feature_list[0],
 // input_feature_list[1], ...., each input_feature_set is a string, e.g.,
 // "mobile:,web:counts". input_feature_list can be the results from other
