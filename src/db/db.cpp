@@ -286,7 +286,7 @@ SessionProto DB::CreateSession(const SessionOptionsProto& session_options) {
     }
     writer_config.set_output_family_name(output_family);
     // Create transform param before TransformWriter modifies trans_schema.
-    TransformParam trans_param(trans_schema, config);
+    TransformParam trans_param(trans_schema, config, stats_[0]);
 
     std::unique_ptr<TransformIf> transform =
       registry.CreateObject(config.config_case());

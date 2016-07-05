@@ -58,6 +58,7 @@ std::vector<FeatureFinder> ParseFeatureDesc(const std::string& feature_desc) {
     std::string family;
     std::string feature_name;
     if (found != std::string::npos) {
+      // has ":"
       if (found == 0) {
         // :feat4 in the above example.
         family = kDefaultFamily;
@@ -67,12 +68,13 @@ std::vector<FeatureFinder> ParseFeatureDesc(const std::string& feature_desc) {
       }
       feature_name = desc.substr(found + 1, desc.size() - found - 1);
     } else {
+      // Doesn't have ":".
       family = kDefaultFamily;
       // e.g., feat1 in the above example.
       feature_name = desc;
     }
-    auto trimmed_feature_name = Trim(feature_name);
-    if (trimmed_feature_name.empty() || trimmed_feature_name == "*") {
+    feature_name = Trim(feature_name);
+    if (feature_name.empty() || feature_name == "*") {
       FeatureFinder finder;
       finder.family_name = family;
       finder.mode = kRangeSelect;
@@ -100,6 +102,19 @@ std::vector<FeatureFinder> ParseFeatureDesc(const std::string& feature_desc) {
         finder.mode = kRangeSelect;
         finder.range_selector.family_idx_begin = start_idx;
         finder.range_selector.family_idx_end = end_idx + 1;
+        finders.push_back(finder);
+      } else {
+        // Single selection.
+        FeatureFinder finder;
+        finder.family_name = family;
+        finder.mode = kSingleFeature;
+        if (std::isdigit(feature_name[0]) > 0) {
+          // Select by family idx.
+          finder.family_idx = std::atol(feature_name.data());
+        } else {
+          // Select by feature name
+          finder.feature_name = feature_name;
+        }
         finders.push_back(finder);
       }
     }

@@ -33,6 +33,11 @@ def AddConstantTransform(config_list, constant_val):
   new_config = config_list.transform_configs.add()
   new_config.constant_transform.constant = constant_val
 
+def AddOnehotTransform(config_list, selector):
+  new_config = config_list.transform_configs.add()
+  new_config.base_config.input_features.append(selector)
+  new_config.one_hot_transform.SetInParent()
+
 def AddSelectTransform(config_list, selector, output_family=None,
     output_store_type=None):
   new_config = config_list.transform_configs.add()
@@ -65,13 +70,14 @@ if __name__ == '__main__':
   #AddBucketizeTransform(config_list, '67', 'bucketize2',
   #    [0, 1, float('inf')])
   #AddConstantTransform(config_list, 3.15)
-  AddSelectTransform(config_list, 'default:1,2', output_family="tmp_family",
-      output_store_type=schema_pb.SPARSE_NUM)
-  AddSelectTransform(config_list, 'default:80,83', output_family="tmp_family2",
-      output_store_type=schema_pb.SPARSE_NUM)
-  AddSelectTransform(config_list, 'tmp_family:*')
-  AddSelectTransform(config_list, 'tmp_family2:*')
-  AddNgramTransform(config_list, 'tmp_family', 'tmp_family2')
+  #AddSelectTransform(config_list, 'default:1,2', output_family="tmp_family",
+  #    output_store_type=schema_pb.SPARSE_NUM)
+  #AddSelectTransform(config_list, 'default:80,83', output_family="tmp_family2",
+  #    output_store_type=schema_pb.SPARSE_NUM)
+  #AddSelectTransform(config_list, 'tmp_family:*')
+  #AddSelectTransform(config_list, 'tmp_family2:*')
+  AddOnehotTransform(config_list, 'tmp:1')
+  #AddNgramTransform(config_list, 'tmp_family', 'tmp_family2')
   config_list_str = text_format.MessageToString(config_list)
   with open(args.output, 'w') as f:
     f.write(config_list_str)
