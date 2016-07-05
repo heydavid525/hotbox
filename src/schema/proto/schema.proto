@@ -19,11 +19,12 @@ enum OutputStoreType {
   DENSE = 1;
 }
 
-// Current max proto sequence: 7.
+// Current max proto sequence: 8.
 message FeatureStatProto {
   //uint32 num_unique = 1;   // used only for is_factor feature.
   // size of unique_cat_values / unique_bytes_values are num_unique_values.
   repeated int32 unique_cat_values = 6;
+  repeated float unique_num_values = 8;
   repeated string unique_bytes_values = 7;
   double min = 2;
   double max = 3;
@@ -114,6 +115,32 @@ message Feature {
   // feature 1), leaving some feature uninitialized.
   //bool initialized = 4;
 }
+
+/*
+// Identify a feature (or a family) in the schema.
+message FeatureFinder {
+  string family_name = 1;
+
+  // True to select just one feature. False to select a range or whole family.
+  bool select_single = 2 [default = true];
+
+  SingleSelector single_selector = 3;
+  RangeSelector range_selector = 4;
+}
+
+// Specifier for selecting one feature.
+message SingleSelector {
+  // At most one of the following should be set.
+  string feature_name = 1;
+  int64 family_idx = 2 [default = -1];
+}
+
+// Specifier for selecting a range of features or whole family.
+message RangeSelector {
+  int64 family_idx_begin = 1 [default = -1];
+  int64 family_idx_end = 2 [default = -1];
+};
+*/
 
 // Each data instance is stored as DatumProto, which has 6 data stores
 // (see Feature).
