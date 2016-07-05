@@ -25,6 +25,12 @@ ifndef HADOOP_HOME
 	HADOOP_HOME = /usr/local/hadoop/hadoop-2.6.0
 endif
 
+# Path containing pyconfig.h
+PYTHON_INCLUDE=/usr/include/python2.7
+
+# Path containing libpython2.7.a
+PYTHON_LIB=/usr/lib/python2.7
+
 ifeq ($(USE_HDFS), 1)
   HDFS_LDFLAGS = -Wl,-rpath=$(LIBJVM) \
 	          	   -L$(LIBJVM) -ljvm \
