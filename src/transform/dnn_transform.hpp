@@ -22,7 +22,6 @@ public:
   ~PythonRuntimeWrapper(){
   	Py_Finalize();
   }
-  std::mutex mtx;
 };
 
 class DnnTransform : public TransformIf {
@@ -36,12 +35,14 @@ public:
   static const std::vector<float>& GetDenseVals(TransDatum& datum);
   template<class T>
   static inline
-  list VectorToList(const std::vector<T>& v){
-    object get_iter = iterator<std::vector<T> >();
-    object iter = get_iter(v);
-    list l(iter);
-    return l;
-  }
+  list VectorToList(std::vector<T> vector) {
+    typename std::vector<T>::iterator iter;
+    boost::python::list list;
+    for (iter = vector.begin(); iter != vector.end(); ++iter) {
+        list.append(*iter);
+    }
+    return list;
+}
 
 private:
   void initialModel(const std::string model_path, 

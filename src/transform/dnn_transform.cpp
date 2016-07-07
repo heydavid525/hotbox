@@ -79,11 +79,11 @@ void DnnTransform::initialModel(const std::string model_path, const std::string 
   main_namespace_ = main_module_.attr("__dict__");
   try{
   exec(str("import sys\n"
-  	"sys.path.append('/home/wanghy/github/hotbox/python/util/')\n"
+  	"sys.path.append('/home/ubuntu/github/hotbox/python/util/')\n"
   	"import dnn_transform as dt\n"),
   	main_namespace_);
   LOG(INFO) << 111;
-  exec(str("get_model = dt.get_model('" + model_path + "','" + weight_path + "')\n"
+  exec(str("model = dt.get_model('" + model_path + "','" + weight_path + "')\n"
   	"get_activations = dt.get_activations\n"),
   	main_namespace_);
   LOG(INFO) << 222;
@@ -129,34 +129,41 @@ std::function<void(TransDatum*)> DnnTransform::GenerateTransform(
   std::string model_path = config.model_path();
   std::string weight_path = config.weight_path();
   static PythonRuntimeWrapper prw_;
-  {
-  	std::lock_guard<std::mutex> lock(prw_.mtx);
-  	initialModel(model_path, weight_path);
-  }
+  initialModel(model_path, weight_path);
+  
   object func = main_module_.attr("get_activations");
   object model = main_module_.attr("model");
   int num_layers = extract<int>(eval("len(model.layers)", main_namespace_));
   LOG(INFO) << "num layers: " << num_layers;
   //auto main_namespace = main_namespace_;
   //auto main_module = main_module_;
-  return [func, model, num_layers] (TransDatum *datum) {	  
+  return [func, model, num_layers] (TransDatum *datum) {	
+  	try{
 	  int offset = 0;
 	  //main_namespace["features"] = VectorToList(DnnTransform::GetDenseVals(*datum));
 	  list features = VectorToList(DnnTransform::GetDenseVals(*datum));
-	  
+	  LOG(INFO) << 111;
 	  for(int i = 0; i < num_layers; i++){
 	  	//str cmd = str("activations = get_activations(model, " + std::to_string(i) + ", numpy.array([features]))");
 		//exec(cmd, main_namespace);
 		//list activations = extract<list>(main_namespace["activations"]);
 		object activations = func(model, i, features);
+		LOG(INFO) << 222;
 		auto length = len(activations);
+		LOG(INFO) << length;
 		for (int j = 0; j < length; ++j) {
 	        float val = boost::python::extract<float>(activations[j]);
+			LOG(INFO) << 444;
 			datum->SetFeatureValRelativeOffset(offset, val);
+			LOG(INFO) << 555;
 			offset++;
 	    }
 	  }
-    };
+	}  
+    catch (error_already_set const&){
+      PyErr_Print();
+    }
+  };
 }
 
 } // namespace hotbox
