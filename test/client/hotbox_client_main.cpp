@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
   int i = 0;
   hotbox::Timer timer;
   // Test move constructor of DataIterator.
-  int num_transform_threads = 100;
+  int num_transform_threads = 10;
   hotbox::DataIterator iter = session.NewDataIterator(0, hotbox::kDataEnd,
       num_transform_threads);
   //iter.Restart();

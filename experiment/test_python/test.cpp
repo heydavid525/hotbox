@@ -17,10 +17,10 @@ try{
   cout << 2 << endl;
   object main_namespace_ = main_module_.attr("__dict__");
   cout << 3 << endl;
-  string model_path = "../../test/resource/dataset/model.json";
-  string weight_path = "../../test/resource/dataset/weight";
+  string model_path = "../../../test/resource/dataset/model.json";
+  string weight_path = "../../../test/resource/dataset/weight";
   exec(str("import sys\n"
-    "sys.path.append('/home/wanghy/github/hotbox/python/util/')\n"
+    "sys.path.append('/home/wdai/hotbox/python/util/')\n"
     "import dnn_transform as dt\n"),
     main_namespace_);
   exec(str("model = dt.get_model('" + model_path + "','" + weight_path + "')\n"
@@ -32,5 +32,6 @@ try{
 catch (error_already_set const&){
   PyErr_Print();
 }
+  std::cout << "Done" << std::endl;
   return 0;
 }
