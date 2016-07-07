@@ -32,7 +32,8 @@ public:
   std::function<void(TransDatum*)> GenerateTransform(
       const TransformParam& param) const override;
   
-  static const std::vector<float>& GetDenseVals(TransDatum& datum);
+  //static const std::vector<float>& GetDenseVals(TransDatum& datum);
+
   template<class T>
   static inline
   list VectorToList(std::vector<T> vector) {

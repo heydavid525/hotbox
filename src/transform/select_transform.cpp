@@ -114,14 +114,14 @@ std::function<void(TransDatum*)> SelectTransform::GenerateTransform(
       auto range = p.second.range_selector;
       BigInt family_idx_begin = range.family_idx_begin;
       BigInt family_idx_end = range.family_idx_end;
+      // Further limit the offset using range, if available.
       if (family_idx_begin != family_idx_end) {
-        // Further limit the offset using range, if available.
         offset_end = family_idx_end + offset_begin;
         offset_begin = family_idx_begin + offset_begin;
       }
       BigInt output_offset = wide_family_output_offsets.at(p.first);
       switch (type_and_offset.store_type()) {
-        case SPARSE_NUM:
+        case FeatureStoreType::SPARSE_NUM:
           {
             auto low = std::lower_bound(
                 proto.sparse_num_store_idxs().cbegin(),
@@ -145,8 +145,18 @@ std::function<void(TransDatum*)> SelectTransform::GenerateTransform(
             }
             break;
           }
+        case FeatureStoreType::DENSE_NUM:
+          {
+            for (BigInt i = offset_begin; i < offset_end; i++) {
+              BigInt family_idx = i - offset_begin;
+              datum->SetFeatureValRelativeOffset(output_offset + family_idx,
+                  proto.dense_num_store(i));
+            }
+            break;
+          }
         default:
-          LOG(FATAL) << "Not supported yet.";
+          LOG(FATAL) << "store type " << type_and_offset.store_type()
+            << " is not supported yet.";
       }
     }
   };

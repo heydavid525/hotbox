@@ -36,6 +36,10 @@ public:
   // Assumes the dense feature stores are resized already.
   void SetFeatureVal(const Feature& f, float val);
 
+  // Extend dense stores to size 'size'. Ignore if size < current size.
+  void ExtendDenseCatStore(BigInt size);
+  void ExtendDenseNumStore(BigInt size);
+
   // Directly set in dense_cat_store()
   void SetDenseCatFeatureVal(BigInt offset, int val);
 

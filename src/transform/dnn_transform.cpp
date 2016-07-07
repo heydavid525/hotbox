@@ -1,6 +1,7 @@
 #include <glog/logging.h>
 #include "transform/transform_api.hpp"
 #include "transform/dnn_transform.hpp"
+#include "transform/transform_util.hpp"
 #include <sstream>
 #include "util/util.hpp"
 #include "schema/flexi_datum.hpp"
@@ -93,7 +94,8 @@ void DnnTransform::initialModel(const std::string model_path, const std::string 
   }
 }
 
-const std::vector<float>& DnnTransform::GetDenseVals(TransDatum& datum) {
+/*
+std::vector<float> DnnTransform::GetDenseVals(TransDatum& datum) {
   static std::vector<float> dense_vals;
   FlexiDatum flexi = datum.GetFlexiDatum();
   if(flexi.isDense()){
@@ -115,6 +117,7 @@ const std::vector<float>& DnnTransform::GetDenseVals(TransDatum& datum) {
   //LOG(INFO) << "dense vals:" << dense_vals;
   return dense_vals;
 }
+*/
 
 void DnnTransform::TransformSchema(const TransformParam& param,
     TransformWriter* writer) const {
@@ -128,6 +131,22 @@ std::function<void(TransDatum*)> DnnTransform::GenerateTransform(
   const DnnTransformConfig& config = param.GetConfig().dnn_transform();
   std::string model_path = config.model_path();
   std::string weight_path = config.weight_path();
+
+  const std::multimap<std::string, WideFamilySelector>& w_family_selectors
+    = param.GetWideFamilySelectors();
+  CHECK_EQ(1, w_family_selectors.size());
+  WideFamilySelector selector = w_family_selectors.begin()->second;
+  return [selector] (TransDatum* datum) {
+    const auto& vals = GetDenseVals(*datum, selector);
+    std::stringstream ss;
+    for (int i = 0; i < vals.size(); ++i) {
+      ss << vals[i] << " ";
+    }
+    LOG(INFO) << ss.str();
+  };
+}
+
+  /*
   static PythonRuntimeWrapper prw_;
   initialModel(model_path, weight_path);
   
@@ -165,6 +184,7 @@ std::function<void(TransDatum*)> DnnTransform::GenerateTransform(
     }
   };
 }
+  */
 
 } // namespace hotbox
 

@@ -14,8 +14,11 @@ namespace hotbox {
 class TransDatum {
 public:
   // This takes the ownership of base.
+  // ranges is the output range of the last transform. ranges is used
+  // to allocate base->dense_*_store() for all intermediate transforms.
   TransDatum(DatumBase* base, const Feature& label, const Feature& weight,
-      OutputStoreType output_store_type, BigInt output_dim);
+      OutputStoreType output_store_type, BigInt output_dim,
+      const std::vector<TransformOutputRange>& ranges);
 
   // Get number feature value (CATEGORICAL or NUMERIC). Error otherwise.
   // Equivalent to DatumBase::GetFeatureVal().

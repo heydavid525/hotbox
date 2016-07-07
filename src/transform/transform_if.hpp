@@ -28,7 +28,6 @@ public:
   virtual std::function<void(TransDatum*)> GenerateTransform(
       const TransformParam& param) const = 0;
 
-  // By default return false
   void UpdateTransformWriterConfig(const TransformConfig& config,
       TransformWriterConfig* writer_config) const {
     // Configure TransWriter.

@@ -31,6 +31,18 @@ float DatumBase::GetWeight(const FeatureFamilyIf& internal_family) const {
   return weight == 0 ? 1 : weight;
 }
 
+void DatumBase::ExtendDenseCatStore(BigInt size) {
+  if (proto_->dense_cat_store_size() < size) {
+    proto_->mutable_dense_cat_store()->Resize(size, 0);
+  }
+}
+
+void DatumBase::ExtendDenseNumStore(BigInt size) {
+  if (proto_->dense_num_store_size() < size) {
+    proto_->mutable_dense_num_store()->Resize(size, 0.);
+  }
+}
+
 float DatumBase::GetFeatureVal(const Feature& f) const {
   CHECK_NOTNULL(proto_.get());
   CHECK(IsNumber(f));

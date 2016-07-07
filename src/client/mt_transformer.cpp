@@ -96,6 +96,11 @@ void MTTransformer::TransformTaskLoop() {
     std::vector<FlexiDatum> *vec = new std::vector<FlexiDatum>(
       task.datum_end - task.datum_begin);
 
+    // Collect transform ranges to std::vector
+    std::vector<TransformOutputRange> ranges(transforms_.size());
+    for (int i = 0; i < transforms_.size(); ++i) {
+      ranges[i] = session_proto_.transform_output_ranges(i);
+    }
     // do transform
     for (int i = atom_proto.datum_protos_size() - 1; i >= task.datum_begin;
          --i) {
@@ -105,8 +110,11 @@ void MTTransformer::TransformTaskLoop() {
       }
       DatumBase* datum_base = new DatumBase(
         atom_proto.mutable_datum_protos()->ReleaseLast());
+      auto& last_range = session_proto_.transform_output_ranges(
+          transforms_.size() - 1);
       TransDatum trans_datum(datum_base, session_proto_.label(),
-                      session_proto_.weight(), output_store_type, output_dim);
+                      session_proto_.weight(), output_store_type, output_dim,
+                      ranges);
 
       for (int t = 0; t < transforms_.size(); ++t) {
         trans_datum.ReadyTransform(session_proto_.transform_output_ranges(t));

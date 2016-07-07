@@ -3,6 +3,7 @@
 #include <vector>
 #include "transform/transform_api.hpp"
 #include "transform/ngram_transform.hpp"
+#include "transform/transform_util.hpp"
 #include <sstream>
 #include <algorithm>
 #include "util/util.hpp"
@@ -32,57 +33,6 @@ void NgramTransform::TransformSchema(const TransformParam& param,
   // Add only anonymous features to reduce schema size.
   writer->AddFeatures(num_features[0] * num_features[1]);
 }
-
-namespace {
-
-// Get sparse value of a simple family based on type_and_offset, indexed by
-// family_idx (BigInt).
-std::vector<std::pair<BigInt, float>> GetSparseVals(const TransDatum& datum,
-    const WideFamilySelector& selector) {
-  std::vector<std::pair<BigInt, float>> sparse_vals;
-  const DatumProto& proto = datum.GetDatumBase().GetDatumProto();
-  StoreTypeAndOffset type_and_offset = selector.offset;
-  auto offset_begin = selector.offset.offset_begin();
-  auto offset_end = selector.offset.offset_end();
-  auto range = selector.range_selector;
-  BigInt family_idx_begin = range.family_idx_begin;
-  BigInt family_idx_end = range.family_idx_end;
-  if (family_idx_begin != family_idx_end) {
-    // Further limit the offset using range, if applicable.
-    offset_end = family_idx_end + offset_begin;
-    offset_begin = family_idx_begin + offset_begin;
-  }
-  switch (type_and_offset.store_type()) {
-    case SPARSE_NUM:
-      {
-        auto low = std::lower_bound(
-            proto.sparse_num_store_idxs().cbegin(),
-            proto.sparse_num_store_idxs().cend(), offset_begin);
-
-        // 'start' indexes the first non-zero element for the family,
-        // if the family isn't all zero (if so, 'start' indexes the
-        // beginning of next family.)
-        auto start = low - proto.sparse_num_store_idxs().cbegin();
-        for (int i = start; i < proto.sparse_num_store_idxs_size(); ++i) {
-          if (proto.sparse_num_store_idxs(i) < offset_begin) {
-            continue;
-          }
-          if (proto.sparse_num_store_idxs(i) >= offset_end) {
-            break;
-          }
-          BigInt family_idx = proto.sparse_num_store_idxs(i)
-            - offset_begin;
-          sparse_vals.push_back(std::make_pair(family_idx,
-                proto.sparse_num_store_vals(i)));
-        }
-        break;
-      }
-    default:
-      LOG(FATAL) << type_and_offset.store_type() << " is not supported yet.";
-  }
-  return sparse_vals;
-}
-}  // anonymous namespace
 
 std::function<void(TransDatum*)> NgramTransform::GenerateTransform(
     const TransformParam& param) const {

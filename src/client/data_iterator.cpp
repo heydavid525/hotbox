@@ -59,13 +59,18 @@ void DataIterator::ReadAtomAndTransform(int atom_id) {
   auto output_store_type = session_proto_.output_store_type();
   auto output_dim = session_proto_.output_dim();
 
+  // Collect transform ranges to std::vector
+  std::vector<TransformOutputRange> ranges(transforms_.size());
+  for (int i = 0; i < transforms_.size(); ++i) {
+    ranges[i] = session_proto_.transform_output_ranges(i);
+  }
   // Start from the last datum because protobuf only has
   // ReleaseLast().
   for (int i = atom_proto.datum_protos_size() - 1; i >= 0; --i) {
     DatumBase* datum_base = new DatumBase(
         atom_proto.mutable_datum_protos()->ReleaseLast());
     TransDatum trans_datum(datum_base, session_proto_.label(),
-        session_proto_.weight(), output_store_type, output_dim);
+        session_proto_.weight(), output_store_type, output_dim, ranges);
     for (int t = 0; t < transforms_.size(); ++t) {
       trans_datum.ReadyTransform(
           session_proto_.transform_output_ranges(t));

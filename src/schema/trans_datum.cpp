@@ -5,12 +5,27 @@
 namespace hotbox {
 
 TransDatum::TransDatum(DatumBase* base, const Feature& label, const Feature& weight,
-    OutputStoreType output_store_type, BigInt output_dim) : base_(base),
+    OutputStoreType output_store_type, BigInt output_dim,
+    const std::vector<TransformOutputRange>& ranges) : base_(base),
   label_(label), weight_(weight),
   output_store_type_(output_store_type), output_feature_dim_(output_dim) {
   if (output_store_type == OutputStoreType::DENSE) {
     dense_vals_.resize(output_feature_dim_);
   }
+  // Pre-allocate dense storage
+  BigInt dense_cat_end = 0;
+  BigInt dense_num_end = 0;
+  for (const auto& r : ranges) {
+    if (r.store_type() == FeatureStoreType::DENSE_CAT) {
+      dense_cat_end = dense_cat_end > r.store_offset_end() ? dense_cat_end
+        : r.store_offset_end();
+    } else if (r.store_type() == FeatureStoreType::DENSE_NUM) {
+      dense_num_end = dense_num_end > r.store_offset_end() ? dense_num_end
+        : r.store_offset_end();
+    }
+  }
+  base_->ExtendDenseCatStore(dense_cat_end);
+  base_->ExtendDenseNumStore(dense_num_end);
 }
 
 float TransDatum::GetFeatureVal(const Feature& f) const {
