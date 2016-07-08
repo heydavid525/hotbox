@@ -3,11 +3,14 @@
 #include "util/all.hpp"
 #include "db/proto/db.pb.h"
 #include <utility>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace hotbox {
 
-// Track # of unique values up to kNumUniqueMax.
-const int kNumUniqueMax = 100;
+// Track # of unique values up to kNumUniqueThreshold using vector. Use
+// unordered_set beyond that.
+const int kNumUniqueThreshold = 1000;
 
 // A zero-copy wrapper around StatProto. Not copyable.
 class Stat {
@@ -53,6 +56,10 @@ private:
 
 private:
   std::unique_ptr<StatProto> proto_;
+  
+  // For fields with many unique values, use unordered_set, keyed on
+  // global_offset. Convert int to float.
+  std::unordered_map<BigInt, std::unordered_set<float>> unique_vals_map_;
 };
 
 }  // namespace hotbox

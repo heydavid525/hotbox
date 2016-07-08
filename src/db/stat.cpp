@@ -88,37 +88,77 @@ int Stat::UpdateStat(const Feature& feature, float val) {
     << feature.DebugString() << " feature val: " << val
     << " num data: " << proto_->num_data();
   auto stat = proto_->mutable_stats(global_offset);
-  if (IsNumerical(feature) && stat->unique_num_values_size() < kNumUniqueMax) {
-    // TODO(wdai): Use approximate counter for large cardinality.
-    bool exist = false;
-    for (int i = 0; i < stat->unique_num_values_size(); ++i) {
-      if (val == stat->unique_num_values(i)) {
-        exist = true;
-        break;
+  // Comment(wdai): These nested if are horrendous.
+  if (IsNumerical(feature)) {
+    if (stat->unique_num_values_size() < kNumUniqueThreshold) {
+      // TODO(wdai): Use approximate counter for large cardinality.
+      bool exist = false;
+      for (int i = 0; i < stat->unique_num_values_size(); ++i) {
+        if (val == stat->unique_num_values(i)) {
+          exist = true;
+          break;
+        }
+      }
+      if (!exist) {
+        stat->add_unique_num_values(val);
+      }
+    } else {
+      // Use unordered set.
+      auto it = unique_vals_map_.find(global_offset);
+      if (it == unique_vals_map_.end()) {
+        // Initialize the map.
+        for (int i = 0; i < stat->unique_num_values_size(); ++i) {
+          unique_vals_map_[global_offset].insert(
+              stat->unique_num_values(i));
+        }
+        it = unique_vals_map_.find(global_offset);
+      }
+      std::unordered_set<float>& s = it->second;
+      auto vit = s.find(val);
+      if (vit == s.cend()) {
+        s.insert(val);
+        stat->add_unique_num_values(val);
       }
     }
-    if (!exist) {
-      // LOG(INFO) << "Adding to unique values";
-      stat->add_unique_num_values(val);
-    }
-  } else if (IsCategorical(feature) &&
-      stat->unique_cat_values_size() < kNumUniqueMax) {
-  //if (feature.is_factor()) {
-    // LOG(INFO) << "feature " << feature.global_offset() << " is factor";
-    bool exist = false;
-    for (int i = 0; i < stat->unique_cat_values_size(); ++i) {
-      if (val == stat->unique_cat_values(i)) {
-        exist = true;
-        break;
+    UpdateStatCommon(stat, val);
+    return stat->unique_num_values_size();
+  } else if (IsCategorical(feature)) {
+    if (stat->unique_cat_values_size() < kNumUniqueThreshold) {
+      //if (feature.is_factor()) {
+      // LOG(INFO) << "feature " << feature.global_offset() << " is factor";
+      bool exist = false;
+      for (int i = 0; i < stat->unique_cat_values_size(); ++i) {
+        if (val == stat->unique_cat_values(i)) {
+          exist = true;
+          break;
+        }
+      }
+      if (!exist) {
+        // LOG(INFO) << "Adding to unique values";
+        stat->add_unique_cat_values(static_cast<int>(val));
+      }
+    } else {
+      // Use unordered set.
+      auto it = unique_vals_map_.find(global_offset);
+      if (it == unique_vals_map_.end()) {
+        // Initialize the map.
+        for (int i = 0; i < stat->unique_cat_values_size(); ++i) {
+          unique_vals_map_[global_offset].insert(
+              stat->unique_cat_values(i));
+        }
+        it = unique_vals_map_.find(global_offset);
+      }
+      std::unordered_set<float>& s = it->second;
+      auto vit = s.find(val);
+      if (vit == s.cend()) {
+        s.insert(val);
+        stat->add_unique_cat_values(val);
       }
     }
-    if (!exist) {
-      // LOG(INFO) << "Adding to unique values";
-      stat->add_unique_cat_values(static_cast<int>(val));
-    }
+    UpdateStatCommon(stat, val);
+    return stat->unique_cat_values_size();
   }
-  UpdateStatCommon(stat, val);
-  return stat->unique_cat_values_size();
+  return 0;
 }
 
 void Stat::IncrementDataCount() {

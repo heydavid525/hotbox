@@ -23,9 +23,6 @@ void OneHotTransform::TransformSchema(const TransformParam& param,
     bool is_num = IsNumerical(input_feature);
     int num_unique = is_num ? stat.unique_num_values_size() :
       stat.unique_cat_values_size();
-    if (num_unique == kNumUniqueMax) {
-      LOG(ERROR) << "More unique values than maximum " << kNumUniqueMax;
-    }
     num_buckets = num_unique;
     for (int j = 0; j < num_buckets; ++j) {
       float val = is_num ? stat.unique_num_values(j) :
@@ -62,7 +59,7 @@ std::function<void(TransDatum*)> OneHotTransform::GenerateTransform(
         auto it = std::find(unique_vals.cbegin(), unique_vals.cend(), val);
         CHECK(it != unique_vals.cend()) << "feature "
         << input_feature.DebugString() << " value " << val
-        << " not in unique value";
+        << " not in unique value of size " << unique_vals.size();
         int bin_id = it - unique_vals.cbegin();
         datum->SetFeatureValRelativeOffset(offset + bin_id, 1);
       });
