@@ -20,7 +20,9 @@ public:
 	LOG(INFO) << "initialize py runtime finished";
   }
   ~PythonRuntimeWrapper(){
+  	LOG(INFO) << "finalize py runtime";
   	Py_Finalize();
+	LOG(INFO) << "finalize py runtime finished";
   }
 };
 
