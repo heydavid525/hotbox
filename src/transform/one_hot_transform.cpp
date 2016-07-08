@@ -4,6 +4,8 @@
 #include "transform/one_hot_transform.hpp"
 #include "schema/all.hpp"
 #include <algorithm>
+#include "db/stat.hpp"
+#include <unordered_set>
 
 namespace hotbox {
 
@@ -45,24 +47,41 @@ std::function<void(TransDatum*)> OneHotTransform::GenerateTransform(
     const FeatureStatProto& stat = param.GetStat(input_feature);
     int num_unique = IsNumerical(input_feature) ?
       stat.unique_num_values_size() : stat.unique_cat_values_size();
-    std::vector<float> unique_vals(num_unique);
-    for (int j = 0; j < num_unique; ++j) {
-      unique_vals[j] = IsNumerical(input_feature) ? stat.unique_num_values(j)
-        : stat.unique_cat_values(j);
+    if (num_unique >= kNumUniqueThreshold) {
+      // For field with many unique vales, use map lookup instead of vector.
+      std::unordered_map<float, BigInt> val_to_idx;
+      for (int j = 0; j < num_unique; ++j) {
+        val_to_idx[stat.unique_num_values(j)] = j;
+      }
+      transforms.push_back(
+        [input_feature, stat, offset, val_to_idx]
+        (TransDatum* datum) {
+          float val = datum->GetFeatureVal(input_feature);
+          auto it = val_to_idx.find(val);
+          CHECK(it != val_to_idx.cend()) << "feature "
+          << input_feature.DebugString() << " value " << val
+          << " not in unique value of size " << val_to_idx.size();
+          int bin_id = it->second;
+          datum->SetFeatureValRelativeOffset(offset + bin_id, 1);
+        });
+    } else {
+      std::vector<float> unique_vals(num_unique);
+      for (int j = 0; j < num_unique; ++j) {
+        unique_vals[j] = IsNumerical(input_feature) ? stat.unique_num_values(j)
+          : stat.unique_cat_values(j);
+      }
+      transforms.push_back(
+        [input_feature, stat, offset, unique_vals]
+        (TransDatum* datum) {
+          float val = datum->GetFeatureVal(input_feature);
+          auto it = std::find(unique_vals.cbegin(), unique_vals.cend(), val);
+          CHECK(it != unique_vals.cend()) << "feature "
+          << input_feature.DebugString() << " value " << val
+          << " not in unique value of size " << unique_vals.size();
+          int bin_id = it - unique_vals.cbegin();
+          datum->SetFeatureValRelativeOffset(offset + bin_id, 1);
+        });
     }
-    // bin into num_buckets in sparse_cat_store starting with
-    // 'output_offset_begin'.
-    transforms.push_back(
-      [input_feature, stat, offset, unique_vals]
-      (TransDatum* datum) {
-        float val = datum->GetFeatureVal(input_feature);
-        auto it = std::find(unique_vals.cbegin(), unique_vals.cend(), val);
-        CHECK(it != unique_vals.cend()) << "feature "
-        << input_feature.DebugString() << " value " << val
-        << " not in unique value of size " << unique_vals.size();
-        int bin_id = it - unique_vals.cbegin();
-        datum->SetFeatureValRelativeOffset(offset + bin_id, 1);
-      });
     // Advance offset to point at bins associated with the next feature.
     offset += num_unique;
   }
