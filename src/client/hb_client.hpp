@@ -15,7 +15,7 @@ DECLARE_string(hb_config_path);
 namespace hotbox {
 
 // hotbox::kDataEnd signal reading to the last data.
-const int kDataEnd = -1;
+extern const int kDataEnd;
 
 // A read client that performs transform using a pool of threads.
 //

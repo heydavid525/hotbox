@@ -3,6 +3,7 @@
 #include <glog/logging.h>
 
 namespace hotbox {
+const int kDataEnd = -1;
 
 HBClient::HBClient() {
   RegisterAll();

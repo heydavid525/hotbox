@@ -58,7 +58,6 @@ DataIterator Session::NewDataIterator(int64_t data_begin,
   }
   bool use_multi_threads = num_transform_threads > 1
     || num_io_threads > 1;
-
   return DataIterator(session_proto_, transforms_, data_begin, data_end,
           use_multi_threads, num_io_threads, num_transform_threads,
           buffer_limit, batch_limit);
