@@ -23,13 +23,15 @@ namespace hotbox {
 	return session_->GetNumData();
   }
   
-  list PYSession::GetData(BigInt begin, BigInt end){
+  dict PYSession::GetData(BigInt begin, BigInt end){
 	DataIterator it = session_->NewDataIterator(begin, end);
 	std::vector<std::vector<float>> dense_res;
 	std::vector<dict> sparse_res;
+	std::vector<float> labels;
 	bool is_datum_dense;
 	while(it.HasNext()){
 		FlexiDatum datum = it.GetDatum();
+		labels.push_back(datum.GetLabel());
 		is_datum_dense = datum.isDense();
 		if(is_datum_dense){
 			std::vector<float> dense_vals = datum.GetDenseStore();
@@ -45,12 +47,15 @@ namespace hotbox {
 			sparse_res.push_back(sparse_datum);
 		}
 	}
-	if(is_datum_dense){		
-	    return VectorToList(dense_res);
+	dict res;
+	res[0] = VectorToList(labels);
+	if(is_datum_dense){	
+		res[1] = VectorToList(dense_res);
 	}
 	else{
-	    return VectorToList(sparse_res);
+		res[1] = VectorToList(sparse_res);
 	}
+	return res;
   }
 	  
 }

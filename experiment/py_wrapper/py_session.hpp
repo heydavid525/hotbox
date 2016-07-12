@@ -15,7 +15,7 @@ class PYSession {
 	  
 	  BigInt GetNumData() const;
 
-	  list GetData(BigInt begin = 0, BigInt end = -1);	  
+	  dict GetData(BigInt begin = 0, BigInt end = -1);	  
 	
 	private:
 	  Session* session_;
