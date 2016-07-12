@@ -21,6 +21,8 @@ void DnnTransform::initialModel(const std::string model_path, const std::string 
 		"from keras import backend\n",
   	  main_namespace_);
 	exec("def get_activations(model, layer, X_batch):\n"
+	    "\tif not isinstance(model.layers[layer], Dense):\n"
+	    "\t\treturn []\n"
 	    "\tget_activations = backend.function([model.layers[0].input, backend.learning_phase()], [model.layers[layer].output,])\n"
 	    "\tactivations = get_activations([np.array([X_batch]),0])\n"
 	    "\treturn activations[0][0].tolist()\n",
