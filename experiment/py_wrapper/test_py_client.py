@@ -5,7 +5,7 @@ from os.path import dirname
 from os.path import join
 
 file_dir = dirname(os.path.realpath(__file__))
-sys.path.append(join(project_dir, 'build'))
+sys.path.append(join(file_dir, 'build'))
 import py_hb_wrapper
 
 client = py_hb_wrapper.PYClient()
