@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
   hotbox::Timer timer;
   // Test move constructor of DataIterator.
   int num_transform_threads = 10;
-  hotbox::DataIterator iter = session.NewDataIterator(0, hotbox::kDataEnd,
+  hotbox::DataIterator iter = session.NewDataIterator(0, 5,
       num_transform_threads);
   //iter.Restart();
   hotbox::DataIterator it = std::move(iter);
