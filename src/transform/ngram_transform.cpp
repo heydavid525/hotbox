@@ -51,8 +51,8 @@ std::function<void(TransDatum*)> NgramTransform::GenerateTransform(
     const auto& sparse_val1 = GetSparseVals(*datum, selector);
     const auto& sparse_val2 = GetSparseVals(*datum,
         (++w_family_selectors.begin())->second);
-    for (int i = 0; i < sparse_val1.size(); ++i) {
-      for (int j = 0; j < sparse_val2.size(); ++j) {
+    for (int64_t i = 0; i < sparse_val1.size(); ++i) {
+      for (int64_t j = 0; j < sparse_val2.size(); ++j) {
         datum->SetFeatureValRelativeOffset(
             sparse_val1[i].first * num_features_fam2 + sparse_val2[j].first,
             sparse_val1[i].second * sparse_val2[j].second);

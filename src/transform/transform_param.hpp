@@ -140,7 +140,7 @@ public:
         input_features_desc_.at(p.first);
       family_feature.mutable_input_features()->Reserve(features.size());
       family_feature.mutable_input_features_desc()->Reserve(features.size());
-      for (int i = 0; i < features.size(); ++i) {
+      for (BigInt i = 0; i < features.size(); ++i) {
         (*family_feature.add_input_features()) = features[i];
         (*family_feature.add_input_features_desc()) = features_desc[i];
       }
