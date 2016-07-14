@@ -33,12 +33,9 @@ public:
 
   std::function<void(TransDatum*)> GenerateTransform(
       const TransformParam& param) const override;
-  
-  //static const std::vector<float>& GetDenseVals(TransDatum& datum);
 
   template<class T>
-  static inline
-  list VectorToList(std::vector<T> vector) {
+  static list VectorToList(std::vector<T> vector) {
     typename std::vector<T>::iterator iter;
     boost::python::list list;
     for (iter = vector.begin(); iter != vector.end(); ++iter) {
@@ -51,7 +48,6 @@ private:
   void initialModel(const std::string model_path, 
   	const std::string weight_path) const;
       
-  //static PythonRuntimeWrapper prw_;
   mutable object main_namespace_;
   mutable object main_module_;
 };

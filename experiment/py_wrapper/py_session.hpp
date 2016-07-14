@@ -21,8 +21,7 @@ class PYSession {
 	  Session* session_;
 	  
 	  template<class T>
-	  static inline
-	  list VectorToList(std::vector<T> vector) {
+	  static list VectorToList(std::vector<T> vector) {
 	    typename std::vector<T>::iterator iter;
 	    list list;
 	    for (iter = vector.begin(); iter != vector.end(); ++iter) {
