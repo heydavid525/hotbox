@@ -25,7 +25,7 @@ os.system('cp build/lib/libhotbox.so %s' % lib_path)
 
 include_path = join(args.install_path, 'include', 'hotbox')
 print('include path:', include_path)
-os.system('rm -r %s' % include_path)
+os.system('rm -rf %s' % include_path)
 os.system('mkdir -p %s' % include_path)
 os.system('cp -r src/* %s' % include_path)
 os.system('cp -r build %s' % include_path)

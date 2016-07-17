@@ -17,11 +17,11 @@ env_params = (
 
 params = {
     #"transform_config": "select_transform.conf"
-    "db_name": "a1a"
-    , "session_id": "wdai_session11"
-    #, "transform_config": "select_all.conf"
-    #, "transform_config": "onehot_toy.conf"
+    "db_name": "higgs"
+    , "session_id": "weiren_testdnn"
     , "transform_config": "dnn.conf"
+    #, "transform_config": "onehot_toy.conf"
+    #, "transform_config": "dnn.conf"
     #, "transform_config": "select_toy.conf"
     #, "transform_config": "select_all_ngram.conf"
     }

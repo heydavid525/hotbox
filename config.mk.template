@@ -3,12 +3,12 @@ BUILD_TEST = 1
 # Build Shared Lib? 0 for static only, 1 for shared only
 USE_SHARED_LIB = 1
 # Configure whether to use HDFS.
-USE_HDFS = 0
+USE_HDFS = 1
 
 
 # Configure where install_third_party.py script builds to. $(PROJECT) points
 # to hotbox repo path. The path should start with /
-THIRD_PARTY = $(PROJECT)/third_party
+THIRD_PARTY = /home/ubuntu/lib/hotbox_third_party
 
 # Hotbox LIB.
 HB_LIB = $(PROJECT)/build/lib/libhotbox.a
@@ -34,7 +34,8 @@ PYTHON_LIB=/usr/lib/python2.7
 ifeq ($(USE_HDFS), 1)
   HDFS_LDFLAGS = -Wl,-rpath=$(LIBJVM) \
 	          	   -L$(LIBJVM) -ljvm \
-	          	   -lhdfs
+		-Wl,-rpath=$(HADOOP_HOME)/lib/native \
+			  -L$(HADOOP_HOME)/lib/native -lhdfs
   # -DUSE_HDFS is used by rocksdb_hdfs 
   HDFS_INCFLAGS = -I${HADOOP_HOME}/include -DUSE_HDFS
 else

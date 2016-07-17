@@ -81,6 +81,13 @@ LDFLAGS += $(HDFS_LDFLAGS)
 LDFLAGS += -L$(PYTHON_LIB) \
            -lboost_python \
            -lpython2.7
+#           -Wl,-no-whole-archive \
+#           -lpython2.7
+#	   -Wl,-Bstatic \
+#           -lpython2.7
+#           /usr/lib/python2.7/config-x86_64-linux-gnu/libpython2.7.a
+#           -lpython2.7
+
 HB_SRC = $(shell find src -type f -name "*.cpp")
 HB_PROTO = $(shell find src -type f -name "*.proto")
 HB_HEADERS = $(shell find src -type f -name "*.hpp")
@@ -135,6 +142,7 @@ spark_exp_server: experiment/spark_exp/server/server.cpp $(HB_LIB)
 spark_streaming_server: experiment/spark_exp/server/stream_server.cpp $(HB_LIB)
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) experiment/spark_exp/server/stream_server.cpp $(HB_LIB) $(LDFLAGS) -o spark_streaming_server
 
+#dnn_server: test/client/stream_server.cpp $(HB_LIB)
 hotbox_lib: path proto $(HB_LIB) 
 
 hotbox_sharedlib: path proto $(HB_SHARED_LIB) 

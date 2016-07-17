@@ -61,6 +61,7 @@ std::function<void(TransDatum*)> DnnTransform::GenerateTransform(
   static PythonRuntimeWrapper prw_;
   
   initialModel(model_path, weight_path);
+  LOG(INFO) << "Model Initialized.";
   object func = main_module_.attr("get_activations");
   object model = main_module_.attr("model");
   int num_layers = extract<int>(eval("len(model.layers)", main_namespace_));

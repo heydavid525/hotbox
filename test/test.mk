@@ -46,11 +46,17 @@ db_server_main: $(PROJECT)/test/db/db_server_main.cpp $(HB_LIB_LINK) \
 		-lgtest $(TEST_LDFLAGS) $(LDFLAGS)
 
 hotbox_client_main: $(PROJECT)/test/client/hotbox_client_main.cpp \
-	$(HB_LIB_LINK) test/facility/test_facility.hpp
+	$(HB_LIB) test/facility/test_facility.hpp
 	mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
+	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) -I/usr/include/mpi\
 		$< -o $(TEST_DIR)/client/hotbox_client_main\
-		-lgtest  $(TEST_LDFLAGS) $(LDFLAGS)
+		-lgtest $(TEST_LDFLAGS) $(LDFLAGS)
+
+dnn_server: $(PROJECT)/test/client/dnn_server.cpp 
+	mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) -I/usr/include/mpi\
+		$< -o $(TEST_DIR)/client/dnn_main\
+		-lgtest $(TEST_LDFLAGS) $(LDFLAGS) -lboost_thread
 
 test: test_proto $(TEST_BIN) class_registry_test stream_test db_server_main \
 	 compressed_streams_test util_test
