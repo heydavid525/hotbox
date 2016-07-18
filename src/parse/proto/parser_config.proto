@@ -6,6 +6,8 @@ message ParserConfig {
   oneof config {
     LibSVMParserConfig libsvm_config = 1;
   }
+  // True to collect stats during ingest.
+  bool collect_stats = 2;
 }
 
 message LibSVMParserConfig {

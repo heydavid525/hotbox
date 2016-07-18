@@ -10,7 +10,7 @@ namespace hotbox {
 
 class ParserIf {
 public:
-  virtual void SetConfig(const ParserConfig& config) = 0;
+  ParserIf(const ParserConfig& config);
 
   // Parse and add features to schema if not found.
   DatumBase ParseAndUpdateSchema(const std::string& line, Schema* schema,
@@ -31,15 +31,13 @@ protected:
   static void SetLabelAndWeight(Schema* schema, DatumBase* datum,
       float label, float weight = 1.);
 
+protected:
+  const ParserConfig& config_;
+
 private:
   // Create DatumProto with dense feature space allocated.
   static DatumProto* CreateDatumProtoFromOffset(
       const DatumProtoStoreOffset& offset);
-};
-
-class NoConfigParserIf : public ParserIf {
-public:
-  void SetConfig(const ParserConfig& config) override { }
 };
 
 }  // namespace hotbox

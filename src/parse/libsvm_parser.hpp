@@ -9,7 +9,7 @@ namespace hotbox {
 
 class LibSVMParser : public ParserIf {
 public:
-  void SetConfig(const ParserConfig& config);
+  LibSVMParser(const ParserConfig& config);
 
 protected:
   std::vector<TypedFeatureFinder> Parse(const std::string& line, Schema* schema,

@@ -9,7 +9,8 @@
 
 namespace hotbox {
 
-void LibSVMParser::SetConfig(const ParserConfig& config) {
+LibSVMParser::LibSVMParser(const ParserConfig& config) :
+  ParserIf(config) {
   // Default is to not change feature nor label (feature_one_based_ and
   // label_one_based_ are false).
   if (config.has_libsvm_config()) {

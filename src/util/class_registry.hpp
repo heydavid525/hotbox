@@ -38,18 +38,18 @@ namespace hotbox {
 // EXPECT_EQ("Derived2", registry.CreateObject(1)->GetClassName());
 //
 // This can apply to multiple Base class, each having their own registry.
-template<typename BaseClass>
+template<typename BaseClass, typename ...Args>
 class ClassRegistry {
 public:
   //typedef BaseClass* (*CreateFunc)();
-  typedef std::function<BaseClass*(void)> CreateFunc;
+  typedef std::function<BaseClass*(Args...)> CreateFunc;
 
   void AddCreator(int key, CreateFunc creator) {
     const auto pair = creator_map_.insert(std::make_pair(key, creator));
     CHECK(pair.second) << "Key " << key << " already exist in class registry.";
   }
 
-  std::unique_ptr<BaseClass> CreateObject(int key) {
+  std::unique_ptr<BaseClass> CreateObject(int key, Args... args) {
     const auto& it = creator_map_.find(key);
     if (it == creator_map_.cend()) {
       // TODO(wdai): typeid() gives mangled class name. See
@@ -57,14 +57,16 @@ public:
       // to demangle.
       LOG(FATAL) << "Unrecognized key in '" << typeid(BaseClass).name()
         << "' class registry: " << key;
-      return std::unique_ptr<BaseClass>(nullptr);
+      CreateFunc creator = it->second;
+      return std::unique_ptr<BaseClass>(creator(args...));
+      //return std::make_unique<BaseClass>(args...);
     }
     CreateFunc creator = it->second;
-    return std::unique_ptr<BaseClass>(creator());
+    return std::unique_ptr<BaseClass>(creator(args...));
   }
 
-  static ClassRegistry<BaseClass>& GetRegistry() {
-    static ClassRegistry<BaseClass> registry;
+  static ClassRegistry<BaseClass, Args...>& GetRegistry() {
+    static ClassRegistry<BaseClass, Args...> registry;
     return registry;
   }
 
@@ -77,9 +79,9 @@ private:
   std::map<int, CreateFunc> creator_map_;
 };
 
-template<typename BaseClass, typename ImplClass>
-BaseClass* Creator() {
-  return dynamic_cast<BaseClass*>(new ImplClass);
+template<typename BaseClass, typename ImplClass, typename ...Args>
+BaseClass* Creator(Args... args) {
+  return dynamic_cast<BaseClass*>(new ImplClass(args...));
 }
 
 }   // namespace hotbox

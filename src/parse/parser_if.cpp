@@ -11,6 +11,12 @@ const int kMaxParseTries = 2;
 
 }  // anonymous namespace
 
+ParserIf::ParserIf(const ParserConfig& config) : config_(config) {
+  if (!config_.collect_stats()) {
+    LOG(INFO) << "Do not collect stats";
+  }
+}
+
 ParserIf::~ParserIf() { }
 
 // Parse and add features to schema if not found.
@@ -19,6 +25,7 @@ DatumBase ParserIf::ParseAndUpdateSchema(const std::string& line,
   for (int i = 0; i < kMaxParseTries; ++i) {
     DatumProto* proto = CreateDatumProtoFromOffset(schema->GetAppendOffset());
     stat_collector->DatumCreateBegin();
+    StatCollector* collector = config_.collect_stats() ? stat_collector : nullptr;
     DatumBase datum(proto, stat_collector);
     // By default a datum is valid. invalid is set to true by Parse if a line
     // is a comment.
@@ -45,12 +52,16 @@ DatumBase ParserIf::ParseAndUpdateSchema(const std::string& line,
         Feature feature = CreateFeature(store_type);
         schema->AddFeature(finder.family_name, &feature, finder.family_idx);
         CHECK_GT(feature.global_offset(), 0) << feature.DebugString();
-        stat_collector->AddFeatureStat(feature);
+        if (config_.collect_stats()) {
+          stat_collector->AddFeatureStat(feature);
+        }
       }
     } else {
       // No missing feature in schema.
       //auto stats_output = stat_collector->DatumCreateEnd();
-      stat_collector->DatumCreateEnd();
+      if (config_.collect_stats()) {
+        stat_collector->DatumCreateEnd();
+      }
       // Comment(wdai): Don't worry about detecting factor feature for now.
       /*
       for (int j = 0; j < stats_output.num_updates; ++j) {

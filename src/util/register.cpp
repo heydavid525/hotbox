@@ -16,9 +16,11 @@ void RegisterAll() {
 }
 
 void RegisterParsers() {
-  auto& registry = ClassRegistry<ParserIf>::GetRegistry();
-  registry.AddCreator(FileFormat::LIBSVM, Creator<ParserIf, LibSVMParser>);
-  registry.AddCreator(FileFormat::FAMILY, Creator<ParserIf, FamilyParser>);
+  auto& registry = ClassRegistry<ParserIf, const ParserConfig&>::GetRegistry();
+  registry.AddCreator(FileFormat::LIBSVM, Creator<ParserIf, LibSVMParser,
+      const ParserConfig&>);
+  registry.AddCreator(FileFormat::FAMILY, Creator<ParserIf, FamilyParser,
+      const ParserConfig&>);
 }
 
 void RegisterCompressors() {

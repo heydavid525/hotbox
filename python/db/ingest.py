@@ -33,6 +33,9 @@ if __name__ == "__main__":
   parser.add_argument("--path")
   parser.add_argument("--db")
   parser.add_argument("--format")
+  # Disable stats collection with --no_stats
+  parser.add_argument('--no_stats', dest='stats', action='store_false')
+  parser.set_defaults(stats=True)
   parser.add_argument("--reps")  # repeating ingest
   args = parser.parse_args()
 
@@ -59,4 +62,5 @@ if __name__ == "__main__":
     commit = True if i == len(files) - 1 else False
     print('-' * 10, 'Ingesting', f)
     format = 'libsvm' if not args.format else args.format
-    db.ReadFile(f, file_format=format, commit=commit)
+    db.ReadFile(f, file_format=format, commit=commit,
+        collect_stats=args.stats)

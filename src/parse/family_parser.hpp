@@ -22,7 +22,9 @@ namespace hotbox {
 //    0 1 |0:3 1:4
 //
 // puts the features into default family. Whitespaces
-class FamilyParser : public NoConfigParserIf {
+class FamilyParser : public ParserIf {
+public:
+  FamilyParser(const ParserConfig& config) : ParserIf(config) { }
 protected:
   std::vector<TypedFeatureFinder> Parse(const std::string& line,
       Schema* schema, DatumBase* datum, bool* invalid) const override;

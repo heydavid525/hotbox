@@ -102,12 +102,11 @@ std::string DB::ReadFile(const ReadFileReq& req) {
     auto fp = io::OpenFileStream(req.file_path());
     dmlc::istream in(fp.get());
     std::string line;
-    auto& registry = ClassRegistry<ParserIf>::GetRegistry();
-    std::unique_ptr<ParserIf> parser = registry.CreateObject(
-        req.file_format());
+    auto& registry = ClassRegistry<ParserIf, const ParserConfig&>::GetRegistry();
     // Comment(wdai): parser_config is optional, and a default is config is
     // created automatically if necessary.
-    parser->SetConfig(req.parser_config());
+    std::unique_ptr<ParserIf> parser = registry.CreateObject(
+        req.file_format(), req.parser_config());
     StatCollector stat_collector(&stats_);
     int32_t batch_size = kInitIngestBatchSize;
     DBAtom* curr_atom_ptr = nullptr;
@@ -134,8 +133,9 @@ std::string DB::ReadFile(const ReadFileReq& req) {
         }
         // For the first two batch we make rough estimate, which will be adjust
         // after the first two batch is written. 0.5 for snappy compression.
-        if(!atom_space_used_threshold && batch_size == kInitIngestBatchSize){
-          batch_size = kAtomSizeInBytes / (datum.GetDatumProto().SpaceUsed() * 0.5);
+        if (!atom_space_used_threshold && batch_size == kInitIngestBatchSize) {
+          batch_size = kAtomSizeInBytes /
+            (datum.GetDatumProto().SpaceUsed() * 0.5);
         }
         // Let DBAtom take the ownership of DatumProto release from datum.
         curr_atom_ptr->mutable_datum_protos()->AddAllocated(
@@ -159,8 +159,10 @@ std::string DB::ReadFile(const ReadFileReq& req) {
         total_uncompressed_size += ret.second;
         if (use_global_estimate || !has_estimate_init){
           compression_rate = (float)total_write_size / total_uncompressed_size;
-          over_estimate_rate = (float)total_atom_space_used / total_uncompressed_size;
-          atom_space_used_threshold = kAtomSizeInBytes / compression_rate * over_estimate_rate;
+          over_estimate_rate = (float)total_atom_space_used /
+            total_uncompressed_size;
+          atom_space_used_threshold = kAtomSizeInBytes /
+            compression_rate * over_estimate_rate;
           LOG(INFO) << "\nCompression Rate  : " << compression_rate * 100 << "% "
                     << "\nOver Estimate Rate: " << over_estimate_rate * 100 << "%"
                     << "\nAtom Space Used Threshold: "
@@ -177,12 +179,14 @@ std::string DB::ReadFile(const ReadFileReq& req) {
           [this, curr_atom_ptr, total_write_size, atom_id, batch_size] {
           auto ret = WriteAtom(*curr_atom_ptr, atom_id, total_write_size);
           LOG(INFO) << "Atom #" << atom_id
-                    << "\nBatch Size    : " << batch_size
-                    << "\nFile Size     : " << (double)ret.first / (1<<20) << " MB"
-                    << "\nSpace Used    : " << (double)curr_atom_ptr->SpaceUsed() / (1<<20) << "MB"
-                    << "\nRaw Size      : " << (double)ret.second / (1<<20) << " MB"
-                    << "\nCompress Rate : " << (double)ret.first / ret.second * 100 << "%"
-                    << "\nOver Estimate : " << (double)curr_atom_ptr->SpaceUsed() / ret.second;
+            << "\nBatch Size    : " << batch_size
+            << "\nFile Size     : " << SizeToReadableString(ret.first)
+            << "\nSpace Used    : "
+            << SizeToReadableString(curr_atom_ptr->SpaceUsed())
+            << "\nRaw Size      : " << SizeToReadableString(ret.second)
+            << "\nCompress Rate : " << (double) ret.first / ret.second * 100 << "%"
+            << "\nOver Estimate : "
+            << (double) curr_atom_ptr->SpaceUsed() / ret.second;
           delete curr_atom_ptr;
           return ret;
       });
@@ -296,6 +300,10 @@ SessionProto DB::CreateSession(const SessionOptionsProto& session_options) {
     transform->TransformSchema(trans_param, &trans_writer);
     auto range = session.add_transform_output_ranges();
     *range = trans_writer.GetTransformOutputRange();
+    int64_t r = range->store_offset_end() - range->store_offset_begin();
+    CHECK_GT(r, 0) << "Empty output detected. OutputFamily: " << output_family
+      << " end: " << range->store_offset_end() << " begin: "
+      << range->store_offset_begin();
 
     *(session.add_trans_params()) = trans_param.GetProto();
     LOG(INFO) << " trans_param proto created. Size: "

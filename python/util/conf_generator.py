@@ -21,7 +21,7 @@ class TransformConfig:
   def __init__(self):
     self.config_list = transform_pb.TransformConfigList()
 
-  def add_bucketize(self, feature, output_family_name, buckets):
+  def add_bucketize(self, feature, buckets, output_family=None):
     """
     Example:
     config = TransformConfig()
@@ -30,16 +30,19 @@ class TransformConfig:
     """
     new_config = self.config_list.transform_configs.add()
     new_config.base_config.input_features.append(feature)
-    new_config.base_config.output_family = output_family_name
+    if output_family:
+      new_config.base_config.output_family = output_family
     new_config.bucketize_transform.buckets.extend(buckets)
 
   def add_constant(self, constant_val):
     new_config = self.config_list.transform_configs.add()
     new_config.constant_transform.constant = constant_val
 
-  def add_onehot(self, selector):
+  def add_onehot(self, selector, output_family=None):
     new_config = self.config_list.transform_configs.add()
     new_config.base_config.input_features.append(selector)
+    if output_family:
+      new_config.base_config.output_family = output_family
     new_config.one_hot_transform.SetInParent()
 
   def add_select(self, selector, output_family=None,
@@ -69,17 +72,17 @@ if __name__ == '__main__':
     sys.exit(1)
 
   config = TransformConfig()
-  config.add_bucketize('3', 'bucketize1',
-      [float('-inf'), 0, 1, 2, float('inf')])
+  config.add_bucketize('3', [float('-inf'), 0, 1, 2, float('inf')],
+      output_family='bucket1')
   config.add_constant(3.15)
-  config.add_select('default:1,2', output_family="tmp_family",
+  config.add_select('default:1,2', output_family="bucket1",
       output_store_type=schema_pb.SPARSE_NUM)
   #AddSelectTransform(config_list, 'default:80,83', output_family="tmp_family2",
   #    output_store_type=schema_pb.SPARSE_NUM)
   #AddSelectTransform(config_list, 'tmp_family:*')
   #AddSelectTransform(config_list, 'tmp_family2:*')
-  config.add_onehot('tmp:1')
-  config.add_ngram('tmp_family', 'tmp_family2')
+  config.add_onehot('customer:region', output_family='onehot-region')
+  config.add_ngram('bucket1', 'onehot-region')
   config_list_str = text_format.MessageToString(config.config_list)
   with open(args.output, 'w') as f:
     f.write(config_list_str)
