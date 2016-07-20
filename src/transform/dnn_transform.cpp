@@ -7,6 +7,7 @@
 #include "schema/flexi_datum.hpp"
 
 namespace hotbox {
+//PythonRuntimeWrapper DnnTransform::prw_;
 void DnnTransform::initialModel(const std::string model_path, const std::string weight_path) const{
   LOG(INFO) << "start initial model";
   char* argv[] = {"hotbox_dnn_transform"};
@@ -14,6 +15,7 @@ void DnnTransform::initialModel(const std::string model_path, const std::string 
   main_module_ = import("__main__");
   main_namespace_ = main_module_.attr("__dict__");
   try{
+   exec("import numpy as np\n", main_namespace_);
     exec("from keras.models import Sequential\n"
 		"from keras.layers import Dense, Activation\n"
 		"import numpy as np\n"
@@ -36,6 +38,7 @@ void DnnTransform::initialModel(const std::string model_path, const std::string 
   	  main_namespace_);
     exec(str("model = get_model('" + model_path + "','" + weight_path + "')\n"),
   	  main_namespace_);
+  LOG(INFO) << "Finally!!!!!!";
   }  
   catch (error_already_set const&){
   	PyErr_Print();
@@ -58,10 +61,9 @@ std::function<void(TransDatum*)> DnnTransform::GenerateTransform(
     = param.GetWideFamilySelectors();
   CHECK_EQ(1, w_family_selectors.size());
   WideFamilySelector selector = w_family_selectors.begin()->second;
-  static PythonRuntimeWrapper prw_;
+  PythonRuntimeWrapper *prw_ = new PythonRuntimeWrapper();
   
   initialModel(model_path, weight_path);
-  LOG(INFO) << "Model Initialized.";
   object func = main_module_.attr("get_activations");
   object model = main_module_.attr("model");
   int num_layers = extract<int>(eval("len(model.layers)", main_namespace_));

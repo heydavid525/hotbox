@@ -7,7 +7,7 @@ TEST_BIN = $(patsubst $(PROJECT)/test/%.cpp, $(TEST_DIR)/%, $(TEST_SRC))
 TEST_PROTO += $(shell find test -type f -name "*.proto")
 TEST_PROTO_HDRS = $(patsubst test/%.proto, $(TEST_DIR)/%.pb.h, $(TEST_PROTO))
 TEST_PROTO_OBJS = $(patsubst test/%.proto, $(TEST_DIR)/%.pb.o, $(TEST_PROTO))
-TEST_INCFLAGS = -I$(PROJECT) -Ibuild/test
+TEST_INCFLAGS = -I$(PROJECT) -Ibuild/test -I$(THIRD_PARTY_HB)/include
 
 TEST_LDFLAGS = -Wl,-rpath,$(PROJECT)/$(LIB) \
           		-L$(PROJECT)/$(LIB) \
@@ -36,7 +36,8 @@ $(TEST_DIR)/%: $(PROJECT)/test/%.cpp $(HB_LIB_LINK) \
 	mkdir -p $(@D)
 	LD_LIBRARY_PATH=$(THIRD_PARTY_LIB) \
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
-		$< $(TEST_PROTO_OBJS) -o $@ -lgtest $(TEST_LDFLAGS) $(LDFLAGS)
+		$< $(TEST_PROTO_OBJS) -o $@ -lgtest \
+		$(TEST_LDFLAGS) $(LDFLAGS) -lboost_thread -lpetuum_iterparallel
 
 db_server_main: $(PROJECT)/test/db/db_server_main.cpp $(HB_LIB_LINK) \
 	test/facility/test_facility.hpp
@@ -57,6 +58,13 @@ dnn_server: $(PROJECT)/test/client/dnn_server.cpp
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) -I/usr/include/mpi\
 		$< -o $(TEST_DIR)/client/dnn_main\
 		-lgtest $(TEST_LDFLAGS) $(LDFLAGS) -lboost_thread
+
+fm: $(PROJECT)/test/fm/src/%.cpp 
+	mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) -I/usr/include/mpi\
+		$< -o $(TEST_DIR)/fm/petuum_fm \
+		-lgtest -lpetuum_iterparallel $(TEST_LDFLAGS) $(LDFLAGS) \
+		-lboost_thread -lpetuum_iterparallel
 
 test: test_proto $(TEST_BIN) class_registry_test stream_test db_server_main \
 	 compressed_streams_test util_test

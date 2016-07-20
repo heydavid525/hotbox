@@ -24,8 +24,9 @@
 
 #define HEADER_LEN 5
 #define BODY_LEN 1024
-#define DATA_LEN (1024*1024*100)
-#define NUM_SLICE 100000
+#define DATA_LEN (1024*1024*10)
+//#define NUM_SLICE 1
+#define SLICE_LEN 3
 
 #define BACKLOG 5
 #define LISTENT_PORT 13579
@@ -80,7 +81,7 @@ void handleCreate(int clientSocket, int length){
 	printf("before hb client\n");
 	HBClient hb_client;
 	printf("before session\n");
-	Session* session = hb_client.CreateSessionPtr(session_options);
+	session = hb_client.CreateSessionPtr(session_options);
 	printf("after session\n");
 	char response[1];
 	response[0] = 0x00;
@@ -91,14 +92,23 @@ void handleCreate(int clientSocket, int length){
 
 void handleGet(int clientSocket, int length){
 	char body[BODY_LEN];
-	
-	if(recv(clientSocket, body, length, 0) <= 0)
+	printf("%d length. \n", length);	
+	if(recv(clientSocket, body, length, 0) <= 0) {
+		printf("failed to receive data. \n");
 		return;
+	}
 	
 	body[length] = '\0';
+	printf("recv string: %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %d \n",
+		 body[0], body[1], body[2], body[3], body[4], body[5],
+		body[6], body[7], body[8], body[9], body[10], body[11],
+		body[12], body[13], body[14], body[15], body[16]);
 	int64_t begin, end;
-	sscanf(body, "%ld %ld", &begin, &end);
-	printf("get data : %ld %ld", begin, end);
+	//sscanf(body, "%ld %ld", &begin, &end);
+	memcpy((char*)&begin, body, 8);
+	printf("data begin: %ld \n", begin);
+	memcpy((char*)&end, body + 8, 8);
+	printf("data end : %ld \n", end);
 	
 	int64_t num_data;
 	if(end == -1)
@@ -107,46 +117,69 @@ void handleGet(int clientSocket, int length){
 		num_data = end - begin;
 	printf("num data %ld", num_data);
 	
-	int slice_len = num_data / NUM_SLICE;
+	//int slice_len = num_data / NUM_SLICE;
+	//int num_slice = NUM_SLICE;
+	int num_slice = num_data / SLICE_LEN;
+	printf("number of slices: %d \n", num_slice);
+	int slice_len = SLICE_LEN;
+	printf("slice length: %d \n", slice_len);
 	DataIterator it = session->NewDataIterator(begin, end); 
+	int slice = 1;
+	printf("created data iterator\n");
 
-	for(int slice = 1; slice <= NUM_SLICE; slice++){
-		char* data = new char[DATA_LEN];
+	char* data = new char[DATA_LEN];
+	char* datumData = new char[1024 * 100];
+	for(int slice = 1; slice <= num_slice; slice++){
 		char* p = data;
-		for (int tmp_len = 0; it.HasNext() && ((slice == NUM_SLICE) || ((slice != NUM_SLICE) && (tmp_len < slice_len))); ) {
-			char datumData[1024 * 1000];
+		for (int tmp_len = 0; it.HasNext() 
+			&& ((slice == num_slice) 
+			   || ((slice != num_slice) && (tmp_len < slice_len))); ) {
+			
 			char *dst = datumData;
 			auto datum = it.GetDatum();	
+
 			long featureDim = datum.GetFeatureDim();
-			memcpy8(dst, (char*)&featureDim);
+			memcpy(dst, (char*)&featureDim, 8);
+			//memcpy8(dst, (char*)&featureDim);
 			dst += 8;
+			printf("feature dimension: %d\n", featureDim);
 			float label = datum.GetLabel();
-			memcpy4(dst, (char*)&label);
+			memcpy(dst, (char*)&label, 4);
+			//memcpy4(dst, (char*)&label);
+			printf("label: %f\n", label);
 			dst += 4;
 			auto idx = datum.GetSparseIdx();
 			auto val = datum.GetSparseVals();
 			for(int i = 0; i < idx.size(); i++){
 				int64_t featureIdx = idx[i];
-				memcpy8(dst, (char*)&featureIdx);
+				memcpy(dst, (char*)&featureIdx, 8);
+				//memcpy8(dst, (char*)&featureIdx);
 				dst += 8;
-				memcpy4(dst, (char*)&(val[i]));
+				memcpy(dst, (char*)&(val[i]), 4);
+				//memcpy4(dst, (char*)&(val[i]));
 				dst += 4;
 			}
 			int byteCount = dst - datumData;
-			memcpy4(p, (char*)&byteCount);
+			memcpy(p, (char*)&byteCount, 4);
+			//memcpy4(p, (char*)&byteCount);
 			p += 4;
+			printf("feature len: %d\n", byteCount);
 			memcpy(p, datumData, byteCount);
 			p += byteCount;
 			tmp_len++;
 		}
 		char response[4];
 		int data_len = p - data;
-		//printf("data_slice_len: %d\n", data_len);
+		printf("data_slice_len: %d\n", data_len);
 		memcpy4(response, (char*)&data_len);
 		send(clientSocket, response, 4, 0);
-		send(clientSocket, data, data_len, 0);	
-		delete data;
-	}
+		printf("sent get data response length\n");
+		int send_num = send(clientSocket, data, data_len, 0);	
+		printf("sent get data response data\n");
+		printf("send function returns: %d\n", send_num);
+	}		
+	delete data;
+	delete datumData;
 }
 
 void doClientRequest(int clientSocket){
@@ -160,12 +193,14 @@ void doClientRequest(int clientSocket){
 		printf("length: %d\n", length);
 		
 		if(header[0] == TYPE_CREATE_SESSION){
-			printf("recieve create session \n");
+			printf("receive create session \n");
 			handleCreate(clientSocket, length);
+			printf("handled create session \n");
 		}
 		else if(header[0] == TYPE_GET_DATA){
-			printf("recieve get data \n");
+			printf("receive get data \n");
 			handleGet(clientSocket, length);
+			printf("handled get data \m");
 		}
 		else{
 			printf("unknown req type\n");
