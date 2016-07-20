@@ -24,9 +24,8 @@
 
 #define HEADER_LEN 5
 #define BODY_LEN 1024
-#define DATA_LEN (1024*1024*10)
-//#define NUM_SLICE 1
-#define SLICE_LEN 3
+#define DATA_LEN (1024*1024*100)
+#define SLICE_LEN 4 
 
 #define BACKLOG 5
 #define LISTENT_PORT 13579
@@ -99,10 +98,10 @@ void handleGet(int clientSocket, int length){
 	}
 	
 	body[length] = '\0';
-	printf("recv string: %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %d \n",
-		 body[0], body[1], body[2], body[3], body[4], body[5],
-		body[6], body[7], body[8], body[9], body[10], body[11],
-		body[12], body[13], body[14], body[15], body[16]);
+	//printf("recv string: %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %d \n",
+	//	 body[0], body[1], body[2], body[3], body[4], body[5],
+	//	body[6], body[7], body[8], body[9], body[10], body[11],
+	//	body[12], body[13], body[14], body[15], body[16]);
 	int64_t begin, end;
 	//sscanf(body, "%ld %ld", &begin, &end);
 	memcpy((char*)&begin, body, 8);
@@ -115,20 +114,19 @@ void handleGet(int clientSocket, int length){
 		num_data = session->GetNumData() - begin;
 	else
 		num_data = end - begin;
-	printf("num data %ld", num_data);
+	printf("num data %ld. \n", num_data);
 	
-	//int slice_len = num_data / NUM_SLICE;
-	//int num_slice = NUM_SLICE;
 	int num_slice = num_data / SLICE_LEN;
 	printf("number of slices: %d \n", num_slice);
 	int slice_len = SLICE_LEN;
 	printf("slice length: %d \n", slice_len);
-	DataIterator it = session->NewDataIterator(begin, end); 
+	DataIterator it = session->NewDataIterator(begin, end, 4); 
 	int slice = 1;
 	printf("created data iterator\n");
-
+	if (!it.HasNext())
+		exit(1);
 	char* data = new char[DATA_LEN];
-	char* datumData = new char[1024 * 100];
+	char* datumData = new char[1024 * 1000];
 	for(int slice = 1; slice <= num_slice; slice++){
 		char* p = data;
 		for (int tmp_len = 0; it.HasNext() 
@@ -214,7 +212,7 @@ void threadRunable(int clientSocket){
 }
 
 void run_server(){
-	int serverSocket;
+    int serverSocket;
     int clientSocket;
     struct sockaddr_in serverAddr;
 
