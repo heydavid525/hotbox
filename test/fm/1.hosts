@@ -1,0 +1,2 @@
+# ip             num_sync_threads  num_table_threads  num_work_threads
+172.31.0.232        1                 1                  1

@@ -1,0 +1,190 @@
+// Copyright (c) 2016 Sailing Lab. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#include <gflags/gflags.h>
+#include <glog/logging.h>
+#include <iterparallel/iterparallel.hpp>
+#include "adarev_table.hpp"
+#include "ftrl_adarev_table.hpp"
+#include "fm_work_partition.hpp"
+#include "sgd_driver.hpp"
+#include "common.hpp"
+#include "metafile_reader.hpp"
+#include "data.hpp"
+
+#include <hotbox/client/hb_client.hpp>
+
+// Load data from hotbox if FLAGS_hb_db_name is defined.
+DEFINE_string(hb_transform_config, "", "path to hotbox config.");
+DEFINE_string(hb_db_name, "", "hotbox db_name to load from");
+DEFINE_string(hb_session_id, "iter_session", "hotbox session id");
+DEFINE_int32(hb_num_transform_threads, 4, "# of transform threads in Hotbox.");
+
+DEFINE_string(train_file, "", "libsvm file");
+//DEFINE_string(test_file, "", "libsvm file");
+DEFINE_int32(num_test, 0, "last 'num_test' is used for test");
+//DEFINE_bool(feature_one_based, true, "True if train_file's feature id "
+//    "starts from 1. Most libsvm should start from index 1.");
+DEFINE_int32(row_size, 10000, "Size of each row in the table.");
+DEFINE_int32(num_factors, 10, "rank of the 2-way interactions.");
+DEFINE_double(alpha, 0.1, "learning rate alpha");
+DEFINE_double(reg0, 0.1, "w_0 regularization");
+DEFINE_double(reg_w, 0.1, "w regularization");
+DEFINE_double(reg_v, 0.1, "v regularization");
+DEFINE_int32(batch_size, 1000, "minibatch size");
+DEFINE_int32(num_batches_per_print, 100, "Print loss every these many batches. "
+    "Perform test eval at this epoch too.");
+DEFINE_int32(num_epochs, 10, "# of epochs");
+DEFINE_string(loss, "logistic", "logistic/squared loss function");
+DEFINE_int32(staleness, 0, "ssp staleness");
+DEFINE_bool(use_v, true, "true to enable second order interaction");
+DEFINE_bool(use_ftrl, false, "true to use FTRL-adarevision update");
+
+using namespace petuum::fm;
+
+int main(int argc, char *argv[]) {
+  iterparallel::Context context(&argc, &argv, false);
+
+  int64_t feature_dim = 0;
+  std::unique_ptr<hotbox::HBClient> hb_client;
+  std::unique_ptr<hotbox::Session> hb_session;
+  int64_t num_data = 0;
+  bool feature_one_based = false;
+
+  bool is_master = context.GetNumWorkThreads() == 0;
+  // hotbox::SessionOptions session_options;
+  if (!FLAGS_hb_db_name.empty()) {
+
+    if(is_master){
+	num_data = 11000000;
+	feature_dim = 830;
+    } else {
+    // Create or join a hotbox session.
+    hb_client.reset(new hotbox::HBClient);
+    //LOG(INFO) << "HBClient Initialized";
+    hotbox::SessionOptions session_options;
+    session_options.db_name = FLAGS_hb_db_name;
+    session_options.session_id = FLAGS_hb_session_id;
+    CHECK(!FLAGS_hb_transform_config.empty());
+    session_options.transform_config_path = FLAGS_hb_transform_config;
+    session_options.output_store_type = hotbox::OutputStoreType::SPARSE;
+    hb_session.reset(hb_client->CreateSessionPtr(session_options));
+    CHECK(hb_session->GetStatus().IsOk());
+    hotbox::OSchema o_schema = hb_session->GetOSchema();
+    feature_dim = o_schema.GetDimension();
+    num_data = hb_session->GetNumData();
+    }
+
+  } else {
+    MetafileReader meta_reader(FLAGS_train_file + ".meta");
+    num_data = meta_reader.get_int32("num_data");
+    feature_dim = meta_reader.get_int32("feature_dim");
+    feature_one_based = meta_reader.get_int32("feature_one_based");
+    ++feature_dim;    // +1 for a constant column
+  }
+
+  // Declare tables outside of 'if' scope to avoid destructor.
+  std::unique_ptr<FtrlTable> ftrl_w0_table;
+  std::unique_ptr<FtrlTable> ftrl_w_table;
+  std::unique_ptr<FtrlTable> ftrl_v_table;
+  std::unique_ptr<AdarevTable> adarev_w0_table;
+  std::unique_ptr<AdarevTable> adarev_w_table;
+  std::unique_ptr<AdarevTable> adarev_v_table;
+  if (FLAGS_use_ftrl) {
+    // Create w0_table
+    FtrlTableConfig table_config;
+    table_config.row_size = 1;
+    table_config.alpha = FLAGS_alpha;
+    table_config.lambda1 = 0;
+    table_config.lambda2 = FLAGS_reg0;
+    ftrl_w0_table.reset(new FtrlTable(table_config));
+    context.RegisterTable(kW0TableId, ftrl_w0_table.get());
+
+    // Create w_table
+    table_config.row_size = FLAGS_row_size;
+    table_config.lambda2 = FLAGS_reg_w;
+    ftrl_w_table.reset(new FtrlTable(table_config));
+    context.RegisterTable(kWTableId, ftrl_w_table.get());
+
+    // A row in v_table is a factor (factor-major access pattern).
+    table_config.lambda2 = FLAGS_reg_v;
+    ftrl_v_table.reset(new FtrlTable(table_config));
+    context.RegisterTable(kVTableId, ftrl_v_table.get());
+  } else {
+    // Create w0_table
+    AdarevTableConfig table_config;
+    table_config.row_size = 1;
+    table_config.alpha = FLAGS_alpha;
+    table_config.lambda2 = FLAGS_reg0;
+    adarev_w0_table.reset(new AdarevTable(table_config));
+    context.RegisterTable(kW0TableId, adarev_w0_table.get());
+
+    // Create w_table
+    table_config.lambda2 = FLAGS_reg_w;
+    table_config.row_size = FLAGS_row_size;
+    adarev_w_table.reset(new AdarevTable(table_config));
+    context.RegisterTable(kWTableId, adarev_w_table.get());
+
+    // A row in v_table is a factor (factor-major access pattern).
+    table_config.lambda2 = FLAGS_reg_v;
+    adarev_v_table.reset(new AdarevTable(table_config));
+    context.RegisterTable(kVTableId, adarev_v_table.get());
+  }
+  int64_t num_train = num_data - FLAGS_num_test;
+
+  // Create driver
+  SGDDriverConfig driver_config;
+  driver_config.num_epochs = FLAGS_num_epochs;
+  driver_config.num_clocks_per_epoch = num_data / FLAGS_batch_size
+    / context.GetNumWorkPartitions();
+  CHECK_GT(driver_config.num_clocks_per_epoch, 0);
+  bool is_driver = context.GetNumWorkThreads() == 0;
+  LOG_IF(INFO, is_driver)
+    << "num_train: " << num_train << " num_test: " << FLAGS_num_test
+    << "Feature dim: " << feature_dim
+    << " num_clocks_per_epoch: "
+    << driver_config.num_clocks_per_epoch
+    << " # data per partition: "
+    << num_data / context.GetNumWorkPartitions()
+    << " num_epochs: " << FLAGS_num_epochs
+    << " num_clocks_per_epoch: " << driver_config.num_clocks_per_epoch
+    << " num_clocks: "
+    << driver_config.num_clocks_per_epoch * FLAGS_num_epochs;
+  driver_config.staleness = FLAGS_staleness;
+  driver_config.num_work_partitions = context.GetNumWorkPartitions();
+  driver_config.num_batches_per_print = FLAGS_num_batches_per_print;
+  driver_config.eval_test = (FLAGS_num_test != 0);
+  SGDDriver driver(driver_config);
+
+  DataConfig data_config;
+  //data_config.db_name = session_options.db_name;
+  //data_config.session_name = session_options.session_id;
+  //data_config.trans_conf = session_options.transform_config_path;
+  //data_config.dense = "false";
+  data_config.num_work_partitions =
+    context.GetNumWorkPartitions();
+  data_config.use_hotbox = !FLAGS_hb_db_name.empty();
+  data_config.hb_session = hb_session.get();
+  data_config.hb_num_transform_threads = FLAGS_hb_num_transform_threads;
+  data_config.file_path = FLAGS_train_file;
+  data_config.feature_one_based = feature_one_based;
+  data_config.num_data = num_train;
+
+  DataConfig test_data_config = data_config;
+  test_data_config.start_id = num_train;
+  test_data_config.num_data = FLAGS_num_test;
+
+  // Create work partition factory.
+  FMWorkPartitionConfig partition_config;
+  partition_config.batch_size = FLAGS_batch_size;
+  partition_config.row_size = FLAGS_row_size;
+  partition_config.num_factors = FLAGS_num_factors;
+  partition_config.feature_dim = feature_dim;
+  partition_config.data_config = data_config;
+  partition_config.test_data_config = test_data_config;
+  partition_config.loss = FLAGS_loss;
+  partition_config.use_v = FLAGS_use_v;
+  FMWorkPartitionFactory factory(partition_config);
+  context.Run(&driver, &factory);
+}

@@ -1,0 +1,54 @@
+# This is a template for fm.cfg. Environment dependent variables:
+#  - train_file: path to libsvm file with meta data.
+#  - application_path: path to the binary.
+#  - master_endpoint: IP of your master node.
+[Application]
+
+# These are passed to the application as extra command line arguments.
+#train_file = /nfs/nas-0-16/wdai/datasets/class/binary/url/url.train.0
+train_file = /nfs/nas-0-16/wdai/datasets/class/binary/a1a/a1a.train.0
+row_size = 10000
+num_factors = 10
+alpha = 0.1
+reg0 = 0
+reg_w = 0
+reg_v = 0
+use_v = true
+use_ftrl = true
+batch_size = 100
+num_batches_per_print = 1
+num_epochs = 5
+staleness = 0
+
+[System]
+
+# Absolute path to the application binary.
+application_path = /home/wdai/iterparallel/build/applications/fm/petuum_fm
+
+# Checkpoint interval in seconds. Uncomment if using checkpointing.
+#checkpoint_interval = 60
+
+# Checkpoint path. Uncomment if using checkpointing.
+#checkpoint_path = /home/aqiao/repos/petuum/iterparallel/release/checkpoint
+
+# <ip>:<port> address of the master thread. This should be globally accessible
+# by all threads in the system.
+master_endpoint = 10.1.1.251:25999
+
+# Minimum number of table threads needed for the system to run.
+min_table_threads = 1
+
+# Minimum number of work threads needed for the system to run.
+min_work_threads = 2
+
+# Total number of table partitions.
+num_table_partitions = 1
+
+# Total number of work partitions.
+num_work_partitions = 2
+
+thread_report_interval = 600
+
+#log_dir = /home/aqiao/repos/petuum/iterparallel/release/log
+
+#profiling = on
