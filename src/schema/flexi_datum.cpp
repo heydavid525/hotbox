@@ -37,6 +37,7 @@ FlexiDatum& FlexiDatum::operator=(FlexiDatum&& other) {
 }
 
 FlexiDatum& FlexiDatum::operator=(const FlexiDatum&& other) {
+  LOG(INFO) << "Copy constructor. Please try not to use me.";
   store_type_ = other.store_type_;
   feature_dim_ = other.feature_dim_;
   label_ = other.label_;
@@ -112,6 +113,46 @@ std::string FlexiDatum::ToLibsvmString() const {
     }
   }
   return ss.str();
+}
+
+FlexiDatumProto FlexiDatum::GetFlexiDatumProto() const {
+  FlexiDatumProto proto;
+  proto.set_feature_dim(feature_dim_);
+  proto.set_label(label_);
+  proto.set_weight(weight_);
+  proto.set_store_type(store_type_);
+  if (store_type_ == OutputStoreType::SPARSE) {
+    proto.mutable_sparse_idx()->Resize(sparse_idx_.size(), 0);
+    proto.mutable_sparse_vals()->Resize(sparse_vals_.size(), 0);
+    for (int i = 0; i < sparse_idx_.size(); ++i) {
+      proto.set_sparse_idx(i, sparse_idx_[i]);
+      proto.set_sparse_vals(i, sparse_vals_[i]);
+    }
+  } else {
+    proto.mutable_dense_vals()->Resize(dense_vals_.size(), 0);
+    for (int i = 0; i < dense_vals_.size(); ++i) {
+      proto.set_dense_vals(i, dense_vals_[i]);
+    }
+  }
+  return proto;
+}
+
+FlexiDatum::FlexiDatum(const FlexiDatumProto& proto) :
+  store_type_(proto.store_type()), feature_dim_(proto.feature_dim()),
+  label_(proto.label()), weight_(proto.weight()) {
+  if (store_type_ == OutputStoreType::SPARSE) {
+    sparse_idx_.resize(proto.sparse_idx_size());
+    sparse_vals_.resize(proto.sparse_vals_size());
+    for (int i = 0; i < proto.sparse_idx_size(); ++i) {
+      sparse_idx_[i] = proto.sparse_idx(i);
+      sparse_vals_[i] = proto.sparse_vals(i);
+    }
+  } else {
+    dense_vals_.resize(proto.dense_vals_size());
+    for (int i = 0; i < proto.dense_vals_size(); ++i) {
+      dense_vals_[i] = proto.dense_vals(i);
+    }
+  }
 }
 
 }  // namespace hotbox

@@ -11,12 +11,14 @@
 namespace hotbox {
 
 const std::string kServerId = zmq_util::Convert2ZmqId("hotbox_server");
+const std::string kProxyServerAddr = "ipc://hotbox_proxy";
 
 // WarpServer is globally unique and talks to WarpClients. Server binds to
 // tcp://*:kServerPort.
 class WarpServer {
 public:
-  WarpServer();
+  // True if caller is a proxy server instead of hb server
+  explicit WarpServer(bool proxy_server = false);
 
   // Send to a client.
   bool Send(int client_id, const ServerMsg& msg);

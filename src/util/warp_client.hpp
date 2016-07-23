@@ -17,8 +17,11 @@ public:
   // and connect doesn't matter (Comment: for inproc, which we don't use, order
   // matters).
   //
+  // connect_proxy = true to connect to a proxy server through ipc instead of
+  // hb server.
+  //
   // Client router socket's identity is set internally by zmq.
-  explicit WarpClient();
+  explicit WarpClient(bool connect_proxy = false);
 
   // Return success or not. Always async.
   bool Send(const ClientMsg& msg);

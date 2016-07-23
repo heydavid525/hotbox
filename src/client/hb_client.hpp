@@ -22,14 +22,18 @@ extern const int kDataEnd;
 // TODO(wdai): Close connection in d'tor.
 class HBClient {
 public:
-  HBClient();
+  explicit HBClient(bool use_proxy = false);
 
   // Create a session. HBClient must outlive the created Session.
-  Session CreateSession(const SessionOptions& session_options) noexcept;
+  // Optionally return server_msg (used by ProxyServer).
+  Session CreateSession(const SessionOptions& session_options,
+      ServerMsg* server_msg = nullptr) noexcept;
 
-  Session* CreateSessionPtr(const SessionOptions& session_options) noexcept;
+  Session* CreateSessionPtr(const SessionOptions& session_options,
+      ServerMsg* server_msg = nullptr) noexcept;
 
 private:
+  bool use_proxy_;
   WarpClient warp_client_;
 };
 

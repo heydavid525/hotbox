@@ -24,7 +24,7 @@ DataIterator::DataIterator(const SessionProto& session_proto,
   Restart();
 }
 
-FlexiDatum&& DataIterator::GetDatum() {
+FlexiDatum DataIterator::GetDatum() {
   // Get Datum from Size Limited Files.
   CHECK_LT(next_, data_end_);
   if (next_ == chunk_end_) {
@@ -47,7 +47,9 @@ FlexiDatum&& DataIterator::GetDatum() {
     //LOG(INFO) << "Loaded data range: " << "[" << chunk_begin_
     //          << ", " << chunk_end_ << ")";
   }
-  return std::move(data_buffer_[next_++ - chunk_begin_]);
+  // Use move to avoid copying.
+  FlexiDatum datum = std::move(data_buffer_[next_++ - chunk_begin_]);
+  return datum;
 }
 
 void DataIterator::ReadAtomAndTransform(int atom_id) {
@@ -99,4 +101,3 @@ DataIterator::DataIterator(DataIterator &&other)
 
 
 }  // namespace hotbox
-

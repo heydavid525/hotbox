@@ -1,20 +1,21 @@
 #pragma once
 #include <vector>
+#include "client/data_iterator_if.hpp"
 #include "db/proto/db.pb.h"
 #include "schema/all.hpp"
 #include "client/mt_transformer.hpp"
 
 namespace hotbox {
 
-// Iterate over the data returned by a range query on Session. DataIterator
-// can only be created by Session.
-class DataIterator {
+// Iterate over the data returned by a range query on Session.
+// DataIterator can only be created by Session.
+class DataIterator : public DataIteratorIf {
 public:
-  inline bool HasNext() const {
+  inline bool HasNext() const override {
     return next_ < data_end_;
   }
 
-  inline void Restart() {
+  inline void Restart() override {
     next_ = data_begin_;
     chunk_begin_ = data_begin_;
     chunk_end_ = data_begin_;
@@ -29,7 +30,7 @@ public:
   }
 
   // This advances the iterator as it returns a r-reference.
-  FlexiDatum&& GetDatum();
+  FlexiDatum GetDatum() override;
 
   ~DataIterator() {
     if (use_multi_threads_ && mtt_engine_) {
@@ -37,7 +38,7 @@ public:
     }
   }
 
-  DataIterator(DataIterator &&other);
+  DataIterator(DataIterator&& other);
 
 private:
   // Can only be created by Session, and the parent Session needs to outlive

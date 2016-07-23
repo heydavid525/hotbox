@@ -1,5 +1,4 @@
 #include <glog/logging.h>
-#include <string>
 #include "db/db_server.hpp"
 #include "util/all.hpp"
 #include "util/file_util.hpp"
@@ -19,7 +18,6 @@ DBServer::DBServer(const DBServerConfig& config) : db_dir_(config.db_dir()),
   db_dir_meta_(config.db_dir_meta().empty() ? db_dir_ : config.db_dir_meta()) { }
 
 void DBServer::Start() {
-
   Init();
   LOG(INFO) << "DBServer running. DB path is " << db_dir_ << " meta dir: "
     << db_dir_meta_;

@@ -1,4 +1,5 @@
 #include "util/warp_client.hpp"
+#include "util/warp_server.hpp"
 #include "util/global_config.hpp"
 #include "util/proto/warp_msg.pb.h"
 #include "util/util.hpp"
@@ -10,7 +11,7 @@
 
 namespace hotbox {
 
-WarpClient::WarpClient() {
+WarpClient::WarpClient(bool connect_proxy) {
   zmq_ctx_.reset(zmq_util::CreateZmqContext());
   sock_.reset(new zmq::socket_t(*zmq_ctx_, ZMQ_ROUTER));
 
@@ -21,8 +22,13 @@ WarpClient::WarpClient() {
   zmq_util::ZMQSetSockOpt(sock_.get(), ZMQ_ROUTER_MANDATORY, &(sock_mandatory),
       sizeof(sock_mandatory));
   auto& global_config = GlobalConfig::GetInstance();
-  auto dst_addr = "tcp://" + global_config.Get<std::string>("server_ip")
-    + ":" + global_config.Get<std::string>("server_port");
+  std::string dst_addr;
+  if (connect_proxy) {
+    dst_addr = kProxyServerAddr;
+  } else {
+    dst_addr = "tcp://" + global_config.Get<std::string>("server_ip")
+      + ":" + global_config.Get<std::string>("server_port");
+  }
   LOG(INFO) << "Connect dst_addr: " << dst_addr;
   zmq_util::ZMQConnect(sock_.get(), dst_addr);
 

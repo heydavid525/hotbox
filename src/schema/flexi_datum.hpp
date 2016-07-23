@@ -23,6 +23,8 @@ public:
   FlexiDatum(std::vector<float>&& vals,
       float label = std::nanf(""), float weight = 1.);
 
+  FlexiDatum(const FlexiDatumProto& proto);
+
   // Move semantics
   FlexiDatum(FlexiDatum&& other) noexcept;  // move c'tor
   FlexiDatum& operator=(FlexiDatum&& other);  // move assignment
@@ -43,10 +45,13 @@ public:
   // Full string includes weight & feature dim.
   std::string ToFullString() const;
 
-  
-  BigInt GetFeatureDim(){return feature_dim_;};
-  inline bool isDense(){ return store_type_ == OutputStoreType::DENSE;};
-  float GetLabel(){return label_;};
+  BigInt GetFeatureDim() { return feature_dim_; }
+  inline bool isDense() { return store_type_ == OutputStoreType::DENSE; }
+  float GetLabel() { return label_; }
+
+  // Serialization.
+  FlexiDatumProto GetFlexiDatumProto() const;
+
 private:
   // Dense or Sparse. store_type_ can only be set in constructor.
   OutputStoreType store_type_;

@@ -7,7 +7,7 @@ from os.path import join
 project_dir = dirname(dirname(os.path.realpath(__file__)))
 db_testbed = join(project_dir, 'db_testbed')
 os.system('mkdir -p %s' % db_testbed)
-prog = join(project_dir, "build", "test", "client", "hotbox_client_main")
+prog = join(project_dir, "build", "test", "client", "proxy_server_main")
 
 env_params = (
   "GLOG_logtostderr=true "
@@ -15,14 +15,7 @@ env_params = (
   "GLOG_minloglevel=0 "
   )
 
-params = {
-    "db_name": "kddb"
-    , 'use_proxy': 'false'
-    , "session_id": "session12"
-    , "transform_config": "select_all.conf"
-    }
-
 cmd = env_params + prog
-cmd += "".join([" --%s=%s" % (k,v) for k,v in params.items()])
+#cmd += "".join([" --%s=%s" % (k,v) for k,v in params.items()])
 print cmd
 os.system(cmd)

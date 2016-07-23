@@ -8,11 +8,12 @@ DEFINE_string(db_name, "", "Database name");
 DEFINE_string(session_id, "test_session", "session identifier");
 DEFINE_string(transform_config, "", "Transform config filename under "
     "hotbox/test/resource/");
+DEFINE_bool(use_proxy, false, "true to use proxy server");
 
 int main(int argc, char *argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
-  hotbox::HBClient hb_client;
+  hotbox::HBClient hb_client(FLAGS_use_proxy);
   LOG(INFO) << "HBClient Initialized";
   hotbox::SessionOptions session_options;
   session_options.db_name = FLAGS_db_name;
@@ -32,12 +33,12 @@ int main(int argc, char *argv[]) {
   hotbox::Timer timer;
   // Test move constructor of DataIterator.
   int num_transform_threads = 10;
-  hotbox::DataIterator iter = session.NewDataIterator(0, 5,
-      num_transform_threads);
+  std::unique_ptr<hotbox::DataIteratorIf> it = session.NewDataIterator(0,
+      hotbox::kDataEnd, num_transform_threads);
   //iter.Restart();
-  hotbox::DataIterator it = std::move(iter);
-  for (; it.HasNext();) {
-    hotbox::FlexiDatum datum = it.GetDatum();
+  //hotbox::DataIterator it = std::move(iter);
+  for (; it->HasNext();) {
+    hotbox::FlexiDatum datum = it->GetDatum();
     LOG_IF(INFO, i < 2) << datum.ToString();
     i++;
   }

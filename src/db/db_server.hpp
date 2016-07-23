@@ -70,4 +70,4 @@ private:
   std::map<std::string, std::vector<int>> session_clients_;
 };
 
-}  // namespace
+}  // namespace hotbox

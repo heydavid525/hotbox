@@ -45,6 +45,13 @@ db_server_main: $(PROJECT)/test/db/db_server_main.cpp $(HB_LIB_LINK) \
 		$< -o $(TEST_DIR)/db/db_server_main \
 		-lgtest $(TEST_LDFLAGS) $(LDFLAGS)
 
+proxy_server_main: $(PROJECT)/test/client/proxy_server_main.cpp $(HB_LIB_LINK) \
+	test/facility/test_facility.hpp
+	mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $(INCFLAGS) $(TEST_INCFLAGS) \
+		$< -o $(TEST_DIR)/client/proxy_server_main \
+		-lgtest $(TEST_LDFLAGS) $(LDFLAGS)
+
 hotbox_client_main: $(PROJECT)/test/client/hotbox_client_main.cpp \
 	$(HB_LIB_LINK) test/facility/test_facility.hpp
 	mkdir -p $(@D)

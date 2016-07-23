@@ -7,7 +7,7 @@
 
 namespace hotbox {
 
-WarpServer::WarpServer() {
+WarpServer::WarpServer(bool proxy_server) {
   zmq_ctx_.reset(zmq_util::CreateZmqContext());
   sock_.reset(new zmq::socket_t(*zmq_ctx_, ZMQ_ROUTER));
 
@@ -21,7 +21,12 @@ WarpServer::WarpServer() {
   zmq_util::ZMQSetSockOpt(sock_.get(), ZMQ_ROUTER_MANDATORY, &(sock_mandatory),
       sizeof(sock_mandatory));
   int port = GlobalConfig::GetInstance().Get<int>("server_port");
-  std::string bind_addr = "tcp://*:" + std::to_string(port);
+  std::string bind_addr;
+  if (proxy_server) {
+    bind_addr = kProxyServerAddr;
+  } else {
+    bind_addr = "tcp://*:" + std::to_string(port);
+  }
   LOG(INFO) << "Server binds to " << bind_addr;
   zmq_util::ZMQBind(sock_.get(), bind_addr);
 }

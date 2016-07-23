@@ -178,6 +178,16 @@ message DatumProtoStoreOffset {
   repeated int64 offsets = 1;
 }
 
+message FlexiDatumProto {
+  OutputStoreType store_type = 1;
+  repeated int64 sparse_idx = 2;
+  repeated float sparse_vals = 3;
+  repeated float dense_vals = 4;
+  int64 feature_dim = 5;
+  float label = 6;
+  float weight = 7;
+}
+
 // Current max proto sequence: 9.
 message FeatureFamilyProto {
   string family_name = 1;

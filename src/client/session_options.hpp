@@ -13,8 +13,15 @@ public:
   std::string transform_config_path;
   OutputStoreType output_store_type{OutputStoreType::SPARSE};
 
+  SessionOptions() { }
+  explicit SessionOptions(const SessionOptionsProto& proto) : proto_init_(true),
+  proto_(proto) { }
+
   // Create and validate proto.
   SessionOptionsProto GetProto() const {
+    if (proto_init_) {
+      return proto_;
+    }
     SessionOptionsProto proto;
     CHECK_NE("", db_name);
     proto.set_db_name(db_name);
@@ -31,6 +38,10 @@ public:
     *mutable_configs = configs;
     return proto;
   }
+
+private:
+  bool proto_init_{false};
+  SessionOptionsProto proto_;
 };
 
 }  // namespace hotbox
