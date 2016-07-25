@@ -67,7 +67,7 @@ private:
   // std::unique_ptr<rocksdb::DB> db_list_;
 
   // Maintain a list of client_id for each session.
-  std::map<std::string, std::vector<int>> session_clients_;
+  std::map<std::string, std::set<int>> session_clients_;
 };
 
 }  // namespace hotbox

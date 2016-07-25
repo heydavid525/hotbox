@@ -160,22 +160,10 @@ void DBServer::CreateSessionHandler(int client_id, const CreateSessionReq& req) 
 
   std::string session_id = session_options.session_id();
 
-  // Check if this client already created the session.
-  const auto& clients = session_clients_[session_id];
-  const auto& find_it = std::find(clients.cbegin(), clients.cend(), client_id);
-  if (find_it != clients.cend()) {
-    std::string msg = "You are in session " + session_id + " already!";
-    LOG(INFO) << msg;
-    create_session_reply->set_msg(msg);
-    create_session_reply->set_status_code(StatusCode::OK);
-    server_.Send(client_id, reply_msg);
-    return;
-  }
-
   // Check if session_id exists.
   auto it = curr_sessions_.find(session_id);
   if (it != curr_sessions_.cend()) {
-    session_clients_[session_id].push_back(client_id);
+    session_clients_[session_id].insert(client_id);
     std::string msg = "Session already exists. Joining existing session.";
     LOG(INFO) << msg;
     create_session_reply->set_msg(msg);
@@ -193,18 +181,17 @@ void DBServer::CreateSessionHandler(int client_id, const CreateSessionReq& req) 
   LOG(INFO) << "Client " << client_id << " created session " << session_id;
   *(create_session_reply->mutable_session_proto()) = session;
   curr_sessions_.insert(std::make_pair(session_id, session));
-  session_clients_[session_id].push_back(client_id);
+  session_clients_[session_id].insert(client_id);
   server_.Send(client_id, reply_msg);
 }
 
 void DBServer::CloseSessionHandler(int client_id, const CloseSessionReq& req) {
   auto session_id = req.session_id();
   const auto& clients = session_clients_[session_id];
-  const auto& find_it = std::find(clients.cbegin(), clients.cend(), client_id);
+  const auto& find_it = clients.find(client_id);
   auto& mutable_clients = session_clients_[session_id];
   if (find_it != clients.cend()) {
-    mutable_clients.erase(std::remove(mutable_clients.begin(),
-          mutable_clients.end(), client_id), mutable_clients.end());
+    mutable_clients.erase(client_id);
     if (mutable_clients.empty()) {
       LOG(INFO) << "Session " << session_id << " ends";
       curr_sessions_.erase(session_id);

@@ -45,26 +45,26 @@ bool WarpClient::Send(const std::string& data) {
 
 // Comment(wdai): Sender thread also perform snappy compression and
 // decompression, which could be expensive.
-bool WarpClient::Send(const ClientMsg& msg) {
-  std::string data = StreamSerialize(msg);
+bool WarpClient::Send(const ClientMsg& msg, bool compress) {
+  std::string data = StreamSerialize(msg, nullptr, compress);
   return Send(data);
 }
 
-ServerMsg WarpClient::Recv() {
+ServerMsg WarpClient::Recv(bool decompress) {
   if (client_id_ < 0) {
     HandshakeWithServer();
   }
   auto recv = zmq_util::ZMQRecv(sock_.get());
   auto recv_str = std::string(reinterpret_cast<const char*>(recv.data()),
       recv.size());
-  ServerMsg server_msg = StreamDeserialize<ServerMsg>(recv_str);
+  ServerMsg server_msg = StreamDeserialize<ServerMsg>(recv_str, decompress);
   CHECK(!server_msg.has_handshake_msg());
   return server_msg;
 }
 
-ServerMsg WarpClient::SendRecv(const ClientMsg& msg) {
-  CHECK(Send(msg));
-  return Recv();
+ServerMsg WarpClient::SendRecv(const ClientMsg& msg, bool compress) {
+  CHECK(Send(msg, compress));
+  return Recv(compress);
 }
 
 void WarpClient::HandshakeWithServer() {

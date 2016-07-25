@@ -23,7 +23,9 @@ public:
   FlexiDatum(std::vector<float>&& vals,
       float label = std::nanf(""), float weight = 1.);
 
+  // Deserialize
   FlexiDatum(const FlexiDatumProto& proto);
+  FlexiDatum(const std::string& data);
 
   // Move semantics
   FlexiDatum(FlexiDatum&& other) noexcept;  // move c'tor
@@ -51,6 +53,8 @@ public:
 
   // Serialization.
   FlexiDatumProto GetFlexiDatumProto() const;
+  // Serialize to bytes directly to avoid variable encoding etc in protobuf.
+  std::string Serialize() const;
 
 private:
   // Dense or Sparse. store_type_ can only be set in constructor.

@@ -24,13 +24,13 @@ public:
   explicit WarpClient(bool connect_proxy = false);
 
   // Return success or not. Always async.
-  bool Send(const ClientMsg& msg);
+  bool Send(const ClientMsg& msg, bool compress = true);
 
   // Receive from server (blocking).
-  ServerMsg Recv();
+  ServerMsg Recv(bool decompress = true);
 
   // Convenience method for Send and Recv. WarpClient acts like a REQ client.
-  ServerMsg SendRecv(const ClientMsg& msg);
+  ServerMsg SendRecv(const ClientMsg& msg, bool compress = true);
 
 private:
   // Lower level Send.

@@ -68,10 +68,15 @@ size_t WriteCompressedString(std::string& input,
 // Deserialize stream up to std::numeric_limits<int>::max()
 // bytes to PROTO (a proto message). No streaming decompression.
 template<typename PROTO>
-PROTO StreamDeserialize(const std::string& proto_str) {
+PROTO StreamDeserialize(const std::string& proto_str, bool compressed = true) {
   // Read back to another FloatContainer
-  SnappyCompressor compressor;
-  std::string uncompressed = compressor.Uncompress(proto_str);
+  std::string uncompressed;
+  if (compressed) {
+    SnappyCompressor compressor;
+    uncompressed = compressor.Uncompress(proto_str);
+  } else {
+    uncompressed = proto_str;
+  }
   google::protobuf::io::ArrayInputStream istream_arr(
       uncompressed.data(), uncompressed.size());
   google::protobuf::io::CodedInputStream istream_coded(
@@ -84,10 +89,15 @@ PROTO StreamDeserialize(const std::string& proto_str) {
 }
 
 template<typename PROTO>
-PROTO StreamDeserialize(const char* data, size_t len) {
+PROTO StreamDeserialize(const char* data, size_t len, bool compressed = true) {
   // Read back to another FloatContainer
-  SnappyCompressor compressor;
-  std::string uncompressed = compressor.Uncompress(data, len);
+  std::string uncompressed;
+  if (compressed) {
+    SnappyCompressor compressor;
+    uncompressed = compressor.Uncompress(data, len);
+  } else {
+    uncompressed = std::string(data, len);
+  }
   google::protobuf::io::ArrayInputStream istream_arr(
       uncompressed.data(), uncompressed.size());
   google::protobuf::io::CodedInputStream istream_coded(
@@ -104,7 +114,7 @@ PROTO StreamDeserialize(const char* data, size_t len) {
 // snappy compress).
 template<typename PROTO>
 std::string StreamSerialize(const PROTO& proto,
-    size_t* serialized_size = nullptr) {
+    size_t* serialized_size = nullptr, bool compress = true) {
   std::string buffer;
   {
     // Write to buffer
@@ -116,9 +126,12 @@ std::string StreamSerialize(const PROTO& proto,
   if (serialized_size != nullptr) {
     *serialized_size = buffer.size();
   }
-  SnappyCompressor compressor;
-  std::string compressed = compressor.Compress(buffer);
-  return compressed;
+  if (compress) {
+    SnappyCompressor compressor;
+    std::string compressed = compressor.Compress(buffer);
+    return compressed;
+  }
+  return buffer;
 }
 
 /*

@@ -1,6 +1,7 @@
 #include "schema/flexi_datum.hpp"
 #include <glog/logging.h>
 #include <sstream>
+#include <algorithm>
 
 namespace hotbox {
 
@@ -152,6 +153,83 @@ FlexiDatum::FlexiDatum(const FlexiDatumProto& proto) :
     for (int i = 0; i < proto.dense_vals_size(); ++i) {
       dense_vals_[i] = proto.dense_vals(i);
     }
+  }
+}
+
+std::string FlexiDatum::Serialize() const {
+  size_t s = sizeof(store_type_) + sizeof(feature_dim_) + sizeof(label_) * 2;
+  if (store_type_ == OutputStoreType::SPARSE) {
+    s += sizeof(BigInt) * sparse_idx_.size()
+      + sizeof(float) * sparse_vals_.size();
+  } else {
+    s += sizeof(float) * dense_vals_.size();
+  }
+  std::string data(s, 0);
+  char* ptr = &data[0];
+  auto input_ptr = reinterpret_cast<const char*>(&store_type_);
+  std::copy(input_ptr, input_ptr + sizeof(store_type_), ptr);
+  ptr += sizeof(store_type_);
+
+  input_ptr = reinterpret_cast<const char*>(&feature_dim_);
+  std::copy(input_ptr, input_ptr + sizeof(feature_dim_), ptr);
+  ptr += sizeof(feature_dim_);
+
+  input_ptr = reinterpret_cast<const char*>(&label_);
+  std::copy(input_ptr, input_ptr + sizeof(label_), ptr);
+  ptr += sizeof(label_);
+
+  input_ptr = reinterpret_cast<const char*>(&weight_);
+  std::copy(input_ptr, input_ptr + sizeof(weight_), ptr);
+  ptr += sizeof(weight_);
+
+  if (store_type_ == OutputStoreType::SPARSE) {
+    const char* sp = reinterpret_cast<const char*>(&sparse_idx_[0]);
+    std::copy(sp, sp + sizeof(BigInt) * sparse_idx_.size(), ptr);
+    ptr += sizeof(BigInt) * sparse_idx_.size();
+
+    sp = reinterpret_cast<const char*>(&sparse_vals_[0]);
+    std::copy(sp, sp + sizeof(float) * sparse_vals_.size(), ptr);
+    ptr += sizeof(float) * sparse_vals_.size();
+  } else {
+    const char* dense = reinterpret_cast<const char*>(&dense_vals_[0]);
+    std::copy(dense, dense + sizeof(float) * dense_vals_.size(), ptr);
+  }
+  return data;
+}
+
+FlexiDatum::FlexiDatum(const std::string& data) {
+  const char* ptr = data.c_str();
+  store_type_ = *reinterpret_cast<const OutputStoreType*>(ptr);
+  ptr += sizeof(store_type_);
+
+  feature_dim_ = *reinterpret_cast<const BigInt*>(ptr);
+  ptr += sizeof(feature_dim_);
+
+  label_ = *reinterpret_cast<const float*>(ptr);
+  ptr += sizeof(label_);
+
+  weight_ = *reinterpret_cast<const float*>(ptr);
+  ptr += sizeof(weight_);
+
+  size_t num_bytes = &(*data.cend()) - ptr;
+  if (store_type_ == OutputStoreType::SPARSE) {
+    CHECK_EQ(0, num_bytes % (sizeof(BigInt) + sizeof(float)));
+    int num_elems = num_bytes / (sizeof(BigInt) + sizeof(float));
+    sparse_idx_.resize(num_elems);
+    sparse_vals_.resize(num_elems);
+    std::copy(ptr, ptr + sizeof(BigInt) * num_elems,
+        reinterpret_cast<char*>(&sparse_idx_[0]));
+    ptr += sizeof(BigInt) * num_elems;
+    std::copy(ptr, ptr + sizeof(float) * num_elems,
+        reinterpret_cast<char*>(&sparse_vals_[0]));
+    ptr += sizeof(float) * num_elems;
+    CHECK_EQ(data.size(), ptr - data.c_str());
+  } else {
+    CHECK_EQ(0, num_bytes % sizeof(float));
+    int num_elems = num_bytes / sizeof(float);
+    dense_vals_.resize(num_elems);
+    std::copy(ptr, ptr + sizeof(float) * num_elems,
+        reinterpret_cast<char*>(&dense_vals_[0]));
   }
 }
 

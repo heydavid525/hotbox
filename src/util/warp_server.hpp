@@ -21,10 +21,10 @@ public:
   explicit WarpServer(bool proxy_server = false);
 
   // Send to a client.
-  bool Send(int client_id, const ServerMsg& msg);
+  bool Send(int client_id, const ServerMsg& msg, bool compress = true);
 
   // Recv internally handles handshake. The rest is handled externally.
-  ClientMsg Recv(int* client_id);
+  ClientMsg Recv(int* client_id, bool decompress = true);
 
   // Get the list of active clients.
   std::vector<int> GetClientIds() const;

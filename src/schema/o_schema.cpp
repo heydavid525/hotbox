@@ -12,6 +12,7 @@ std::pair<std::string,std::string> OSchema::GetName(BigInt feature_id) const {
   auto high = std::upper_bound(proto_.family_offsets().cbegin(),
       proto_.family_offsets().cend(), feature_id);
   auto idx = high - proto_.family_offsets().cbegin() - 1;
+  CHECK_GE(idx, 0);
   BigInt family_idx = feature_id - proto_.family_offsets(idx);
   std::string feature_name = proto_.is_simple_family(idx) ?
     std::to_string(family_idx) :

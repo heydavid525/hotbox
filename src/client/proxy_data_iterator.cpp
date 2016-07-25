@@ -16,7 +16,7 @@ ProxyDataIterator::ProxyDataIterator(WarpClient& warp_client,
     int64_t data_begin, int64_t data_end,
     int num_transform_threads, int num_io_threads,
     size_t buffer_limit, size_t batch_limit) :
-  warp_client_(warp_client), session_id_(session_id), 
+  warp_client_(warp_client), session_id_(session_id),
   iter_id_(iter_id), data_(kBatchNumData) {
     ClientMsg client_msg;
     auto req = client_msg.mutable_proxy_create_iter_req();
@@ -62,9 +62,11 @@ void ProxyDataIterator::GetBatch() {
   req->set_session_id(session_id_);
   req->set_iter_id(iter_id_);
   req->set_batch_size(kBatchNumData);
-  ServerMsg server_msg = warp_client_.SendRecv(client_msg);
+  warp_client_.Send(client_msg);
+  bool compress = false;
+  ServerMsg server_msg = warp_client_.Recv(compress);
   CHECK(server_msg.has_proxy_get_batch_reply());
-  auto rep = server_msg.proxy_get_batch_reply();
+  const auto& rep = server_msg.proxy_get_batch_reply();
   data_.resize(rep.data_size());
   for (int i = 0; i < rep.data_size(); ++i) {
     data_[i] = rep.data(i);

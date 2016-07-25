@@ -47,7 +47,7 @@ class WarpClient:
   def Send(self, client_msg):
     try:
       self.sock.send(snappy.compress(client_msg.SerializeToString()),
-          copy=False);
+          copy=False)
     except Exception as e:
       print(e.message)
 

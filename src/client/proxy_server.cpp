@@ -60,6 +60,10 @@ void ProxyServer::CreateSessionHandler(int client_id,
       SessionOptions(req.session_options()), &server_reply);
   std::string session_id =
     server_reply.create_session_reply().session_proto().session_id();
+  if (sessions_.find(session_id) != sessions_.cend()) {
+    LOG(ERROR) << "Overwriting an existing session: " << session_id;
+    sessions_.erase(session_id);
+  }
   sessions_.emplace(session_id,
       std::unique_ptr<Session>(session));
   // Forward the DBServer's reply to proxy client.
@@ -75,7 +79,12 @@ void ProxyServer::ProxyCreateIterHandler(int client_id,
       req.data_begin(), req.data_end(), req.num_transform_threads(),
       req.num_io_threads(), req.buffer_limit(),
       req.batch_limit());
-  iters_.emplace(MakeIterName(session_id, iter_id), std::move(s));
+  auto iter_name = MakeIterName(session_id, iter_id);
+  if (iters_.find(iter_name) != iters_.cend()) {
+    LOG(ERROR) << "Overwriting an existing iter: " << iter_name;
+    iters_.erase(iter_name);
+  }
+  iters_.emplace(iter_name, std::move(s));
   SendGenericReply(client_id, "Proxy server created iterator.");
 }
 
@@ -97,7 +106,8 @@ void ProxyServer::PrepareBatch(const std::string& iter_name,
   for (auto& iter = it->second; iter->HasNext() &&
       i < batch_size; ++i) {
     FlexiDatum datum = iter->GetDatum();
-    *rep->add_data() = datum.GetFlexiDatumProto();
+    //*rep->add_data() = datum.GetFlexiDatumProto();
+    *rep->add_data() = datum.Serialize();
   }
 }
 
@@ -111,7 +121,8 @@ void ProxyServer::ProxyGetBatchHandler(int client_id,
     PrepareBatch(iter_name, batch_size);
     it = next_batch_.find(iter_name);
   }
-  server_.Send(client_id, it->second);
+  bool compress = false;
+  server_.Send(client_id, it->second, compress);
   PrepareBatch(iter_name, batch_size);
 }
 
