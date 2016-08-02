@@ -55,6 +55,10 @@ void RegisterTransforms() {
       Creator<TransformIf, DnnTransform>);
   kConfigCaseToTransformName[TransformConfig::kDnnTransform]
     = "DnnTransform";
+  registry.AddCreator(TransformConfig::kKmeansTransform,
+      Creator<TransformIf, KmeansTransform>);
+  kConfigCaseToTransformName[TransformConfig::kKmeansTransform]
+    = "KmeansTransform";
 }
 
 }  // namespace hotbox

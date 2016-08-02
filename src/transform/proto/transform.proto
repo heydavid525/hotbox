@@ -58,6 +58,7 @@ message TransformConfig {
     ConstantTransformConfig constant_transform = 6;
     SelectTransformConfig select_transform = 7;
     DnnTransformConfig dnn_transform = 8;
+    KmeansTransformConfig kmeans_transform = 9;
   }
 }
 
@@ -130,6 +131,13 @@ message DnnTransformConfig {
   string weight_path = 2;
   uint64 num_neurals = 3;
 }
+
+message KmeansTransformConfig {
+  string model_path = 1;
+  uint32 num_cluster_centers = 2;
+  uint64 feature_dim = 3;
+}
+
 // Take cartesian products between input_feature_list[0],
 // input_feature_list[1], ...., each input_feature_set is a string, e.g.,
 // "mobile:,web:counts". input_feature_list can be the results from other

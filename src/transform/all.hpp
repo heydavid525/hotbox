@@ -10,3 +10,4 @@
 #include "transform/select_transform.hpp"
 #include "transform/ngram_transform.hpp"
 #include "transform/dnn_transform.hpp"
+#include "transform/kmeans_transform.hpp"
