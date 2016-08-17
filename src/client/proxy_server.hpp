@@ -7,9 +7,14 @@
 
 namespace hotbox {
 
+// A proxy server that forwards requests to DBServer and perform
+// transformation locally.
 class ProxyServer {
 public:
-  ProxyServer() : server_(true) { }
+  ProxyServer(int server_id) :
+    hb_client_(HBClientConfig(false)),
+    server_(WarpServerConfig(true, server_id)),
+    server_id_(server_id) { }
 
   void Start();
 
@@ -30,6 +35,7 @@ private:
 
   // warp_client_ communicates with the proxy client.
   WarpServer server_;
+  int server_id_;
 
   // Each session is identified by a session_id.
   std::unordered_map<std::string, std::unique_ptr<Session>> sessions_;

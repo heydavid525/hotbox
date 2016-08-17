@@ -14,8 +14,11 @@ const std::string kDBRootFile = "/DB_root_file";
 
 }  // anonymous namespace
 
-DBServer::DBServer(const DBServerConfig& config) : db_dir_(config.db_dir()),
-  db_dir_meta_(config.db_dir_meta().empty() ? db_dir_ : config.db_dir_meta()) { }
+DBServer::DBServer(const DBServerConfig& config) :
+  db_dir_(config.db_dir()),
+  db_dir_meta_(config.db_dir_meta().empty() ?
+      db_dir_ : config.db_dir_meta()),
+server_(WarpServerConfig()) { }
 
 void DBServer::Start() {
   Init();

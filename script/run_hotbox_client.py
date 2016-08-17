@@ -16,9 +16,10 @@ env_params = (
   )
 
 params = {
-    "db_name": "kddb"
-    , 'use_proxy': 'false'
-    , "session_id": "session12"
+    "db_name": 'a1a'
+    , 'use_proxy': 'true'
+    , 'num_proxy_servers': 2
+    , "session_id": "session21"
     , "transform_config": "select_all.conf"
     }
 

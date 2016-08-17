@@ -45,18 +45,19 @@ int64_t Session::GetNumData() const {
   return session_proto_.file_map().num_data();
 }
 
-std::unique_ptr<DataIteratorIf> Session::NewDataIterator(int64_t data_begin,
-        int64_t data_end, int32_t num_transform_threads,
-      int32_t num_io_threads, size_t buffer_limit,
-      size_t batch_limit) {
-  if (use_proxy_) {
-    return std::unique_ptr<DataIteratorIf>(new ProxyDataIterator(warp_client_,
-      session_proto_.session_id(), proxy_iter_id_++,
-      data_begin, data_end, num_transform_threads,
-      num_io_threads, buffer_limit, batch_limit));
-  }
+std::unique_ptr<DataIteratorIf> Session::NewDataIterator(
+    int64_t data_begin, int64_t data_end,
+    int32_t num_transform_threads, int32_t num_io_threads,
+    size_t buffer_limit, size_t batch_limit) {
   if (data_end == kDataEnd) {
     data_end = GetNumData();
+  }
+  if (use_proxy_) {
+    return std::unique_ptr<DataIteratorIf>(
+        new ProxyDataIterator(warp_client_,
+          session_proto_.session_id(), proxy_iter_id_++,
+          data_begin, data_end, num_transform_threads,
+          num_io_threads, buffer_limit, batch_limit));
   }
   bool use_multi_threads = num_transform_threads > 1
     || num_io_threads > 1;

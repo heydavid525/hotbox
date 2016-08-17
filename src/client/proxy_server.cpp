@@ -106,7 +106,6 @@ void ProxyServer::PrepareBatch(const std::string& iter_name,
   for (auto& iter = it->second; iter->HasNext() &&
       i < batch_size; ++i) {
     FlexiDatum datum = iter->GetDatum();
-    //*rep->add_data() = datum.GetFlexiDatumProto();
     *rep->add_data() = datum.Serialize();
   }
 }

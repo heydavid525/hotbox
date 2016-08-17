@@ -25,8 +25,12 @@ protected:
       int num_io_threads, size_t buffer_limit, size_t batch_limit);
 
 private:
+  // Request a batch from a proxy server.
+  void RequestOne(int server_id);
   // Get a batch of data_
   void GetBatch();
+  // Return true if data on all servers are exhausted.
+  bool AllDone() const;
 
 private:
   // Can only be created by Session, and the parent Session needs to outlive
@@ -34,12 +38,15 @@ private:
   friend class Session;
 
   WarpClient& warp_client_;
+  int num_servers_;
   std::string session_id_;
   int iter_id_{-1};
 
   // Data cache.
   int curr_{0};
   std::vector<FlexiDatum> data_;
+  // done_[i] == true means no more data on server i.
+  std::vector<bool> done_;
 };
 
 } // namespace hotbox

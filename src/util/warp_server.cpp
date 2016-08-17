@@ -7,23 +7,24 @@
 
 namespace hotbox {
 
-WarpServer::WarpServer(bool proxy_server) {
+WarpServer::WarpServer(const WarpServerConfig& config) {
   zmq_ctx_.reset(zmq_util::CreateZmqContext());
   sock_.reset(new zmq::socket_t(*zmq_ctx_, ZMQ_ROUTER));
 
   // Set a globally unique id.
-  zmq_util::ZMQSetSockOpt(sock_.get(), ZMQ_IDENTITY, kServerId.c_str(),
-      kServerId.size());
-  LOG(INFO) << "Server ID: " << kServerId;
+  std::string server_id_str = MakeServerId(config.server_id);
+  zmq_util::ZMQSetSockOpt(sock_.get(), ZMQ_IDENTITY, server_id_str.c_str(),
+      server_id_str.size());
+  LOG(INFO) << "Server ID: " << server_id_str;
 
   // accept only routable messages on ROUTER sockets
   int sock_mandatory = 1;
-  zmq_util::ZMQSetSockOpt(sock_.get(), ZMQ_ROUTER_MANDATORY, &(sock_mandatory),
-      sizeof(sock_mandatory));
+  zmq_util::ZMQSetSockOpt(sock_.get(), ZMQ_ROUTER_MANDATORY,
+      &(sock_mandatory), sizeof(sock_mandatory));
   int port = GlobalConfig::GetInstance().Get<int>("server_port");
   std::string bind_addr;
-  if (proxy_server) {
-    bind_addr = kProxyServerAddr;
+  if (config.proxy_server) {
+    bind_addr = MakeProxyServerAddr(config.server_id);
   } else {
     bind_addr = "tcp://*:" + std::to_string(port);
   }

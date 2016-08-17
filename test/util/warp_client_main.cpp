@@ -8,7 +8,8 @@ DEFINE_string(server_ip, "", "server ip.");
 int main(int argc, char *argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
-  hotbox::WarpClient client;
+  hotbox::WarpClientConfig config;
+  hotbox::WarpClient client(config);
   hotbox::ClientMsg req_msg;
   auto generic_req = req_msg.mutable_generic_req();
   generic_req->set_req("hello world");

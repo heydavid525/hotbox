@@ -9,11 +9,15 @@ DEFINE_string(session_id, "test_session", "session identifier");
 DEFINE_string(transform_config, "", "Transform config filename under "
     "hotbox/test/resource/");
 DEFINE_bool(use_proxy, false, "true to use proxy server");
+DEFINE_int32(num_proxy_servers, 1, "number of proxy server.");
 
 int main(int argc, char *argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
-  hotbox::HBClient hb_client(FLAGS_use_proxy);
+  hotbox::HBClientConfig config;
+  config.connect_proxy = FLAGS_use_proxy;
+  config.num_proxy_servers = FLAGS_num_proxy_servers;
+  hotbox::HBClient hb_client(config);
   LOG(INFO) << "HBClient Initialized";
   hotbox::SessionOptions session_options;
   session_options.db_name = FLAGS_db_name;

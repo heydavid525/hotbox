@@ -6,7 +6,8 @@
 int main(int argc, char *argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
-  hotbox::WarpServer server;
+  hotbox::WarpServerConfig config;
+  hotbox::WarpServer server(config);
   int client_id;
   hotbox::ClientMsg req_msg = server.Recv(&client_id);
   CHECK(req_msg.has_generic_req());
