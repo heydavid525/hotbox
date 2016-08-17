@@ -39,8 +39,6 @@ int main(int argc, char *argv[]) {
   int num_transform_threads = 10;
   std::unique_ptr<hotbox::DataIteratorIf> it = session.NewDataIterator(0,
       hotbox::kDataEnd, num_transform_threads);
-  //iter.Restart();
-  //hotbox::DataIterator it = std::move(iter);
   for (; it->HasNext();) {
     hotbox::FlexiDatum datum = it->GetDatum();
     LOG_IF(INFO, i < 2) << datum.ToString();
