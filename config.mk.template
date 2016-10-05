@@ -35,6 +35,9 @@ ifeq ($(USE_HDFS), 1)
   HDFS_LDFLAGS = -Wl,-rpath=$(LIBJVM) \
 	          	   -L$(LIBJVM) -ljvm \
 	          	   -lhdfs
+                 # Use this if hdfs is installed in non-standard path
+                 #-Wl,-rpath=$(HADOOP_HOME)/lib/native \
+	          	   #-L$(HADOOP_HOME)/lib/native -lhdfs
   # -DUSE_HDFS is used by rocksdb_hdfs 
   HDFS_INCFLAGS = -I${HADOOP_HOME}/include -DUSE_HDFS
 else
