@@ -23,8 +23,10 @@ void DnnTransform::initialModel(const std::string model_path, const std::string 
 	exec("def get_activations(model, layer, X_batch):\n"
 	    "\tif not isinstance(model.layers[layer], Dense):\n"
 	    "\t\treturn []\n"
-	    "\tget_activations = backend.function([model.layers[0].input, backend.learning_phase()], [model.layers[layer].output,])\n"
-	    "\tactivations = get_activations([np.array([X_batch]),0])\n"
+      "\t#print (model.layers[0].input, backend.learning_phase(),model.layers[layer].output, np.array([X_batch]))\n"
+      "\tget_activations = backend.function([model.layers[0].input, backend.learning_phase()], [model.layers[layer].output,])\n"
+//	    "\tactivations = get_activations([np.reshape(np.array([X_batch]),(1,model.layers[0].input:size()))])\n"
+	    "\tactivations = get_activations([np.resize(np.array([X_batch]),(1,104))])\n"
 	    "\treturn activations[0][0].tolist()\n",
   	  main_namespace_);
 	exec("def get_model(model_path, weight_path):\n"
@@ -61,6 +63,7 @@ std::function<void(TransDatum*)> DnnTransform::GenerateTransform(
   static PythonRuntimeWrapper prw_;
   
   initialModel(model_path, weight_path);
+  LOG(INFO) << "Model Inited";
   object func = main_module_.attr("get_activations");
   object model = main_module_.attr("model");
   int num_layers = extract<int>(eval("len(model.layers)", main_namespace_));
@@ -71,12 +74,12 @@ std::function<void(TransDatum*)> DnnTransform::GenerateTransform(
 	  int offset = 0;
 	  list features = VectorToList(GetDenseVals(*datum, selector));
 	  for(int i = 0; i < num_layers; i++){
-		object activations = func(model, i, features);
-		auto length = len(activations);
-		for (int j = 0; j < length; ++j) {
-	        float val = boost::python::extract<float>(activations[j]);
-			datum->SetFeatureValRelativeOffset(offset, val);
-			offset++;
+		  object activations = func(model, i, features);
+		  auto length = len(activations);
+		  for (int j = 0; j < length; ++j) {
+	      float val = boost::python::extract<float>(activations[j]);
+			  datum->SetFeatureValRelativeOffset(offset, val);
+			  offset++;
 	    }
 	  }
 	}  
