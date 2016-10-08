@@ -8,6 +8,7 @@
 #include <atomic>
 #include <condition_variable>
 #include "db/proto/db.pb.h"
+#include "metrics/metrics.hpp"
 #include "schema/all.hpp"
 
 namespace hotbox {
@@ -52,6 +53,9 @@ class MTTransformer {
 
   void Start();
 
+  // Collect and gather the metrics ThreadTransStats and produce TransStats
+  std::unique_ptr<TransStats> GetMetrics();
+  
  private:
   // One task for one atom file.
   // Both IoTaskLoop and TransformTaskLoop use this structure.
@@ -78,7 +82,7 @@ class MTTransformer {
   // deserialize it into a batch. Then it will do transforms on the batch and
   // push the batch to bt_queue_.
   // each transform worker will run this function.
-  void TransformTaskLoop();
+  void TransformTaskLoop(int);
 
 
   const SessionProto &session_proto_;
@@ -86,6 +90,7 @@ class MTTransformer {
   std::vector<std::thread> io_workers_;
   std::vector<std::thread> tf_workers_;
   std::vector<std::function<void(TransDatum *)>> transforms_;
+  
   // imagine blocking queue
   std::queue<Task> io_queue_;  // io files queue
   std::queue<Task> tf_queue_;  // buffer queue
@@ -180,6 +185,8 @@ class MTTransformer {
   const BigInt data_begin_;
   const BigInt data_end_;
   std::vector<BigInt> datum_ids_;
+
+  ThreadTransStats metrics_;
 };
 
 }  // namespace hotbox

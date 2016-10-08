@@ -32,6 +32,9 @@ public:
   // This advances the iterator as it returns a r-reference.
   FlexiDatum GetDatum() override;
 
+  // Get metrics from mtt_engine after execution is done
+  std::unique_ptr<TransStats> GetMetrics() override;
+
   ~DataIterator() {
     if (use_multi_threads_ && mtt_engine_) {
       delete mtt_engine_;

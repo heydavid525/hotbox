@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include "util/all.hpp"
+#include <chrono>
+#include <ctime>
 
 namespace hotbox {
 
@@ -68,7 +70,8 @@ void MTTransformer::IoTaskLoop() {
   // LOG(INFO) << "IoTaskLoop " << std::this_thread::get_id() << " ends...";
 }
 
-void MTTransformer::TransformTaskLoop() {
+// tid: transformer id
+void MTTransformer::TransformTaskLoop(int tid) {
   // LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id() << " Starts...";
   while (true) {
     Task task;
@@ -116,9 +119,24 @@ void MTTransformer::TransformTaskLoop() {
                       session_proto_.weight(), output_store_type, output_dim,
                       ranges);
 
+      BigInt output_counter_old = 0;
       for (int t = 0; t < transforms_.size(); ++t) {
+        // collect time (cput time) + size for the transformation
+        std::clock_t c_start = std::clock();
         trans_datum.ReadyTransform(session_proto_.transform_output_ranges(t));
         transforms_[t](&trans_datum);
+        std::clock_t c_end = std::clock();
+
+        BigInt output_counter_new = trans_datum.GetOutputCounter();
+        DLOG(INFO) << "TFTaskLoop " << tid << " finish transform #" << t << " \
+          in " << c_end - c_start << " ticks, generating " <<
+          output_counter_new - output_counter_old << " values.";
+
+        metrics_[tid][t].set_time(metrics_[tid][t].time() + (c_end-c_start) /
+            CLOCKS_PER_SEC);
+        metrics_[tid][t].set_space(metrics_[tid][t].space() +
+            output_counter_new - output_counter_old);
+        output_counter_old = output_counter_new;
       }
       (*vec)[i - task.datum_begin] = std::move(trans_datum.GetFlexiDatum());
     }
@@ -226,6 +244,8 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
 void MTTransformer::Start() {
   // translate data range into io tasks
   Translate(data_begin_, data_end_);
+  // metrics
+  metrics_.resize(num_tf_workers_, TransStats(transforms_.size()));
 
   bt_size_ = 0;
   tf_size_ = 0;
@@ -236,12 +256,26 @@ void MTTransformer::Start() {
   }
 
   for (int i = 0; i < num_tf_workers_; i++) {
-    tf_workers_.push_back(std::thread([this]() {
-      this->TransformTaskLoop();
+    tf_workers_.push_back(std::thread([this, i]() {
+      this->TransformTaskLoop(i);
     }));
   }
 }
+
 bool MTTransformer::HasNextBatch() const {
   return total_batches_;
 }
+
+std::unique_ptr<TransStats> MTTransformer::GetMetrics() {
+  auto ret = std::unique_ptr<TransStats>(new TransStats(transforms_.size()));
+  for (auto it = metrics_.begin(); it != metrics_.end(); ++it) {
+    for (int i = 0; i < transforms_.size(); i++) {
+      auto transform_stat = (*ret)[i];
+      transform_stat.set_time(transform_stat.time() + (*it)[i].time());
+      transform_stat.set_space(transform_stat.space() + (*it)[i].space());
+    }
+  }
+  return ret;
+}
+
 }  // namespace hotbox

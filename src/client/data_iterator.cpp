@@ -99,5 +99,8 @@ DataIterator::DataIterator(DataIterator &&other)
     other.mtt_engine_ = nullptr;
   }
 
+std::unique_ptr<TransStats> DataIterator::GetMetrics() {
+  return mtt_engine_->GetMetrics();
+}
 
 }  // namespace hotbox
