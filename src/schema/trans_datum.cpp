@@ -26,6 +26,9 @@ TransDatum::TransDatum(DatumBase* base, const Feature& label, const Feature& wei
   }
   base_->ExtendDenseCatStore(dense_cat_end);
   base_->ExtendDenseNumStore(dense_num_end);
+
+
+  output_counter_ = 0;
 }
 
 float TransDatum::GetFeatureVal(const Feature& f) const {
@@ -84,6 +87,7 @@ void TransDatum::SetFeatureValRelativeOffset(BigInt relative_offset,
       sparse_idx_.push_back(offset);
       sparse_vals_.push_back(val);
     }
+    ++output_counter_;
     return;
   }
   // Internal stores.

@@ -1,6 +1,7 @@
 #pragma once
 #include "db/proto/db.pb.h"
 #include "schema/all.hpp"
+#include "metrics/metrics.hpp"
 
 namespace hotbox {
 
@@ -13,6 +14,8 @@ public:
   virtual void Restart() = 0;
 
   virtual FlexiDatum GetDatum() = 0;
+
+  virtual std::unique_ptr<TransStats> GetMetrics() = 0;
 
   virtual ~DataIteratorIf() {}
 
