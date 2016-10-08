@@ -93,7 +93,6 @@ class MTTransformer {
   std::vector<std::thread> io_workers_;
   std::vector<std::thread> tf_workers_;
   std::vector<std::function<void(std::vector<TransDatum*>*)>> transforms_;
-
   // imagine blocking queue
   std::unique_ptr<folly::MPMCQueue<Task,std::atomic,true> > io_queue_;  // io files queue
   std::unique_ptr<folly::MPMCQueue<Task> > tf_queue_;  // buffer queue

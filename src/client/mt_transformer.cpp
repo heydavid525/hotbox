@@ -59,14 +59,10 @@ void MTTransformer::IoTaskLoop() {
   // LOG(INFO) << "IoTaskLoop " << std::this_thread::get_id() << " ends...";
 }
 
-<<<<<<< c78e9e804c429cd27cd4cb6289c2aae8f431b1f5
 // tid: transformer id
 void MTTransformer::TransformTaskLoop(int tid) {
-=======
-void MTTransformer::TransformTaskLoop() {
   auto& global_config = GlobalConfig::GetInstance();
   int batch_size = global_config.Get<int>("transform_batch_size");
->>>>>>> Implement batch transform. Tensorflow transform time reduces 21x using batch 1000 vs 1, 151s vs 7s
   // LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id() << " Starts...";
   while (true) {
     Task task;
@@ -123,7 +119,6 @@ void MTTransformer::TransformTaskLoop() {
       for (int t = 0; t < transforms_.size(); ++t) {
         // collect time (cput time) + size for the transformation
         std::clock_t c_start = std::clock();
-
         for (int j = 0; j < num_items; ++j) {
           //CHECK_NOTNULL(data_batch[j]);
           data_batch[j]->ReadyTransform(
