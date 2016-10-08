@@ -2,6 +2,7 @@
 #include "client/data_iterator_if.hpp"
 #include "db/proto/db.pb.h"
 #include <string>
+#include <glog/logging.h>
 
 namespace hotbox {
 
@@ -14,6 +15,11 @@ public:
   void Restart() override;
 
   FlexiDatum GetDatum() override;
+
+  std::unique_ptr<TransStats> GetMetrics() override {
+    LOG(ERROR) << "GetMetrics is not implemented in proxy iterator.";
+    return NULL;
+  };
 
   ~ProxyDataIterator();
 

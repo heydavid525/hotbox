@@ -8,6 +8,7 @@
 #include <atomic>
 #include <condition_variable>
 #include "db/proto/db.pb.h"
+#include "metrics/metrics.hpp"
 #include "schema/all.hpp"
 #include "folly/MPMCQueue.h"
 
@@ -64,6 +65,9 @@ class MTTransformer {
 
   void Start();
 
+  // Collect and gather the metrics ThreadTransStats and produce TransStats
+  std::unique_ptr<TransStats> GetMetrics();
+  
  private:
   // It will translate data range into io tasks and push them to io_queue_.
   void Translate(size_t data_begin, size_t data_end);
@@ -81,7 +85,7 @@ class MTTransformer {
   // deserialize it into a batch. Then it will do transforms on the batch and
   // push the batch to bt_queue_.
   // each transform worker will run this function.
-  void TransformTaskLoop();
+  void TransformTaskLoop(int);
 
 
   const SessionProto &session_proto_;
@@ -89,6 +93,7 @@ class MTTransformer {
   std::vector<std::thread> io_workers_;
   std::vector<std::thread> tf_workers_;
   std::vector<std::function<void(std::vector<TransDatum*>*)>> transforms_;
+  
   // imagine blocking queue
   typedef int TaskId;
   std::unordered_map<TaskId, Task> tasks_;
@@ -144,6 +149,8 @@ class MTTransformer {
   const BigInt data_begin_;
   const BigInt data_end_;
   std::vector<BigInt> datum_ids_;
+
+  ThreadTransStats metrics_;
 };
 
 }  // namespace hotbox

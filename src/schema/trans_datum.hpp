@@ -42,6 +42,10 @@ public:
     return *base_;
   }
 
+  inline const BigInt GetOutputCounter() const {
+    return output_counter_;
+  };
+
 private:
   std::unique_ptr<DatumBase> base_;
   const Feature& label_;
@@ -57,7 +61,7 @@ private:
   BigInt offset_begin_;
   BigInt offset_end_;
   BigInt range_;
-
+  
   // Feature dimension of the output vector.
   BigInt output_feature_dim_;
 
@@ -66,6 +70,10 @@ private:
 
   std::vector<BigInt> sparse_idx_;
   std::vector<float> sparse_vals_;
+
+  // For metrics on space usage
+  BigInt output_counter_ = 0;
+
 };
 
 }  // namespace hotbox

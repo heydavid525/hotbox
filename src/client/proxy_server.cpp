@@ -25,7 +25,7 @@ void ProxyServer::Start() {
       CreateSessionHandler(client_id,
           client_msg.create_session_req());
     } else if (client_msg.has_proxy_destroy_iter_req()) {
-      LOG(INFO) << "Received proxy_create_iter_req from client "
+      LOG(INFO) << "Received proxy_destroy_iter_req from client "
         << client_id;
       auto& req = client_msg.proxy_destroy_iter_req();
       ProxyDestroyIterHandler(client_id, req);
@@ -90,7 +90,19 @@ void ProxyServer::ProxyCreateIterHandler(int client_id,
 
 void ProxyServer::ProxyDestroyIterHandler(int client_id,
     const ProxyDestroyIterReq& req) {
-  iters_.erase(MakeIterName(req.session_id(), req.iter_id()));
+  // collect stats and send to master
+  auto session_id = req.session_id();
+  auto iter_id = req.iter_id();
+  auto iter_name = MakeIterName(session_id, iter_id);
+  if (iters_.find(iter_name) == iters_.cend()) {
+    LOG(ERROR) << "the iter name doesn't exist: " << iter_name;
+  }
+  auto metrics = iters_[iter_name]->GetMetrics();
+  for (int i = 0; i < metrics->size(); i++) {
+    LOG(INFO) << "Transform #" << i << " takes " << (*metrics)[i].time() << "\
+      ms," << (*metrics)[i].space() << " space.";
+  }
+  iters_.erase(iter_name);
   SendGenericReply(client_id, "Proxy server deleted iterator.");
 }
 

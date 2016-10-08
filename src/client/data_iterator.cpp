@@ -100,5 +100,8 @@ DataIterator::DataIterator(DataIterator &&other)
   buffer_limit_(other.buffer_limit_),
   batch_limit_(other.batch_limit_) { }
 
+std::unique_ptr<TransStats> DataIterator::GetMetrics() {
+  return mtt_engine_->GetMetrics();
+}
 
 }  // namespace hotbox
