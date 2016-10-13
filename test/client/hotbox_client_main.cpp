@@ -3,6 +3,7 @@
 #include "util/timer.hpp"
 #include <glog/logging.h>
 #include <gflags/gflags.h>
+#include <cstdint>
 
 DEFINE_string(db_name, "", "Database name");
 DEFINE_string(session_id, "test_session", "session identifier");
@@ -10,6 +11,12 @@ DEFINE_string(transform_config, "", "Transform config filename under "
     "hotbox/test/resource/");
 DEFINE_bool(use_proxy, false, "true to use proxy server");
 DEFINE_int32(num_proxy_servers, 1, "number of proxy server.");
+DEFINE_int32(num_workers, 1, "num workers in total");
+DEFINE_int32(worker_id, 0, "worker rank.");
+DEFINE_int32(num_threads, 1, "num transform threads");
+DEFINE_int32(num_io_threads, 1, "num IO threads");
+DEFINE_int32(buffer_limit, 1, "");
+DEFINE_int32(batch_limit, 1, "");
 
 int main(int argc, char *argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
@@ -24,7 +31,7 @@ int main(int argc, char *argv[]) {
   session_options.session_id = FLAGS_session_id;
   session_options.transform_config_path = hotbox::GetTestDir() +
     "/resource/" + FLAGS_transform_config;
-  session_options.output_store_type = hotbox::OutputStoreType::SPARSE;
+  session_options.output_store_type = hotbox::OutputStoreType::DENSE;
   hotbox::Session session = hb_client.CreateSession(session_options);
   CHECK(session.GetStatus().IsOk());
   hotbox::OSchema o_schema = session.GetOSchema();
@@ -35,13 +42,17 @@ int main(int argc, char *argv[]) {
                            << p.second;
   int i = 0;
   hotbox::Timer timer;
-  // Test move constructor of DataIterator.
-  int num_transform_threads = 10;
-  std::unique_ptr<hotbox::DataIteratorIf> it = session.NewDataIterator(0,
-      hotbox::kDataEnd, num_transform_threads);
+  int64_t num_data = session.GetNumData();
+  int64_t num_data_per_worker = num_data / FLAGS_num_workers;
+  int64_t data_begin = num_data_per_worker * FLAGS_worker_id;
+  int64_t data_end = FLAGS_worker_id == FLAGS_num_workers - 1 ?
+      num_data : data_begin + num_data_per_worker;
+  std::unique_ptr<hotbox::DataIteratorIf> it =
+    session.NewDataIterator(data_begin, data_end, FLAGS_num_threads,
+    FLAGS_num_io_threads, FLAGS_buffer_limit, FLAGS_batch_limit);
   for (; it->HasNext();) {
     hotbox::FlexiDatum datum = it->GetDatum();
-    LOG_IF(INFO, i < 2) << datum.ToString();
+    // LOG_IF(INFO, i < 2) << datum.ToString();
     i++;
   }
   LOG(INFO) << "Read " << i << " data. Time: " << timer.elapsed();

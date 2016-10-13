@@ -43,9 +43,36 @@ void TransDatum::ReadyTransform(const TransformOutputRange& output_range) {
 }
 
 void TransDatum::SetFeatureValRelativeOffset(BigInt relative_offset,
+    const std::vector<float>& vals) {
+  CHECK_LE(relative_offset + vals.size(), range_) << "relative_offset "
+    << relative_offset << " is bigger than range " << range_;
+  BigInt offset = relative_offset + offset_begin_;
+  if (store_type_ == FeatureStoreType::OUTPUT) {
+    if (output_store_type_ == OutputStoreType::DENSE) {
+      std::copy_n(vals.cbegin(), vals.size(),
+        dense_vals_.begin() + offset);
+    } else {
+      if (sparse_idx_.size() > 0) {
+        auto last_offset = sparse_idx_[sparse_idx_.size()-1];
+        CHECK_LT(last_offset, offset)
+          << "relative_offset needs to be added in ascending order. Last "
+          "offset: " << last_offset << ", curr_offset: " << offset;
+      }
+      for (int i = 0; i < vals.size(); ++i) {
+        sparse_idx_.push_back(offset + i);
+        sparse_vals_.push_back(vals[i]);
+      }
+    }
+    return;
+  }
+  LOG(FATAL) << "Storing vector to TransDatum internal storage is "
+    "not implemented yet. Set single value instead.";
+}
+
+void TransDatum::SetFeatureValRelativeOffset(BigInt relative_offset,
     float val) {
-  CHECK_LT(relative_offset, range_) << "relative_offset " << relative_offset
-    << " is bigger than range " << range_;
+  CHECK_LE(relative_offset, range_) << "relative_offset "
+    << relative_offset << " is bigger than range " << range_;
   BigInt offset = relative_offset + offset_begin_;
   if (store_type_ == FeatureStoreType::OUTPUT) {
     if (output_store_type_ == OutputStoreType::DENSE) {

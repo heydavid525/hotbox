@@ -57,7 +57,7 @@ message TransformConfig {
     LogitTransformConfig logit_transform = 5;
     ConstantTransformConfig constant_transform = 6;
     SelectTransformConfig select_transform = 7;
-    DnnTransformConfig dnn_transform = 8;
+    TfTransformConfig tf_transform = 8;
     KmeansTransformConfig kmeans_transform = 9;
   }
 }
@@ -126,10 +126,18 @@ message ConstantTransformConfig {
   float constant = 1;
 }
 
-message DnnTransformConfig {
-  string model_path = 1;
+// Tensorflow transforms.
+message TfTransformConfig {
+  // full path to the computation graph and weight (the checkpoint file).
+  string graph_path = 1;
   string weight_path = 2;
-  uint64 num_neurals = 3;
+
+  // Input tensor to the graph is [batch_size, input_dim]. input_dim is
+  // inferred from the input selection range.
+  //uint64 input_dim = 3;
+
+  // The variable names in Tensorflow that we want to fetch as output.
+  repeated string output_vars = 4;
 }
 
 message KmeansTransformConfig {
