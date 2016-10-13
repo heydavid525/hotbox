@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import sys
 import os
 import argparse
@@ -63,6 +64,14 @@ class TransformConfig:
     # Because SelectTransform is an empty field, use SetInParent() to set it.
     new_config.ngram_transform.SetInParent()
 
+  def add_tf(self, selector, graph_path, weight_path, output_vars,
+    output_family=None):
+    new_config = self.config_list.transform_configs.add()
+    new_config.base_config.input_features.append(selector)
+    new_config.tf_transform.graph_path = graph_path
+    new_config.tf_transform.weight_path = weight_path
+    new_config.tf_transform.output_vars.extend(output_vars)
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument("--output")
@@ -72,6 +81,7 @@ if __name__ == '__main__':
     sys.exit(1)
 
   config = TransformConfig()
+  """
   config.add_bucketize('3', [float('-inf'), 0, 1, 2, float('inf')],
       output_family='bucket1')
   config.add_constant(3.15)
@@ -83,6 +93,12 @@ if __name__ == '__main__':
   #AddSelectTransform(config_list, 'tmp_family2:*')
   config.add_onehot('customer:region', output_family='onehot-region')
   config.add_ngram('bucket1', 'onehot-region')
+  """
+  graph_path = '/users/wdai/hotbox/test/resource/tf_models/higgs.pb'
+  weight_path = '/users/wdai/hotbox/test/resource/tf_models/higgs-29'
+  config.add_tf('default:0-27', graph_path, weight_path, \
+    ['dnn/FullyConnected_2/Relu:0', 'dnn/FullyConnected_3/Relu:0'], \
+    output_family='dnn')
   config_list_str = text_format.MessageToString(config.config_list)
   with open(args.output, 'w') as f:
     f.write(config_list_str)

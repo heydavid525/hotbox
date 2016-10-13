@@ -51,10 +51,12 @@ void RegisterTransforms() {
       Creator<TransformIf, NgramTransform>);
   kConfigCaseToTransformName[TransformConfig::kNgramTransform]
     = "NgramTransform";
-  registry.AddCreator(TransformConfig::kDnnTransform,
-      Creator<TransformIf, DnnTransform>);
-  kConfigCaseToTransformName[TransformConfig::kDnnTransform]
-    = "DnnTransform";
+#ifdef USE_TF
+  registry.AddCreator(TransformConfig::kTfTransform,
+      Creator<TransformIf, TfTransform>);
+  kConfigCaseToTransformName[TransformConfig::kTfTransform]
+    = "TfTransform";
+#endif
   registry.AddCreator(TransformConfig::kKmeansTransform,
       Creator<TransformIf, KmeansTransform>);
   kConfigCaseToTransformName[TransformConfig::kKmeansTransform]

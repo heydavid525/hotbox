@@ -32,6 +32,9 @@ public:
   // to be added in ascending order.
   void SetFeatureValRelativeOffset(BigInt relative_offset, float val);
 
+  void SetFeatureValRelativeOffset(BigInt relative_offset,
+    const std::vector<float>& vals);
+
   // Get the output. Can only be called once.
   FlexiDatum GetFlexiDatum();
 
