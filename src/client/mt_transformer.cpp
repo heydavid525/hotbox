@@ -16,7 +16,8 @@ MTTransformer::MTTransformer(const SessionProto &session_proto,
                              int transform_task_limit,
                              int batch_limit) : session_proto_(session_proto),
   transforms_(transforms),
-  num_io_workers_(num_io_threads), num_tf_workers_(num_transform_threads),
+  num_io_workers_(std::min(num_io_threads, transform_task_limit)),
+  num_tf_workers_(std::min(num_transform_threads, batch_limit)),
   tf_limit_(transform_task_limit), bt_limit_(batch_limit),
   data_begin_(data_begin), data_end_(data_end),
   datum_ids_(session_proto_.file_map().datum_ids().cbegin(),
@@ -91,6 +92,8 @@ void MTTransformer::TransformTaskLoop() {
     if (tf_size_ < tf_limit_)
       io_wait_cv_.notify_one();
     DBAtom atom_proto = StreamDeserialize<DBAtom>(task.buffer);
+    task.buffer = "";
+    task.buffer.shrink_to_fit(); // free unused memory
     auto output_store_type = session_proto_.output_store_type();
     auto output_dim = session_proto_.output_dim();
     std::vector<FlexiDatum> *vec = new std::vector<FlexiDatum>(
