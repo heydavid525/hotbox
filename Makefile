@@ -73,7 +73,8 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
 	        -ldmlc \
 					-lpthread \
 	        -lrocksdb \
-          -lglog
+          -lglog \
+					-lfolly
 					# don't use tcmalloc in building shared library.
           #-ltcmalloc \
 					-lprofiler \
