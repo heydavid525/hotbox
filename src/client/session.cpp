@@ -65,7 +65,7 @@ std::unique_ptr<DataIteratorIf> Session::NewDataIterator(
   return std::unique_ptr<DataIterator>(new DataIterator(session_proto_,
         transforms_, data_begin, data_end, true,
         num_io_threads, num_transform_threads, buffer_limit,
-        batch_limit));
+        batch_limit, true));
 }
 
 Status Session::GetStatus() const {

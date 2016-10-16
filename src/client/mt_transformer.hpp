@@ -6,6 +6,7 @@
 #include <mutex>
 #include <queue>
 #include <atomic>
+#include <set>
 #include <condition_variable>
 #include "db/proto/db.pb.h"
 #include "metrics/metrics.hpp"
@@ -33,15 +34,19 @@ MTTransformer works as described below:
 
   // One task for one atom file.
   // Both IoTaskLoop and TransformTaskLoop use this structure.
+  // Used by IO, cache read, tranform, cache write queue
+  // TODO(dixiao): initialize Tasks and pass pointers among queues
   struct Task {
     int atom_id;
     BigInt datum_begin;  // datum range within atom file
     BigInt datum_end;
     std::string buffer;  // will be filled in IoTaskLoop
+    std::set<int> cached_ids; // transformations that are cached
+    std::unordered_map<int, std::string> cache_; // transformid -> cache in buffer
   };
 
-
 class MTTransformer {
+  friend class CacheManager;
  public:
   MTTransformer(const SessionProto &session_proto,
                 std::vector<std::function<
@@ -59,7 +64,7 @@ class MTTransformer {
   // NextBatch will take a batch from bt_queue_.
   // It will be blocked only if no batch is available
   // It will transfer the returned pointer's ownership to caller.
-  // It The calller is responsible to release it
+  // The calller is responsible to release it
   // It will return nullptr if HasNextBatch returns false
   std::vector<FlexiDatum> *NextBatch();
 
@@ -87,18 +92,26 @@ class MTTransformer {
   // each transform worker will run this function.
   void TransformTaskLoop(int);
 
+  void CacheReadLoop();
+  void CacheWriteLoop();
 
   const SessionProto &session_proto_;
 
   std::vector<std::thread> io_workers_;
   std::vector<std::thread> tf_workers_;
+  std::vector<std::thread> cache_read_workers_;
+  std::vector<std::thread> cache_write_workers_;
   std::vector<std::function<void(std::vector<TransDatum*>*)>> transforms_;
   
+  std::vector<Task> tasks_;
+  typedef int TaskId;
   // imagine blocking queue
   typedef int TaskId;
   std::unordered_map<TaskId, Task> tasks_;
   std::unique_ptr<folly::MPMCQueue<TaskId> > io_queue_;  // io files queue
+  std::unique_ptr<folly::MPMCQueue<TaskId> > cache_read_queue_;
   std::unique_ptr<folly::MPMCQueue<TaskId> > tf_queue_;  // buffer queue
+  std::unique_ptr<folly::MPMCQueue<TaskId> > cache_write_queue_;
   std::unique_ptr<folly::MPMCQueue<std::vector<FlexiDatum> *> > bt_queue_;  // batch queue
 
   // mutex
@@ -138,8 +151,10 @@ class MTTransformer {
   // set by Translate(), equals to # of total blocks within data range // decrease 1 when TransformTaskLoop pick up a transform task from tf_queue_
   std::atomic_int total_tf_tasks_;  // protected by tf_mtx_
 
+  // TODO(dixiao): improve worker: count ..
   const int num_io_workers_;
   const int num_tf_workers_;
+  int num_cache_workers_;
 
   // transform task queue size limit, used for io speed control
   const int tf_limit_;
