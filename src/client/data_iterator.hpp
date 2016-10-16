@@ -54,7 +54,7 @@ private:
     std::vector<std::function<void(std::vector<TransDatum*>*)>> transforms,
     size_t data_begin, size_t data_end, bool use_multi_threads,
     int32_t num_io_threads, int32_t num_transform_threads,
-    size_t buffer_limit, size_t batch_limit);
+    size_t buffer_limit, size_t batch_limit, bool use_cache = false);
 
   // Read an atom file and perform transform.
   void ReadAtomAndTransform(int atom_id);
@@ -75,6 +75,7 @@ private:
   std::vector<int64_t> datum_ids_;
 
   bool use_multi_threads_;
+  bool use_cache_;
 
   std::unique_ptr<MTTransformer> mtt_engine_;
 

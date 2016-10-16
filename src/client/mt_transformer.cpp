@@ -28,6 +28,7 @@ MTTransformer::MTTransformer(const SessionProto &session_proto,
   // Last atom file range ends with num_data.
   datum_ids_.push_back(session_proto_.file_map().num_data());
 
+  num_cache_workers_ = num_io_workers_/2+1;
   Start();
 }
 
@@ -45,6 +46,7 @@ void MTTransformer::IoTaskLoop() {
       break;
     }
     io_queue_->blockingRead(taskid);
+
     auto& task = tasks_[taskid];
 
     std::string path = session_proto_.file_map().atom_path()
@@ -54,9 +56,24 @@ void MTTransformer::IoTaskLoop() {
     task.buffer = std::move(io::ReadCompressedFile(
                               path, Compressor::NO_COMPRESS));
 
-    tf_queue_->blockingWrite(taskid);
+    cache_read_queue_->blockingWrite(taskid);
   }
   // LOG(INFO) << "IoTaskLoop " << std::this_thread::get_id() << " ends...";
+}
+
+// read cache and pass to tf
+void MTTransformer::CacheReadLoop() {
+  while (true) {
+    TaskId taskid;
+    if (stop_flag_ || total_tf_tasks_ <= 0)
+      break;
+    cache_read_queue_->blockingRead(taskid);
+    if (taskid == -1) break; // sentinel task for termination
+
+    auto& task = tasks_[taskid];
+
+    tf_queue_->blockingWrite(taskid);
+  }
 }
 
 // tid: transformer id
@@ -146,10 +163,23 @@ void MTTransformer::TransformTaskLoop(int tid) {
       }
     }
 
-    // push vec to bt_queue
+    cache_write_queue_->blockingWrite(taskid);
     bt_queue_->blockingWrite(vec);
   }
   // LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id() << " ends...";
+}
+
+// write cache out and pass output to bt_queue_
+void MTTransformer::CacheWriteLoop() {
+  while (true) {
+    TaskId taskid;
+    if (stop_flag_)
+      break;
+    cache_write_queue_->blockingRead(taskid);
+    if (taskid == -1) break; // sentinel task for termination
+
+    auto& task = tasks_[taskid];
+  }
 }
 
 void MTTransformer::Destory() {
@@ -157,16 +187,32 @@ void MTTransformer::Destory() {
   stop_flag_ = true;
 
   // notify all workers to check stop flag and exit
+  for (int i = 0; i < num_cache_workers_; i++) {
+    cache_read_queue_->blockingWrite(-1);
+  }
   for (int i = 0; i < num_tf_workers_; i++) {
     tf_queue_->blockingWrite(-1);
   }
-  
+  for (int i = 0; i < num_cache_workers_; i++) {
+    cache_write_queue_->blockingWrite(-1);
+  }
+
   for (auto &worker : io_workers_) {
     if (worker.joinable())
       worker.join();
   }
 
+  for (auto &worker : cache_read_workers_) {
+    if (worker.joinable())
+      worker.join();
+  }
+  
   for (auto &worker : tf_workers_) {
+    if (worker.joinable())
+      worker.join();
+  }
+
+  for (auto &worker : cache_write_workers_) {
     if (worker.joinable())
       worker.join();
   }
@@ -209,6 +255,9 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
   io_queue_ = make_unique<folly::MPMCQueue<TaskId> >(high-low);
   tf_queue_ = make_unique<folly::MPMCQueue<TaskId> >(tf_limit_);  // buffer queue
   bt_queue_ = make_unique<folly::MPMCQueue<std::vector<FlexiDatum> *> >(bt_limit_);  // batch queue
+  cache_read_queue_ = make_unique<folly::MPMCQueue<TaskId> >(num_io_workers_);
+  cache_write_queue_ = make_unique<folly::MPMCQueue<TaskId> >(tf_limit_);
+
 
   for (int atom_id = low; atom_id < high; atom_id++) {
     tasks_[atom_id].datum_begin = std::max(data_begin, (size_t)datum_ids_[atom_id])
@@ -224,14 +273,23 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
 
 
 void MTTransformer::Start() {
-  // translate data range into io tasks
-  Translate(data_begin_, data_end_);
   // metrics
   metrics_.resize(num_tf_workers_, TransStats(transforms_.size()));
+  // translate data range into io tasks
+  Translate(data_begin_, data_end_);
 
   for (int i = 0; i < num_io_workers_; i++) {
     io_workers_.push_back(std::thread([this]() {
       this->IoTaskLoop();
+    }));
+  }
+
+  for (int i = 0; i < num_cache_workers_; i++) {
+    cache_read_workers_.push_back(std::thread([this]() {
+      this->CacheReadLoop();
+    }));
+    cache_write_workers_.push_back(std::thread([this]() {
+      this->CacheWriteLoop();
     }));
   }
 
