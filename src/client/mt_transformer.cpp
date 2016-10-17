@@ -25,12 +25,19 @@ MTTransformer::MTTransformer(const SessionProto &session_proto,
              session_proto_.file_map().datum_ids().cend()) {
   // Last atom file range ends with num_data.
   datum_ids_.push_back(session_proto_.file_map().num_data());
+
+  io_queue_ = new folly::MPMCQueue<Task,std::atomic,true>(8);
+  tf_queue_ = new folly::MPMCQueue<Task>(tf_limit_);  // buffer queue
+  bt_queue_ = new folly::MPMCQueue<std::vector<FlexiDatum> *>(bt_limit_);  // batch queue
   Start();
 }
 
 
 MTTransformer::~MTTransformer() {
   Destory();
+  delete io_queue_;
+  delete tf_queue_;
+  delete bt_queue_;
 }
 
 void MTTransformer::IoTaskLoop() {
@@ -38,34 +45,17 @@ void MTTransformer::IoTaskLoop() {
   while (true) {
     Task task;
     // get atom_id from io_queue
-    {
-      std::lock_guard<std::mutex> lock(io_mtx_);
-      if (io_queue_.empty() || stop_flag_) {
-        break;
-      }
-      task = std::move(io_queue_.front());
-      io_queue_.pop();
+    if (io_queue_->isEmpty() || stop_flag_) {
+      break;
     }
+    io_queue_->blockingRead(task);
+
     std::string path = session_proto_.file_map().atom_path()
                               + std::to_string(task.atom_id);
     task.buffer = std::move(io::ReadCompressedFile(
                               path, session_proto_.compressor()));
 
-    {
-      std::lock_guard<std::mutex> lock(tf_mtx_);
-      tf_queue_.push(std::move(task));
-      tf_size_++;
-    }
-    tf_cv_.notify_all();
-    {
-      // speed limit
-      std::unique_lock<std::mutex> lock(io_wait_mtx_);
-      io_wait_cv_.wait(lock, [this]() {
-        return stop_flag_ || (tf_size_ < tf_limit_);
-      });
-      if (stop_flag_)
-        break;
-    }
+    tf_queue_->blockingWrite(std::move(task));
   }
   // LOG(INFO) << "IoTaskLoop " << std::this_thread::get_id() << " ends...";
 }
@@ -76,23 +66,12 @@ void MTTransformer::TransformTaskLoop(int tid) {
   while (true) {
     Task task;
     // get content buffer from bf_queue
-    {
-      std::unique_lock<std::mutex> lock(tf_mtx_);
-      if (stop_flag_ || total_tf_tasks_ <= 0)
-        break;
-      tf_cv_.wait(lock, [this]() {
-        return stop_flag_ || tf_queue_.size();
-      });
-      if (stop_flag_)
-        break;
-      task = std::move(tf_queue_.front());
-      tf_queue_.pop();
-      tf_size_--;
-      total_tf_tasks_--;
-      lock.unlock();
-    }
-    if (tf_size_ < tf_limit_)
-      io_wait_cv_.notify_one();
+    if (stop_flag_ || total_tf_tasks_ <= 0)
+      break;
+    tf_queue_->blockingRead(task);
+    --total_tf_tasks_;
+    if (task.atom_id == -1) break; // sentinel task for termination
+
     DBAtom atom_proto = StreamDeserialize<DBAtom>(task.buffer);
     auto output_store_type = session_proto_.output_store_type();
     auto output_dim = session_proto_.output_dim();
@@ -142,23 +121,7 @@ void MTTransformer::TransformTaskLoop(int tid) {
     }
 
     // push vec to bt_queue
-    {
-      std::lock_guard<std::mutex> lock(bt_mtx_);
-      bt_queue_.push(vec);
-      bt_size_++;
-    }
-    bt_cv_.notify_one();
-
-    // speed limit
-    {
-      std::unique_lock<std::mutex> lock(tf_wait_mtx_);
-      tf_wait_cv_.wait(lock, [this]() {
-        return stop_flag_ || (bt_size_ < bt_limit_);
-      });
-      lock.unlock();
-      if (stop_flag_)
-        break;
-    }
+    bt_queue_->blockingWrite(vec);
   }
   // LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id() << " ends...";
 }
@@ -168,10 +131,12 @@ void MTTransformer::Destory() {
   stop_flag_ = true;
 
   // notify all workers to check stop flag and exit
-  tf_cv_.notify_all();
-  io_wait_cv_.notify_all();
-  bt_cv_.notify_all();
-  tf_wait_cv_.notify_all();
+  for (int i = 0; i < num_tf_workers_; i++) {
+    Task task;
+    task.atom_id = -1;
+    tf_queue_->blockingWrite(std::move(task));
+  }
+  
   for (auto &worker : io_workers_) {
     if (worker.joinable())
       worker.join();
@@ -183,13 +148,10 @@ void MTTransformer::Destory() {
   }
 
   // delete any held pointers
-  {
-    std::lock_guard<std::mutex> lock{bt_mtx_};
-    while (bt_queue_.size()) {
-      auto batch = bt_queue_.front();
-      bt_queue_.pop();
-      delete batch;
-    }
+  while (!bt_queue_->isEmpty()) {
+    std::vector<FlexiDatum> * batch;
+    bt_queue_->blockingRead(batch);
+    delete batch;
   }
   LOG(INFO) << "MTTransform finished. Bye!";
 }
@@ -199,20 +161,12 @@ std::vector<FlexiDatum> *MTTransformer::NextBatch() {
     return nullptr;
   }
   std::vector<FlexiDatum> *vec = nullptr;
-  std::unique_lock<std::mutex> lock(bt_mtx_);
-  bt_cv_.wait(lock, [this]() {
-    return bt_size_ > 0;
-  });
-  vec = bt_queue_.front();
-  bt_queue_.pop();
+  bt_queue_->blockingRead(vec);
   ///
   // for (int i = 0; i < vec->size(); ++i) {
   //   LOG(INFO) << (*vec)[i].ToString();
   // }
   total_batches_--;
-  bt_size_--;
-  lock.unlock();
-  tf_wait_cv_.notify_one();
   return vec;
 }
 
@@ -233,11 +187,11 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
                       - datum_ids_[atom_id];
     task.datum_end = std::min(data_end, (size_t)datum_ids_[atom_id + 1])
                       - datum_ids_[atom_id];
-    io_queue_.push(std::move(task));
+    io_queue_->blockingWrite(std::move(task));
   }
 
-  total_tf_tasks_ = io_queue_.size();
-  total_batches_ = io_queue_.size();
+  total_tf_tasks_ = io_queue_->size();
+  total_batches_ = io_queue_->size();
 }
 
 
@@ -247,8 +201,6 @@ void MTTransformer::Start() {
   // metrics
   metrics_.resize(num_tf_workers_, TransStats(transforms_.size()));
 
-  bt_size_ = 0;
-  tf_size_ = 0;
   for (int i = 0; i < num_io_workers_; i++) {
     io_workers_.push_back(std::thread([this]() {
       this->IoTaskLoop();

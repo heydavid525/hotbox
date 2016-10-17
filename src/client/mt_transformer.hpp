@@ -10,6 +10,7 @@
 #include "db/proto/db.pb.h"
 #include "metrics/metrics.hpp"
 #include "schema/all.hpp"
+#include "folly/MPMCQueue.h"
 
 namespace hotbox {
 /*
@@ -29,6 +30,16 @@ MTTransformer works as described below:
  *    data range, such datums will be abandoned before transforming.
  *
  */
+
+  // One task for one atom file.
+  // Both IoTaskLoop and TransformTaskLoop use this structure.
+  struct Task {
+    int atom_id;
+    BigInt datum_begin;  // datum range within atom file
+    BigInt datum_end;
+    std::string buffer;  // will be filled in IoTaskLoop
+  };
+
 
 class MTTransformer {
  public:
@@ -57,15 +68,6 @@ class MTTransformer {
   std::unique_ptr<TransStats> GetMetrics();
   
  private:
-  // One task for one atom file.
-  // Both IoTaskLoop and TransformTaskLoop use this structure.
-  struct Task {
-    int atom_id;
-    BigInt datum_begin;  // datum range within atom file
-    BigInt datum_end;
-    std::string buffer;  // will be filled in IoTaskLoop
-  };
-
   // It will translate data range into io tasks and push them to io_queue_.
   void Translate(size_t data_begin, size_t data_end);
 
@@ -92,41 +94,11 @@ class MTTransformer {
   std::vector<std::function<void(TransDatum *)>> transforms_;
   
   // imagine blocking queue
-  std::queue<Task> io_queue_;  // io files queue
-  std::queue<Task> tf_queue_;  // buffer queue
-  std::queue<std::vector<FlexiDatum> *> bt_queue_;  // batch queue
+  folly::MPMCQueue<Task,std::atomic,true>* io_queue_;  // io files queue
+  folly::MPMCQueue<Task>* tf_queue_;  // buffer queue
+  folly::MPMCQueue<std::vector<FlexiDatum> *>* bt_queue_;  // batch queue
 
   // mutex
-  std::mutex io_mtx_;  // io queue mutex
-  std::mutex tf_mtx_;  // transform queue mutex
-  std::mutex bt_mtx_;  // batch queue mutex
-
-  // if tf_queue_ is empty, TransformTaskLoop will wait on this
-  // if IoTaskLoop pushes tasks to tf_queue_, it will call notify_all to wake up
-  // all TransformTaskLoop.
-  std::condition_variable tf_cv_;  // transform cv
-
-  // if tf_queue_ is empty, NextBatch will wait on this
-  // when TransformTaskLoop push a batch to bt_queue_, it will call noity once
-  // so that NextBatch will wake up and return a batch taken from bt_queue.
-  std::condition_variable bt_cv_;  // batch cv
-
-  // used for io speed limit, simulate Semaphore
-  // IoTaskLoop will use it for io speep limit
-  // if tf_size_ >= tf_limit_, then it will wait until be notified by Destory()
-  // or TransformTaskLoop()
-  // TransformTaskLoop() will call notify_one if it finds bf_size_ < bf_limit
-  std::mutex io_wait_mtx_;
-  std::condition_variable io_wait_cv_;
-
-  // used for transform speed limit, simulate Semaphore
-  // TransformTaskLoop will use it for transform speed limit
-  // if bt_size_ >= bf_limit_, then it will wait until be notified by Destory()
-  // or NextBatch()
-  // NextBatch() will call notify_one if it finds bt_size_ < bt_limit
-  std::mutex tf_wait_mtx_;
-  std::condition_variable tf_wait_cv_;
-
   // IoTaskLoop and TransformTaskLoop will check stop_flag_
   // whether it should stop or not
   std::atomic_bool stop_flag_{false};
@@ -160,19 +132,8 @@ class MTTransformer {
   // TransformTaskLoop to see if there is any TfTasks in tf_queue or to be
   // generated.
   //
-  // set by Translate(), equals to # of total blocks within data range
-  // decrease 1 when TransformTaskLoop pick up a transform task from tf_queue_
+  // set by Translate(), equals to # of total blocks within data range // decrease 1 when TransformTaskLoop pick up a transform task from tf_queue_
   std::atomic_int total_tf_tasks_;  // protected by tf_mtx_
-
-  // current size of transform task queue, always equals tf_queue_.size()
-  // increase when pushing tasks to tf_queue_
-  // decrease when poping tasks from tf_queue_
-  std::atomic_int tf_size_;
-
-  // current size of transform task queue, always equals tf_queue_.size()
-  // increase when pushing tasks to bt_queue_
-  // decrease when poping tasks from bt_queue_
-  std::atomic_int bt_size_;
 
   const int num_io_workers_;
   const int num_tf_workers_;
