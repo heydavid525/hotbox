@@ -39,7 +39,8 @@ CXXFLAGS += -O2 \
            -fno-builtin-realloc \
            -fno-builtin-free \
            -fno-omit-frame-pointer \
-					 -DDMLC_USE_GLOG
+					 -DDMLC_USE_GLOG \
+					 -g
 					 #-DUSE_ROCKS
 
 THIRD_PARTY_SRC = $(THIRD_PARTY)/src
