@@ -129,6 +129,7 @@ void MTTransformer::TransformTaskLoop(int tid) {
         data_batch[j] = new TransDatum(datum_base, session_proto_.label(),
                         session_proto_.weight(), output_store_type, output_dim,
                         ranges);
+        task.datum_bases[offset+j] = datum_base; // global datum idx for this atom
       }
 
       BigInt output_counter_old = 0;
@@ -179,6 +180,53 @@ void MTTransformer::CacheWriteLoop() {
     if (taskid == -1) break; // sentinel task for termination
 
     auto& task = tasks_[taskid];
+    DLOG(INFO) << "Caching for atom" << taskid;
+
+    //for (auto& it_tid : task.trans_tocache) {
+    for (int it_tid = 0; it_tid < transforms_.size(); ++it_tid) {
+      auto& range = session_proto_.transform_output_ranges(it_tid);
+      // TODO(dixiao): currently only support dense type because it's easier to
+      // find the data range in store
+      auto type = range.store_type();
+      if (type == FeatureStoreType::SPARSE_CAT 
+          || type == FeatureStoreType::SPARSE_NUM)
+        continue;
+      auto begin = range.store_offset_begin();
+      auto end = range.store_offset_end();
+      auto len = end - begin + 1;
+
+      auto atom = new DBAtom();
+      for (auto& it_datum : task.datum_bases) {
+        auto datum = new DatumProto();
+
+        // TODO(dixiao): try to copy by range?
+        if (type == FeatureStoreType::DENSE_CAT) {
+          datum->mutable_dense_cat_store()->Resize(len, 0);
+          auto src =
+            it_datum->GetDatumProto().dense_cat_store().data();
+          auto dst = datum->mutable_dense_cat_store()->mutable_data();
+          memcpy(dst, src+begin, sizeof(long long) * len);
+        } else if (type == FeatureStoreType::DENSE_NUM) {
+          datum->mutable_dense_num_store()->Resize(len, 0.);
+          auto src =
+            it_datum->GetDatumProto().dense_num_store().data();
+          auto dst = datum->mutable_dense_num_store()->mutable_data();
+          memcpy(dst, src+begin, sizeof(float) * len);
+        }
+        atom->mutable_datum_protos()->AddAllocated(datum);
+      }
+
+      size_t uncompressed_size = 0;
+      std::string compressed_atom = StreamSerialize(*atom, &uncompressed_size);
+      io::WriteCompressedFile(getCachePath(task.atom_id, it_tid),
+          compressed_atom);
+      LOG(INFO) << "Wrote to atom " << task.atom_id << 
+        " for caching transform " << it_tid << " size: " <<
+        SizeToReadableString(compressed_atom.size());
+      delete atom;
+      // TODO: manage datum_base
+      //delete it_datum->GetDatumProto();
+    }
   }
 }
 
@@ -258,7 +306,6 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
   cache_read_queue_ = make_unique<folly::MPMCQueue<TaskId> >(num_io_workers_);
   cache_write_queue_ = make_unique<folly::MPMCQueue<TaskId> >(tf_limit_);
 
-
   for (int atom_id = low; atom_id < high; atom_id++) {
     tasks_[atom_id].datum_begin = std::max(data_begin, (size_t)datum_ids_[atom_id])
                       - datum_ids_[atom_id];
@@ -314,6 +361,11 @@ std::unique_ptr<TransStats> MTTransformer::GetMetrics() {
     }
   }
   return ret;
+}
+
+std::string MTTransformer::getCachePath(int atomid, int transformid) {
+  return session_proto_.file_map().atom_path() + std::to_string(atomid) + "."
+    + std::to_string(transformid); 
 }
 
 }  // namespace hotbox
