@@ -52,9 +52,11 @@ TfSession::TfSession(const TfSessionConfig& config) :
   // Add the graph to the session
   status = session_->Create(graph_def);
   CheckStatus(status);
+  LOG(INFO) << "Graph loaded";
+  LOG(INFO) << "Loading variables weights from " << config.weight_path;
   status = TfRestore(config.weight_path, session_.get());
   CheckStatus(status);
-  LOG(INFO) << "Variable loaded\n";
+  LOG(INFO) << "Variable loaded";
 
   // Figure out output dim.
   Tensor X(tensorflow::DT_FLOAT, TensorShape({1, input_dim_}));
