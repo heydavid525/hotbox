@@ -41,8 +41,10 @@ MTTransformer works as described below:
     BigInt datum_begin;  // datum range within atom file
     BigInt datum_end;
     std::string buffer;  // will be filled in IoTaskLoop
-    std::set<int> cached_ids; // transformations that are cached
-    std::unordered_map<int, std::string> cache_; // transformid -> cache in buffer
+    std::set<int> trans_cached; // transformations that are cached
+    std::set<int> trans_tocache; // transformations that need to be cached
+    std::vector<DatumBase*> datum_bases; // datum bases for caching out
+    std::unordered_map<int, std::string> cache; // transformid -> cache in buffer
   };
 
 class MTTransformer {
@@ -95,6 +97,8 @@ class MTTransformer {
   void CacheReadLoop();
   void CacheWriteLoop();
 
+  std::string getCachePath(int atomid, int transformid);
+
   const SessionProto &session_proto_;
 
   std::vector<std::thread> io_workers_;
@@ -103,7 +107,7 @@ class MTTransformer {
   std::vector<std::thread> cache_write_workers_;
   std::vector<std::function<void(std::vector<TransDatum*>*)>> transforms_;
   
-  std::vector<Task> tasks_;
+  std::unordered_map<int, Task> tasks_;
   typedef int TaskId;
   // imagine blocking queue
   typedef int TaskId;
