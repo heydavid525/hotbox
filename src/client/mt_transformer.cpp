@@ -72,6 +72,16 @@ void MTTransformer::CacheReadLoop() {
 
     auto& task = tasks_[taskid];
 
+    DLOG(INFO) << "Caching in for atom " << taskid << " start.";
+
+    //for (auto& it_tid : task.trans_cached) {
+    for (int it_tid = 0; it_tid < transforms_.size(); ++it_tid) {
+      DLOG(INFO) << "Caching in for atom " << taskid << " transform " << it_tid;
+      task.cache[it_tid] = std::move(io::ReadCompressedFile(
+            getCachePath(task.atom_id, it_tid),
+            session_proto_.compressor()));
+    }
+
     tf_queue_->blockingWrite(taskid);
   }
 }
@@ -231,6 +241,7 @@ void MTTransformer::CacheWriteLoop() {
 }
 
 void MTTransformer::Destory() {
+  LOG(INFO) << "Tearing down MTTransformer!";
   // set stop flag
   stop_flag_ = true;
 
