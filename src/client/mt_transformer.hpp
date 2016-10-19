@@ -107,8 +107,6 @@ class MTTransformer {
   std::vector<std::thread> cache_write_workers_;
   std::vector<std::function<void(std::vector<TransDatum*>*)>> transforms_;
   
-  std::unordered_map<int, Task> tasks_;
-  typedef int TaskId;
   // imagine blocking queue
   typedef int TaskId;
   std::unordered_map<TaskId, Task> tasks_;

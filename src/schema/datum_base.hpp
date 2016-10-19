@@ -66,6 +66,9 @@ public:
     return *proto_;
   }
 
+  DatumProto& GetMutableDatumProto() const {
+    return *proto_;
+  }
 private:
   // Verify that sparse idx in proto_ are in ascending order. Turn off in
   // production.

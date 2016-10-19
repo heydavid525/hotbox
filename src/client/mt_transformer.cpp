@@ -74,6 +74,7 @@ void MTTransformer::CacheReadLoop() {
 
     DLOG(INFO) << "Caching in for atom " << taskid << " start.";
 
+    // TODO(dixiao): replace with controlled set by transform_cached
     //for (auto& it_tid : task.trans_cached) {
     for (int it_tid = 0; it_tid < transforms_.size(); ++it_tid) {
       DLOG(INFO) << "Caching in for atom " << taskid << " transform " << it_tid;
@@ -110,6 +111,15 @@ void MTTransformer::TransformTaskLoop(int tid) {
     std::vector<FlexiDatum> *vec = new std::vector<FlexiDatum>(
       task.datum_end - task.datum_begin);
 
+    // caching in and deserialize
+    // the following transformation is done on per datum basis
+    std::unordered_map<int, DBAtom> caches;
+    for (auto &t : task.trans_cached) {
+      caches[t] = StreamDeserialize<DBAtom>(task.cache[t]);
+    }
+    // caching: prepare datum_bases
+    task.datum_bases.resize(atom_proto.datum_protos_size());
+
     // Collect transform ranges to std::vector
     std::vector<TransformOutputRange> ranges(transforms_.size());
     for (int i = 0; i < transforms_.size(); ++i) {
@@ -144,10 +154,42 @@ void MTTransformer::TransformTaskLoop(int tid) {
 
       BigInt output_counter_old = 0;
       for (int t = 0; t < transforms_.size(); ++t) {
+        // TODO(dixiao): collect stats reusing cache
+        // skip transformation if constructed from cache
+        if (true) {
+        //if (task.trans_cached.find(t) != task.trans_cached.end()) {
+          for (int i = offset; i < offset + num_items; ++i) {
+            DLOG(INFO) << "Rebuilding from cache for atom " << taskid << " datum " << i << " transform " << t;
+            auto& cache = caches[t]; // cached atom for the transformation
+            auto& range = session_proto_.transform_output_ranges(t);
+            auto type = range.store_type();
+            auto begin = range.store_offset_begin();
+            auto end = range.store_offset_end();
+            auto len = end - begin + 1;
+            // note: sharing to get the datum_bases reference
+            auto datum_base = task.datum_bases[i];
+            // the target store has already reserved space for storage
+            if (type == FeatureStoreType::DENSE_CAT) {
+              auto src =
+                cache.mutable_datum_protos(i)->dense_cat_store().data();
+              auto dst =
+                datum_base->GetMutableDatumProto().mutable_dense_cat_store()->mutable_data();
+              memcpy(dst+begin, src, sizeof(long long) * len);
+            } else if (type == FeatureStoreType::DENSE_NUM) {
+              auto src =
+                cache.mutable_datum_protos(i)->dense_num_store().data();
+              auto dst =
+                datum_base->GetMutableDatumProto().mutable_dense_num_store()->mutable_data();
+              memcpy(dst+begin, src, sizeof(float) * len);
+            }
+          }
+          continue;
+        }
         for (int j = 0; j < num_items; ++j) {
           data_batch[j]->ReadyTransform(
             session_proto_.transform_output_ranges(t));
         }
+        // collect time (cput time) + size for the transformation
         std::clock_t c_start = std::clock();
         transforms_[t](&data_batch);
         std::clock_t c_end = std::clock();
@@ -192,6 +234,7 @@ void MTTransformer::CacheWriteLoop() {
     auto& task = tasks_[taskid];
     DLOG(INFO) << "Caching for atom" << taskid;
 
+    // TODO(dixiao): replace with controlled set by transform_tocache
     //for (auto& it_tid : task.trans_tocache) {
     for (int it_tid = 0; it_tid < transforms_.size(); ++it_tid) {
       auto& range = session_proto_.transform_output_ranges(it_tid);
