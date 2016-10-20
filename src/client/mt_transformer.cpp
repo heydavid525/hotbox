@@ -74,14 +74,14 @@ void MTTransformer::CacheReadLoop() {
 
     DLOG(INFO) << "Caching in for atom " << taskid << " start.";
 
-    // TODO(dixiao): replace with controlled set by transform_cached
-    //for (auto& it_tid : task.trans_cached) {
-    for (int it_tid = 0; it_tid < transforms_.size(); ++it_tid) {
+    for (auto& it_tid : task.trans_cached) {
       DLOG(INFO) << "Caching in for atom " << taskid << " transform " << it_tid;
       task.cache[it_tid] = std::move(io::ReadCompressedFile(
             getCachePath(task.atom_id, it_tid),
             session_proto_.compressor()));
     }
+
+    DLOG(INFO) << "Caching in for atom " << taskid << " end.";
 
     tf_queue_->blockingWrite(taskid);
   }
@@ -232,21 +232,17 @@ void MTTransformer::CacheWriteLoop() {
     if (taskid == -1) break; // sentinel task for termination
 
     auto& task = tasks_[taskid];
-    DLOG(INFO) << "Caching for atom" << taskid;
+    DLOG(INFO) << "Caching out for atom " << taskid << " start.";
 
-    // TODO(dixiao): replace with controlled set by transform_tocache
-    //for (auto& it_tid : task.trans_tocache) {
-    for (int it_tid = 0; it_tid < transforms_.size(); ++it_tid) {
+    for (auto& it_tid : task.trans_tocache) {
+      DLOG(INFO) << "Caching out transform " << it_tid;
       auto& range = session_proto_.transform_output_ranges(it_tid);
       // TODO(dixiao): currently only support dense type because it's easier to
       // find the data range in store
       auto type = range.store_type();
-      if (type == FeatureStoreType::SPARSE_CAT 
-          || type == FeatureStoreType::SPARSE_NUM)
-        continue;
       auto begin = range.store_offset_begin();
       auto end = range.store_offset_end();
-      auto len = end - begin + 1;
+      auto len = end - begin;
 
       auto atom = new DBAtom();
       for (auto& it_datum : task.datum_bases) {
@@ -280,6 +276,7 @@ void MTTransformer::CacheWriteLoop() {
       // TODO: manage datum_base
       //delete it_datum->GetDatumProto();
     }
+    DLOG(INFO) << "Caching out for atom " << taskid << " end.";
   }
 }
 
@@ -360,11 +357,28 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
   cache_read_queue_ = make_unique<folly::MPMCQueue<TaskId> >(num_io_workers_);
   cache_write_queue_ = make_unique<folly::MPMCQueue<TaskId> >(tf_limit_);
 
+  // TODO(dixiao): caching control logic prototype
+  // the final control logic should come from db server
+  // we can do atom level control since the pipeline is processing by atoms
+  //
+  // we cache intermediate result and not output result,
+  // support dense but not yet sparse
+  std::set<int> cache_set;
+  for (int t = 0; t < transforms_.size(); ++t) {
+      auto& range = session_proto_.transform_output_ranges(t);
+      auto type = range.store_type();
+      if (type == FeatureStoreType::DENSE_CAT || type == FeatureStoreType::DENSE_NUM) {
+        cache_set.insert(t);
+      }
+  }
+
   for (int atom_id = low; atom_id < high; atom_id++) {
     tasks_[atom_id].datum_begin = std::max(data_begin, (size_t)datum_ids_[atom_id])
                       - datum_ids_[atom_id];
     tasks_[atom_id].datum_end = std::min(data_end, (size_t)datum_ids_[atom_id + 1])
                       - datum_ids_[atom_id];
+    tasks_[atom_id].trans_tocache = cache_set;
+    //tasks_[atom_id].trans_cached = cache_set;
     io_queue_->blockingWrite(atom_id);
   }
 
