@@ -71,8 +71,9 @@ void TransDatum::SetFeatureValRelativeOffset(BigInt relative_offset,
 
 void TransDatum::SetFeatureValRelativeOffset(BigInt relative_offset,
     float val) {
-  CHECK_LE(relative_offset, range_) << "relative_offset "
-    << relative_offset << " is bigger than range " << range_;
+  CHECK_LT(relative_offset, range_) << "relative_offset " << relative_offset
+    << " is bigger than range " << range_;
+  ++output_counter_;
   BigInt offset = relative_offset + offset_begin_;
   if (store_type_ == FeatureStoreType::OUTPUT) {
     if (output_store_type_ == OutputStoreType::DENSE) {
@@ -87,7 +88,6 @@ void TransDatum::SetFeatureValRelativeOffset(BigInt relative_offset,
       sparse_idx_.push_back(offset);
       sparse_vals_.push_back(val);
     }
-    ++output_counter_;
     return;
   }
   // Internal stores.
