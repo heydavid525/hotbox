@@ -29,7 +29,7 @@ clean:
 .PHONY: all path clean
 
 CXX = g++
-CXXFLAGS += -O2 \
+CXXFLAGS += \
            -std=c++11 \
            -Wall \
 					 -fPIC \
@@ -40,8 +40,14 @@ CXXFLAGS += -O2 \
            -fno-builtin-free \
            -fno-omit-frame-pointer \
 					 -DDMLC_USE_GLOG \
-					 -g
 					 #-DUSE_ROCKS
+
+DEBUG ?= 1
+ifeq ($(DEBUG), 1)
+  CXXFLAGS += -g -DDEBUG
+else
+  CXXFLAGS += -O2
+endif
 
 THIRD_PARTY_SRC = $(THIRD_PARTY)/src
 THIRD_PARTY_INCLUDE = $(THIRD_PARTY)/include
