@@ -4,7 +4,7 @@
 
 namespace hotbox {
 
-TransDatum::TransDatum(DatumBase* base, const Feature& label, const Feature& weight,
+TransDatum::TransDatum(std::shared_ptr<DatumBase> base, const Feature& label, const Feature& weight,
     OutputStoreType output_store_type, BigInt output_dim,
     const std::vector<TransformOutputRange>& ranges) : base_(base),
   label_(label), weight_(weight),

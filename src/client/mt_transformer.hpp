@@ -43,7 +43,7 @@ MTTransformer works as described below:
     std::string buffer;  // will be filled in IoTaskLoop
     std::set<int> trans_cached; // transformations that are cached
     std::set<int> trans_tocache; // transformations that need to be cached
-    std::vector<DatumBase*> datum_bases; // datum bases for caching out
+    std::vector<std::shared_ptr<DatumBase>> datum_bases; // datum bases for caching out
     std::unordered_map<int, std::string> cache; // transformid -> cache in buffer
   };
 

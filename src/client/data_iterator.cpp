@@ -70,7 +70,7 @@ void DataIterator::ReadAtomAndTransform(int atom_id) {
   // Start from the last datum because protobuf only has
   // ReleaseLast().
   for (int i = atom_proto.datum_protos_size() - 1; i >= 0; --i) {
-    DatumBase* datum_base = new DatumBase(
+    auto datum_base = std::make_shared<DatumBase>(
         atom_proto.mutable_datum_protos()->ReleaseLast());
     /*
     // TODO(wdai): use batch transform.
