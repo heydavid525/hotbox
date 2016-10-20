@@ -48,12 +48,10 @@ THIRD_PARTY_LIB = $(THIRD_PARTY)/lib
 THIRD_PARTY_BIN = $(THIRD_PARTY)/bin
 
 INCFLAGS =  -I$(SRC_DIR) -I$(THIRD_PARTY_INCLUDE)
-ifeq ($(USE_TF), 1)
-INCFLAGS += -I$(TF_INC) 
-endif
 INCFLAGS += -Ibuild/ # include generated *pb.h
 INCFLAGS += -I$(JAVA_HOME)/include # include java for HDFS/DMLC access
 INCFLAGS += $(HDFS_INCFLAGS)
+INCFLAGS += $(TF_INCFLAGS) 
 INCFLAGS += -I$(PYTHON_INCLUDE)
 
 LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
@@ -61,6 +59,7 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
 					-Wl,-rpath,$(BUILD)/lib \
           -L$(BUILD)/lib \
           -lpthread -lrt -lnsl \
+          $(TF_LDFLAGS) \
           -lzmq \
           -lgflags \
 					-lprotobuf \
@@ -84,12 +83,6 @@ LDFLAGS += $(HDFS_LDFLAGS)
 LDFLAGS += -L$(PYTHON_LIB) \
            -lboost_python \
            -lpython2.7
-ifeq ($(USE_TF), 1)
-LDFLAGS += -Wl,-rpath,$(TF_LIB) \
-          -L$(TF_LIB) \
-          -ltensorflow \
-          -DUSE_TF
-endif
 HB_SRC = $(shell find src -type f -name "*.cpp")
 HB_PROTO = $(shell find src -type f -name "*.proto")
 HB_HEADERS = $(shell find src -type f -name "*.hpp")
