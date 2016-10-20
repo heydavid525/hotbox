@@ -51,3 +51,13 @@ else
   HDFS_LDFLAGS =
   HDFS_INCFLAGS =
 endif
+
+ifeq ($(USE_TF), 1)
+  TF_INCFLAGS = -I$(TF_INC) -DUSE_TF=1
+  TF_LDFLAGS = -Wl,-rpath,$(TF_LIB) \
+          -L$(TF_LIB) \
+          -ltensorflow
+else
+  TF_INCFLAGS =
+  TF_LDFLAGS =
+endif

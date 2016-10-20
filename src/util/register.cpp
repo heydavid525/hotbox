@@ -56,7 +56,9 @@ void RegisterTransforms() {
       Creator<TransformIf, TfTransform>);
   kConfigCaseToTransformName[TransformConfig::kTfTransform]
     = "TfTransform";
+  LOG(INFO) << "Register TfTransform";
 #endif
+  LOG(INFO) << "Registering Kmeans transform";
   registry.AddCreator(TransformConfig::kKmeansTransform,
       Creator<TransformIf, KmeansTransform>);
   kConfigCaseToTransformName[TransformConfig::kKmeansTransform]
