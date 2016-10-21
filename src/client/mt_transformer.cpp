@@ -142,7 +142,7 @@ void MTTransformer::TransformTaskLoop(int tid) {
         : batch_size;
       std::vector<TransDatum*> data_batch(num_items);
       for (int j = 0; j < num_items; ++j) {
-        DatumBase* datum_base = new DatumBase(
+        auto datum_base = std::make_shared<DatumBase>(
           atom_proto.mutable_datum_protos()->ReleaseLast());
         auto& last_range = session_proto_.transform_output_ranges(
             transforms_.size() - 1);
@@ -156,8 +156,7 @@ void MTTransformer::TransformTaskLoop(int tid) {
       for (int t = 0; t < transforms_.size(); ++t) {
         // TODO(dixiao): collect stats reusing cache
         // skip transformation if constructed from cache
-        if (true) {
-        //if (task.trans_cached.find(t) != task.trans_cached.end()) {
+        if (task.trans_cached.find(t) != task.trans_cached.end()) {
           for (int i = offset; i < offset + num_items; ++i) {
             DLOG(INFO) << "Rebuilding from cache for atom " << taskid << " datum " << i << " transform " << t;
             auto& cache = caches[t]; // cached atom for the transformation
@@ -169,18 +168,51 @@ void MTTransformer::TransformTaskLoop(int tid) {
             // note: sharing to get the datum_bases reference
             auto datum_base = task.datum_bases[i];
             // the target store has already reserved space for storage
-            if (type == FeatureStoreType::DENSE_CAT) {
-              auto src =
-                cache.mutable_datum_protos(i)->dense_cat_store().data();
-              auto dst =
-                datum_base->GetMutableDatumProto().mutable_dense_cat_store()->mutable_data();
-              memcpy(dst+begin, src, sizeof(long long) * len);
-            } else if (type == FeatureStoreType::DENSE_NUM) {
-              auto src =
-                cache.mutable_datum_protos(i)->dense_num_store().data();
-              auto dst =
-                datum_base->GetMutableDatumProto().mutable_dense_num_store()->mutable_data();
-              memcpy(dst+begin, src, sizeof(float) * len);
+            switch (type) {
+              case FeatureStoreType::DENSE_CAT:
+                {
+                  auto len = end - begin;
+                  auto src =
+                    cache.mutable_datum_protos(i)->dense_num_store().data();
+                  auto dst =
+                    datum_base->GetMutableDatumProto().mutable_dense_num_store()->mutable_data();
+                  memcpy(dst+begin, src, sizeof(float) * len);
+                  break;
+                }
+              case FeatureStoreType::DENSE_NUM:
+                {
+                  auto len = end - begin;
+                  auto src =
+                    cache.mutable_datum_protos(i)->dense_cat_store().data();
+                  auto dst =
+                    datum_base->GetMutableDatumProto().mutable_dense_cat_store()->mutable_data();
+                  memcpy(dst+begin, src, sizeof(long long) * len);
+                  break;
+                }
+              case FeatureStoreType::SPARSE_CAT:
+                {
+                  auto len = cache.datum_protos(i).sparse_cat_store_idxs_size();
+                  if (len <= 0) LOG(FATAL) << "Caching range doesn't have value";
+                  auto src_idx =
+                    cache.mutable_datum_protos(i)->mutable_sparse_cat_store_idxs()->mutable_data();
+                  for (int i = 0; i < len; ++i) {
+                    src_idx[i] += begin;
+                  }
+                  datum_base->GetMutableDatumProto().MergeFrom(cache.datum_protos(i));
+                  break;
+                }
+              case FeatureStoreType::SPARSE_NUM:
+                {
+                  auto len = cache.datum_protos(i).sparse_num_store_idxs_size();
+                  if (len <= 0) LOG(FATAL) << "Caching range doesn't have value";
+                  auto src_idx =
+                    cache.mutable_datum_protos(i)->mutable_sparse_num_store_idxs()->mutable_data();
+                  for (int i = 0; i < len; ++i) {
+                    src_idx[i] += begin;
+                  }
+                  datum_base->GetMutableDatumProto().MergeFrom(cache.datum_protos(i));
+                  break;
+                }
             }
           }
           continue;
@@ -237,30 +269,91 @@ void MTTransformer::CacheWriteLoop() {
     for (auto& it_tid : task.trans_tocache) {
       DLOG(INFO) << "Caching out transform " << it_tid;
       auto& range = session_proto_.transform_output_ranges(it_tid);
-      // TODO(dixiao): currently only support dense type because it's easier to
-      // find the data range in store
       auto type = range.store_type();
       auto begin = range.store_offset_begin();
       auto end = range.store_offset_end();
-      auto len = end - begin;
 
       auto atom = new DBAtom();
       for (auto& it_datum : task.datum_bases) {
         auto datum = new DatumProto();
 
-        // TODO(dixiao): try to copy by range?
-        if (type == FeatureStoreType::DENSE_CAT) {
-          datum->mutable_dense_cat_store()->Resize(len, 0);
-          auto src =
-            it_datum->GetDatumProto().dense_cat_store().data();
-          auto dst = datum->mutable_dense_cat_store()->mutable_data();
-          memcpy(dst, src+begin, sizeof(long long) * len);
-        } else if (type == FeatureStoreType::DENSE_NUM) {
-          datum->mutable_dense_num_store()->Resize(len, 0.);
-          auto src =
-            it_datum->GetDatumProto().dense_num_store().data();
-          auto dst = datum->mutable_dense_num_store()->mutable_data();
-          memcpy(dst, src+begin, sizeof(float) * len);
+        switch (type) {
+          case FeatureStoreType::DENSE_CAT:
+            {
+              auto len = end - begin;
+              datum->mutable_dense_cat_store()->Resize(len, 0);
+              auto src =
+                it_datum->GetDatumProto().dense_cat_store().data();
+              auto dst = datum->mutable_dense_cat_store()->mutable_data();
+              memcpy(dst, src+begin, sizeof(long long) * len);
+              break;
+            }
+          case FeatureStoreType::DENSE_NUM:
+            {
+              auto len = end - begin;
+              datum->mutable_dense_num_store()->Resize(len, 0.);
+              auto src =
+                it_datum->GetDatumProto().dense_num_store().data();
+              auto dst = datum->mutable_dense_num_store()->mutable_data();
+              memcpy(dst, src+begin, sizeof(float) * len);
+              break;
+            }
+          case FeatureStoreType::SPARSE_CAT:
+            {
+              // locate range
+              const auto& idxs =
+                it_datum->GetDatumProto().sparse_cat_store_idxs();
+              const auto low = std::lower_bound(idxs.cbegin(), idxs.cend(),
+                  begin) - idxs.cbegin();
+              const auto up = std::upper_bound(idxs.cbegin(), idxs.cend(),
+                  end) - idxs.cbegin();
+              auto len = up - low;
+              if (len <= 0) LOG(FATAL) << "Caching range doesn't have value";
+              // copy
+              datum->mutable_sparse_cat_store_idxs()->Resize(len, 0);
+              datum->mutable_sparse_cat_store_vals()->Resize(len, 0);
+              auto src_idx =
+                it_datum->GetDatumProto().sparse_cat_store_idxs().data();
+              auto dst_idx = datum->mutable_sparse_cat_store_idxs()->mutable_data();
+              memcpy(dst_idx, src_idx+low, sizeof(int) * len);
+              auto src_val =
+                it_datum->GetDatumProto().sparse_cat_store_vals().data();
+              auto dst_val = datum->mutable_sparse_cat_store_vals()->mutable_data();
+              memcpy(dst_val, src_val+low, sizeof(long long) * len);
+              // recover the offset
+              for (int i = 0; i < len; ++i) {
+                dst_idx[i] -= begin;
+              }
+              break;
+            }
+          case FeatureStoreType::SPARSE_NUM:
+            {
+              // locate range
+              const auto& idxs =
+                it_datum->GetDatumProto().sparse_num_store_idxs();
+              const auto low = std::lower_bound(idxs.cbegin(), idxs.cend(),
+                  begin) - idxs.cbegin();
+              const auto up = std::upper_bound(idxs.cbegin(), idxs.cend(),
+                  end) - idxs.cbegin();
+              auto len = up - low;
+              if (len <= 0) LOG(FATAL) << "Caching range doesn't have value";
+              // copy
+              datum->mutable_sparse_num_store_idxs()->Resize(len, 0);
+              datum->mutable_sparse_num_store_vals()->Resize(len, 0);
+              auto src_idx =
+                it_datum->GetDatumProto().sparse_num_store_idxs().data();
+              auto dst_idx = datum->mutable_sparse_num_store_idxs()->mutable_data();
+              memcpy(dst_idx, src_idx+low, sizeof(int) * len);
+              auto src_val =
+                it_datum->GetDatumProto().sparse_num_store_vals().data();
+              auto dst_val = datum->mutable_sparse_num_store_vals()->mutable_data();
+              memcpy(dst_val, src_val+low, sizeof(float) * len);
+              // recover the offset
+              for (int i = 0; i < len; ++i) {
+                dst_idx[i] -= begin;
+              }
+              break;
+            }
         }
         atom->mutable_datum_protos()->AddAllocated(datum);
       }
@@ -367,7 +460,7 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
   for (int t = 0; t < transforms_.size(); ++t) {
       auto& range = session_proto_.transform_output_ranges(t);
       auto type = range.store_type();
-      if (type == FeatureStoreType::DENSE_CAT || type == FeatureStoreType::DENSE_NUM) {
+      if (type != FeatureStoreType::OUTPUT) {
         cache_set.insert(t);
       }
   }
