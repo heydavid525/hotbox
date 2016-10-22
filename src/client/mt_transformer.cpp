@@ -26,18 +26,15 @@ MTTransformer::MTTransformer(const SessionProto &session_proto,
   // Last atom file range ends with num_data.
   datum_ids_.push_back(session_proto_.file_map().num_data());
 
-  io_queue_ = new folly::MPMCQueue<Task,std::atomic,true>(8);
-  tf_queue_ = new folly::MPMCQueue<Task>(tf_limit_);  // buffer queue
-  bt_queue_ = new folly::MPMCQueue<std::vector<FlexiDatum> *>(bt_limit_);  // batch queue
+  io_queue_ = make_unique<folly::MPMCQueue<Task,std::atomic,true> >(8);
+  tf_queue_ = make_unique<folly::MPMCQueue<Task> >(tf_limit_);  // buffer queue
+  bt_queue_ = make_unique<folly::MPMCQueue<std::vector<FlexiDatum> *> >(bt_limit_);  // batch queue
   Start();
 }
 
 
 MTTransformer::~MTTransformer() {
   Destory();
-  delete io_queue_;
-  delete tf_queue_;
-  delete bt_queue_;
 }
 
 void MTTransformer::IoTaskLoop() {

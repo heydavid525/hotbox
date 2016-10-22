@@ -90,9 +90,9 @@ class MTTransformer {
   std::vector<std::thread> tf_workers_;
   std::vector<std::function<void(std::vector<TransDatum*>*)>> transforms_;
   // imagine blocking queue
-  folly::MPMCQueue<Task,std::atomic,true>* io_queue_;  // io files queue
-  folly::MPMCQueue<Task>* tf_queue_;  // buffer queue
-  folly::MPMCQueue<std::vector<FlexiDatum> *>* bt_queue_;  // batch queue
+  std::unique_ptr<folly::MPMCQueue<Task,std::atomic,true> > io_queue_;  // io files queue
+  std::unique_ptr<folly::MPMCQueue<Task> > tf_queue_;  // buffer queue
+  std::unique_ptr<folly::MPMCQueue<std::vector<FlexiDatum> *> > bt_queue_;  // batch queue
 
   // mutex
   // IoTaskLoop and TransformTaskLoop will check stop_flag_
