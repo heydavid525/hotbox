@@ -67,13 +67,13 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
 					-D_GLIBCXX_USE_NANOSLEEP \
 					-lboost_filesystem \
 					-lboost_system \
-					-lpthread \
 					-lyaml-cpp \
 					-lsnappy \
 	        -ldmlc \
 	        -lrocksdb \
           -lglog \
-					-lfolly
+					-lfolly \
+					-lpthread \
 					# don't use tcmalloc in building shared library.
           #-ltcmalloc \
 					-lprofiler \
