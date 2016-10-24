@@ -33,8 +33,8 @@ if __name__ == "__main__":
   parser.add_argument("--path")
   parser.add_argument("--db")
   parser.add_argument("--format")
-  # Disable stats collection with --no_stats
-  parser.add_argument('--no_stats', dest='stats', action='store_false')
+  # Disable stats collection with --no-stats
+  parser.add_argument('--no-stats', dest='stats', action='store_false')
   parser.set_defaults(stats=True)
   parser.add_argument("--reps")  # repeating ingest
   args = parser.parse_args()

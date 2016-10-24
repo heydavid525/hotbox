@@ -47,7 +47,7 @@ private:
 
   Status status_;
   SessionProto session_proto_;
-  std::vector<std::function<void(TransDatum*)>> transforms_;
+  std::vector<std::function<void(std::vector<TransDatum*>*)>> transforms_;
 };
 
 }  // namespace hotbox

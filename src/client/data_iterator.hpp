@@ -60,7 +60,7 @@ private:
    * and transform data in a single thread.
    */
   DataIterator(const SessionProto& session_proto,
-    std::vector<std::function<void(TransDatum*)>> transforms,
+    std::vector<std::function<void(std::vector<TransDatum*>*)>> transforms,
     size_t data_begin, size_t data_end, bool use_multi_threads,
     int32_t num_io_threads, int32_t num_transform_threads,
     size_t buffer_limit, size_t batch_limit);
@@ -70,7 +70,7 @@ private:
 
 private:
   const SessionProto& session_proto_;
-  std::vector<std::function<void(TransDatum*)>> transforms_;
+  std::vector<std::function<void(std::vector<TransDatum*>*)>> transforms_;
   size_t data_begin_;
   size_t data_end_;
 

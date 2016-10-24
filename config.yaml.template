@@ -5,3 +5,6 @@ server_port: 19857
 
 db_dir: "hdfs://cogito.local/user/wdai/hotbox_db"
 db_meta_dir: "/home/wdai/hotbox/db_meta"
+
+# mini-batch size during transform.
+transform_batch_size: 1000

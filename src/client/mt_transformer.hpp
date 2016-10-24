@@ -44,7 +44,8 @@ MTTransformer works as described below:
 class MTTransformer {
  public:
   MTTransformer(const SessionProto &session_proto,
-                std::vector<std::function<void(TransDatum *)>> transforms,
+                std::vector<std::function<
+                  void(std::vector<TransDatum*>*)>> transforms,
                 size_t data_begin, size_t data_end,
                 int num_io_threads,
                 int num_transform_threads,
@@ -91,8 +92,8 @@ class MTTransformer {
 
   std::vector<std::thread> io_workers_;
   std::vector<std::thread> tf_workers_;
-  std::vector<std::function<void(TransDatum *)>> transforms_;
-  
+  std::vector<std::function<void(std::vector<TransDatum*>*)>> transforms_;
+
   // imagine blocking queue
   std::unique_ptr<folly::MPMCQueue<Task,std::atomic,true> > io_queue_;  // io files queue
   std::unique_ptr<folly::MPMCQueue<Task> > tf_queue_;  // buffer queue
