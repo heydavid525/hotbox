@@ -18,8 +18,12 @@ struct TfSessionConfig {
 class TfSession {
 public:
   TfSession(const TfSessionConfig& config);
+  TfSession(const TfSession& other);
+  TfSession& operator=(const TfSession& other);
 
   std::vector<float> Transform(const std::vector<float>& v);
+  std::vector<std::vector<float>> Transform(
+    const std::vector<std::vector<float>>& v);
 
   // Do an evaluation on one datum to get the output dim.
   int GetOutputDim() const;
@@ -27,8 +31,13 @@ public:
   ~TfSession();
 
 private:
+  void Init(const TfSessionConfig& config);
+
+private:
+ TfSessionConfig config_;
   // Use shared_ptr to support copy constructor.
-  std::shared_ptr<tensorflow::Session> session_;
+  std::unique_ptr<tensorflow::Session> session_;
+  //std::shared_ptr<tensorflow::Session> session_;
   int input_dim_{0};
   int output_dim_{0};
   std::vector<std::string> output_vars_;

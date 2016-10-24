@@ -1,4 +1,5 @@
 #include "client/mt_transformer.hpp"
+#include "util/global_config.hpp"
 #include <glog/logging.h>
 #include <algorithm>
 #include <string>
@@ -8,8 +9,8 @@
 namespace hotbox {
 
 MTTransformer::MTTransformer(const SessionProto &session_proto,
-                             std::vector<std::function<void(TransDatum *)>>
-                             transforms,
+                             std::vector<std::function<
+                               void(std::vector<TransDatum*>*)>> transforms,
                              size_t data_begin, size_t data_end,
                              int num_io_threads,
                              int num_transform_threads,
@@ -70,6 +71,8 @@ void MTTransformer::IoTaskLoop() {
 }
 
 void MTTransformer::TransformTaskLoop() {
+  auto& global_config = GlobalConfig::GetInstance();
+  int batch_size = global_config.Get<int>("transform_batch_size");
   // LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id() << " Starts...";
   while (true) {
     Task task;
@@ -104,26 +107,48 @@ void MTTransformer::TransformTaskLoop() {
     for (int i = 0; i < transforms_.size(); ++i) {
       ranges[i] = session_proto_.transform_output_ranges(i);
     }
-    // do transform
+    // Trim data for atom files at the boundaries.
     for (int i = atom_proto.datum_protos_size() - 1; i >= task.datum_begin;
          --i) {
       if (i >= task.datum_end) {
         delete atom_proto.mutable_datum_protos()->ReleaseLast();
-        continue;
+      } else {
+        break;
       }
-      DatumBase* datum_base = new DatumBase(
-        atom_proto.mutable_datum_protos()->ReleaseLast());
-      auto& last_range = session_proto_.transform_output_ranges(
-          transforms_.size() - 1);
-      TransDatum trans_datum(datum_base, session_proto_.label(),
-                      session_proto_.weight(), output_store_type, output_dim,
-                      ranges);
-
+    }
+    // do transform by mini-batch
+    int atom_size = atom_proto.datum_protos_size() - task.datum_begin;
+    int num_batches = atom_size / batch_size;
+    if (atom_size % batch_size != 0) {
+      num_batches++;
+    }
+    for (int b = 0; b < num_batches; ++b) {
+      int offset = b * batch_size;
+      int num_items = (b == num_batches - 1) ? (atom_size - offset)
+        : batch_size;
+      std::vector<TransDatum*> data_batch(num_items);
+      for (int j = 0; j < num_items; ++j) {
+        DatumBase* datum_base = new DatumBase(
+          atom_proto.mutable_datum_protos()->ReleaseLast());
+        auto& last_range = session_proto_.transform_output_ranges(
+            transforms_.size() - 1);
+        data_batch[j] = new TransDatum(datum_base, session_proto_.label(),
+                        session_proto_.weight(), output_store_type, output_dim,
+                        ranges);
+      }
       for (int t = 0; t < transforms_.size(); ++t) {
-        trans_datum.ReadyTransform(session_proto_.transform_output_ranges(t));
-        transforms_[t](&trans_datum);
+        for (int j = 0; j < num_items; ++j) {
+          //CHECK_NOTNULL(data_batch[j]);
+          data_batch[j]->ReadyTransform(
+            session_proto_.transform_output_ranges(t));
+        }
+        transforms_[t](&data_batch);
       }
-      (*vec)[i - task.datum_begin] = std::move(trans_datum.GetFlexiDatum());
+      for (int j = 0; j < num_items; ++j) {
+        int i = j + offset;
+        (*vec)[i - task.datum_begin] = std::move(data_batch[j]->GetFlexiDatum());
+        delete data_batch[j];
+      }
     }
 
     // push vec to bt_queue

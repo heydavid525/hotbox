@@ -28,6 +28,18 @@ public:
   virtual std::function<void(TransDatum*)> GenerateTransform(
       const TransformParam& param) const = 0;
 
+  // Generate transform to be applied to a minibatch of TransDatum. Default
+  // implementation applies transform to each datum without batching.
+  virtual std::function<void(std::vector<TransDatum*>*)> GenerateBatchTransform(
+      const TransformParam& param) const {
+      auto f = GenerateTransform(param);
+      return [f] (std::vector<TransDatum*>* batch) {
+        for (int i = 0; i < batch->size(); ++i) {
+          f((*batch)[i]);
+        }
+      };
+    }
+
   void UpdateTransformWriterConfig(const TransformConfig& config,
       TransformWriterConfig* writer_config) const {
     // Configure TransWriter.

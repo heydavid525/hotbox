@@ -19,7 +19,6 @@ void CheckStatus(Status status) {
   }
 }
 
-
 Status TfRestore(const string& path, Session* session) {
   TensorProto path_proto;
   path_proto.set_dtype(DataType::DT_STRING);
@@ -38,7 +37,28 @@ Status TfRestore(const string& path, Session* session) {
 }  // anonymous namespace
 
 TfSession::TfSession(const TfSessionConfig& config) :   
-  input_dim_(config.input_dim), output_vars_(config.output_vars) {
+  config_(config), input_dim_(config.input_dim),
+  output_vars_(config.output_vars) {
+  Init(config_);
+}
+
+TfSession::TfSession(const TfSession& other) :
+  config_(other.config_), input_dim_(other.input_dim_),
+  output_vars_(other.output_vars_) {
+  LOG(INFO) << "Copy constructor";
+  Init(config_);
+}
+
+TfSession& TfSession::operator=(const TfSession& other) {
+  LOG(INFO) << "Assignment constructor";
+  config_ = other.config_;
+  input_dim_ = other.input_dim_;
+  output_vars_ = other.output_vars_;
+  Init(config_);
+  return *this;
+}
+
+void TfSession::Init(const TfSessionConfig& config) {
   // Initialize a tensorflow session
   tensorflow::SessionOptions options;
   session_.reset(tensorflow::NewSession(options));
@@ -72,10 +92,11 @@ TfSession::TfSession(const TfSessionConfig& config) :
     LOG(INFO) << "output " << output_vars_[i] << " has dim: " <<
       mat.dimensions()[1];
   }
-  LOG(INFO) << "end of ctor, output_dim: " << output_dim_;
+  LOG(INFO) << "end of init, output_dim: " << output_dim_;
 }
 
 TfSession::~TfSession() {
+  // TODO(wdai): Close resource safely in multi-thread.
   //session_->Close();
 }
 
@@ -95,6 +116,36 @@ std::vector<float> TfSession::Transform(const std::vector<float>& v) {
     auto mat = t.matrix<float>();
     std::copy_n(mat.data(), mat.dimensions()[1], out.begin() + curr);
     curr += mat.dimensions()[1];
+  }
+  return out;
+}
+
+std::vector<std::vector<float>> TfSession::Transform(
+  const std::vector<std::vector<float>>& v) {
+  Tensor X(tensorflow::DT_FLOAT, TensorShape({v.size(), input_dim_}));
+  auto dst = X.flat<float>().data();
+  for (int i = 0; i < v.size(); ++i) {
+    std::copy_n(v[i].cbegin(), input_dim_, dst);
+    dst += input_dim_;
+  }
+  std::vector<tensorflow::Tensor> outputs;
+
+  // Run the session, evaluating our "c" operation from the graph
+  Status status = session_->Run({{"x", X}}, output_vars_, {}, &outputs);
+  CheckStatus(status);
+
+  std::vector<std::vector<float>> out(v.size());
+  for (auto& o : out) {
+    o.resize(output_dim_);
+  }
+  int curr = 0;
+  for (const auto& t : outputs) {
+    auto mat = t.matrix<float>();
+    int dim = mat.dimensions()[1];
+    for (int i = 0; i < out.size(); ++i) {
+      std::copy_n(mat.data() + i * dim, dim, out[i].begin() + curr);
+    }
+    curr += dim;
   }
   return out;
 }

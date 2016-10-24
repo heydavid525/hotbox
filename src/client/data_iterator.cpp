@@ -8,7 +8,7 @@
 namespace hotbox {
 
 DataIterator::DataIterator(const SessionProto& session_proto,
-    std::vector<std::function<void(TransDatum*)>> transforms,
+    std::vector<std::function<void(std::vector<TransDatum*>*)>> transforms,
     size_t data_begin, size_t data_end, bool use_multi_threads,
     int32_t num_io_threads, int32_t num_transform_threads,
     size_t buffer_limit, size_t batch_limit)
@@ -71,6 +71,8 @@ void DataIterator::ReadAtomAndTransform(int atom_id) {
   for (int i = atom_proto.datum_protos_size() - 1; i >= 0; --i) {
     DatumBase* datum_base = new DatumBase(
         atom_proto.mutable_datum_protos()->ReleaseLast());
+    /*
+    // TODO(wdai): use batch transform.
     TransDatum trans_datum(datum_base, session_proto_.label(),
         session_proto_.weight(), output_store_type, output_dim, ranges);
     for (int t = 0; t < transforms_.size(); ++t) {
@@ -79,6 +81,7 @@ void DataIterator::ReadAtomAndTransform(int atom_id) {
       transforms_[t](&trans_datum);
     }
     data_buffer_[i] = std::move(trans_datum.GetFlexiDatum());
+    */
   }
 }
 

@@ -24,7 +24,7 @@ Session::Session(WarpClient& warp_client, Status status,
       std::unique_ptr<TransformIf> transform =
         registry.CreateObject(config.config_case());
       transforms_.push_back(
-          transform->GenerateTransform(trans_param));
+          transform->GenerateBatchTransform(trans_param));
     }
   }
 

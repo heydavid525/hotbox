@@ -13,6 +13,9 @@ public:
 
   std::function<void(TransDatum*)> GenerateTransform(
       const TransformParam& param) const override;
+
+  std::function<void(std::vector<TransDatum*>*)> GenerateBatchTransform(
+      const TransformParam& param) const override;
 };
 
 }  // namespace hotbox
