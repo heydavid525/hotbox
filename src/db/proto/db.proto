@@ -212,6 +212,9 @@ message SessionProto {
   OutputStoreType output_store_type = 9;
 
   int64 output_dim = 10;
+
+  repeated int32 transforms_tocache = 11;
+  repeated int32 transforms_cached = 12;
 }
 
 /*

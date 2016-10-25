@@ -56,7 +56,7 @@ void MTTransformer::IoTaskLoop() {
     task.buffer = std::move(io::ReadCompressedFile(
                               path, Compressor::NO_COMPRESS));
 
-    if (task.trans_cached.size())
+    if (trans_cached.size())
       cache_read_queue_->blockingWrite(taskid);
     else
       tf_queue_->blockingWrite(taskid);
@@ -77,7 +77,7 @@ void MTTransformer::CacheReadLoop() {
 
     DLOG(INFO) << "Caching in for atom " << taskid << " start.";
 
-    for (auto& it_tid : task.trans_cached) {
+    for (auto& it_tid : trans_cached) {
       DLOG(INFO) << "Caching in for atom " << taskid << " transform " << it_tid;
       task.cache[it_tid] = std::move(io::ReadCompressedFile(
             getCachePath(task.atom_id, it_tid),
@@ -117,7 +117,7 @@ void MTTransformer::TransformTaskLoop(int tid) {
     // caching in and deserialize
     // the following transformation is done on per datum basis
     std::unordered_map<int, DBAtom> caches;
-    for (auto &t : task.trans_cached) {
+    for (auto &t : trans_cached) {
       caches[t] = StreamDeserialize<DBAtom>(task.cache[t]);
     }
     // caching: prepare datum_bases
@@ -159,7 +159,7 @@ void MTTransformer::TransformTaskLoop(int tid) {
       for (int t = 0; t < transforms_.size(); ++t) {
         // TODO(dixiao): collect stats reusing cache
         // skip transformation if constructed from cache
-        if (task.trans_cached.find(t) != task.trans_cached.end()) {
+        if (trans_cached.find(t) != trans_cached.end()) {
           for (int i = offset; i < offset + num_items; ++i) {
             DLOG(INFO) << "Rebuilding from cache for atom " << taskid << " datum " << i << " transform " << t;
             auto& cache = caches[t]; // cached atom for the transformation
@@ -167,7 +167,6 @@ void MTTransformer::TransformTaskLoop(int tid) {
             auto type = range.store_type();
             auto begin = range.store_offset_begin();
             auto end = range.store_offset_end();
-            auto len = end - begin + 1;
             // note: sharing to get the datum_bases reference
             auto datum_base = task.datum_bases[i];
             // the target store has already reserved space for storage
@@ -251,7 +250,7 @@ void MTTransformer::TransformTaskLoop(int tid) {
       }
     }
 
-    if (task.trans_tocache.size())
+    if (trans_tocache.size())
       cache_write_queue_->blockingWrite(taskid);
     bt_queue_->blockingWrite(vec);
   }
@@ -268,7 +267,7 @@ void MTTransformer::CacheWriteLoop() {
     auto& task = tasks_[taskid];
     DLOG(INFO) << "Caching out for atom " << taskid << " start.";
 
-    for (auto& it_tid : task.trans_tocache) {
+    for (auto& it_tid : trans_tocache) {
       DLOG(INFO) << "Caching out transform " << it_tid;
       auto& range = session_proto_.transform_output_ranges(it_tid);
       auto type = range.store_type();
@@ -452,29 +451,11 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
   cache_read_queue_ = make_unique<folly::MPMCQueue<TaskId> >(num_io_workers_);
   cache_write_queue_ = make_unique<folly::MPMCQueue<TaskId> >(tf_limit_);
 
-  // TODO(dixiao): caching control logic prototype
-  // the final control logic should come from db server
-  // we can do atom level control since the pipeline is processing by atoms
-  //
-  // we cache intermediate result and not output result,
-  // support dense but not yet sparse
-  std::set<int> cache_set;
-  for (int t = 0; t < transforms_.size(); ++t) {
-      auto& range = session_proto_.transform_output_ranges(t);
-      auto type = range.store_type();
-      if (type != FeatureStoreType::OUTPUT) {
-        cache_set.insert(t);
-        LOG(INFO) << "Cache set add transformation: " << t;
-      }
-  }
-
   for (int atom_id = low; atom_id < high; atom_id++) {
     tasks_[atom_id].datum_begin = std::max(data_begin, (size_t)datum_ids_[atom_id])
                       - datum_ids_[atom_id];
     tasks_[atom_id].datum_end = std::min(data_end, (size_t)datum_ids_[atom_id + 1])
                       - datum_ids_[atom_id];
-    tasks_[atom_id].trans_tocache = cache_set;
-    //tasks_[atom_id].trans_cached = cache_set;
     io_queue_->blockingWrite(atom_id);
   }
 
@@ -486,6 +467,13 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
 void MTTransformer::Start() {
   // metrics
   metrics_.resize(num_tf_workers_, TransStats(transforms_.size()));
+  
+  // cache instruction
+  for (auto& t : session_proto_.transforms_tocache())
+      trans_tocache.insert(t);
+  for (auto& t : session_proto_.transforms_cached())
+      trans_cached.insert(t);
+
   // translate data range into io tasks
   Translate(data_begin_, data_end_);
 

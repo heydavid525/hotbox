@@ -509,6 +509,13 @@ void DB::CommitDB() {
     << ". Time: " << timer.elapsed() << "s\n";
 }
 
+// caching control logic prototype
+// TODO(dixiao): 
+// we can do atom level control since the pipeline is processing by atoms
+// we can also skip unnecessary intermediate tranform is its dependencies are
+// cached
+// 
+// update session proto across runs
 SessionProto DB::CreateSession(const SessionOptionsProto& session_options) {
   LOG(INFO) << "DB Creating session";
   TransformConfigList configs =
@@ -517,6 +524,7 @@ SessionProto DB::CreateSession(const SessionOptionsProto& session_options) {
   Schema trans_schema = *schema_;
   SessionProto session;
   session.mutable_trans_params()->Reserve(configs.transform_configs_size());
+  // transformation
   for (int i = 0; i < configs.transform_configs_size(); ++i) {
     const TransformConfig& config = configs.transform_configs(i);
 
@@ -548,6 +556,14 @@ SessionProto DB::CreateSession(const SessionOptionsProto& session_options) {
     *(session.add_trans_params()) = trans_param.GetProto();
     LOG(INFO) << " trans_param proto created. Size: "
       << SizeToReadableString(session.trans_params(i).SpaceUsed());
+
+    if (config.cached()) {
+      session.add_transforms_cached(i);
+      LOG(INFO) << "Cached: True";
+    } else if (config.tocache()) {
+      session.add_transforms_tocache(i);
+      LOG(INFO) << "To cache: True";
+    }
   }
   LOG(INFO) << "CreateSession finished transforms";
   *(session.mutable_o_schema()) = trans_schema.GetOSchemaProto();

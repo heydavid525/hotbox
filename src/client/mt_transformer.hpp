@@ -41,8 +41,9 @@ MTTransformer works as described below:
     BigInt datum_begin;  // datum range within atom file
     BigInt datum_end;
     std::string buffer;  // will be filled in IoTaskLoop
-    std::set<int> trans_cached; // transformations that are cached
-    std::set<int> trans_tocache; // transformations that need to be cached
+    // TODO: provide atom level control of cache
+    //std::set<int> trans_cached; // transformations that are cached
+    //std::set<int> trans_tocache; // transformations that need to be cached
     std::vector<std::shared_ptr<DatumBase>> datum_bases; // datum bases for caching out
     std::unordered_map<int, std::string> cache; // transformid -> cache in buffer
   };
@@ -168,6 +169,10 @@ class MTTransformer {
   std::vector<BigInt> datum_ids_;
 
   ThreadTransStats metrics_;
+
+  // TODO: remove when we have atom level control of cache
+  std::set<int> trans_cached; // transformations that are cached
+  std::set<int> trans_tocache; // transformations that need to be cached
 };
 
 }  // namespace hotbox
