@@ -61,6 +61,10 @@ message TransformConfig {
     KmeansTransformConfig kmeans_transform = 9;
     NormalizeTransformConfig normalize_transform = 10;
   }
+
+  // optional flag for caching
+  bool tocache = 20;
+  bool cached = 21;
 }
 
 message TransformConfigList {
