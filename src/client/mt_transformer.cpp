@@ -258,8 +258,6 @@ void MTTransformer::TransformTaskLoop(int tid) {
 void MTTransformer::CacheWriteLoop() {
   while (true) {
     TaskId taskid;
-    if (stop_flag_)
-      break;
     cache_write_queue_->blockingRead(taskid);
     if (taskid == -1) break; // sentinel task for termination
 
@@ -462,6 +460,7 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
       auto type = range.store_type();
       if (type != FeatureStoreType::OUTPUT) {
         cache_set.insert(t);
+        LOG(INFO) << "Cache set add transformation: " << t;
       }
   }
 
