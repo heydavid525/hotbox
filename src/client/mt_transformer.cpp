@@ -56,7 +56,10 @@ void MTTransformer::IoTaskLoop() {
     task.buffer = std::move(io::ReadCompressedFile(
                               path, Compressor::NO_COMPRESS));
 
-    cache_read_queue_->blockingWrite(taskid);
+    if (task.trans_cached.size())
+      cache_read_queue_->blockingWrite(taskid);
+    else
+      tf_queue_->blockingWrite(taskid);
   }
   // LOG(INFO) << "IoTaskLoop " << std::this_thread::get_id() << " ends...";
 }
@@ -248,7 +251,8 @@ void MTTransformer::TransformTaskLoop(int tid) {
       }
     }
 
-    cache_write_queue_->blockingWrite(taskid);
+    if (task.trans_tocache.size())
+      cache_write_queue_->blockingWrite(taskid);
     bt_queue_->blockingWrite(vec);
   }
   // LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id() << " ends...";
