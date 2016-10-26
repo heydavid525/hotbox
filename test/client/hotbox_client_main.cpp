@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
   session_options.session_id = FLAGS_session_id;
   session_options.transform_config_path = hotbox::GetTestDir() +
     "/resource/" + FLAGS_transform_config;
-  session_options.output_store_type = hotbox::OutputStoreType::DENSE;
+  session_options.output_store_type = hotbox::OutputStoreType::SPARSE;
   hotbox::Session session = hb_client.CreateSession(session_options);
   CHECK(session.GetStatus().IsOk());
   hotbox::OSchema o_schema = session.GetOSchema();
