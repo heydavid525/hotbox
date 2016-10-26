@@ -53,10 +53,11 @@ if __name__ == "__main__":
   db = hb_client.CreateDB(args.db, use_dense_weight=False)
 
   if os.path.isdir(args.path):
-    files = [join(args.path, f) for f in os.listdir(args.path) if
-        os.path.isfile(join(args.path, f))]
+    for root, dirs, file_list in os.walk(args.path):
+      files = [join(root, name) for name in file_list]
   else:
     files = [args.path]
+  #files = list(files)
   files = files * num_reps
   for i, f in enumerate(files):
     commit = True if i == len(files) - 1 else False
