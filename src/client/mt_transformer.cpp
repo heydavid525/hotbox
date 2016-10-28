@@ -26,8 +26,8 @@ MTTransformer::MTTransformer(const SessionProto &session_proto,
   // Last atom file range ends with num_data.
   datum_ids_.push_back(session_proto_.file_map().num_data());
 
-  io_queue_ = make_unique<folly::MPMCQueue<Task,std::atomic,true> >(8);
-  tf_queue_ = make_unique<folly::MPMCQueue<Task> >(tf_limit_);  // buffer queue
+  io_queue_ = make_unique<folly::MPMCQueue<TaskId,std::atomic,true> >(8);
+  tf_queue_ = make_unique<folly::MPMCQueue<TaskId> >(tf_limit_);  // buffer queue
   bt_queue_ = make_unique<folly::MPMCQueue<std::vector<FlexiDatum> *> >(bt_limit_);  // batch queue
   Start();
 }
@@ -40,19 +40,20 @@ MTTransformer::~MTTransformer() {
 void MTTransformer::IoTaskLoop() {
   // LOG(INFO) << "IoTaskLoop " << std::this_thread::get_id() << " Starts...";
   while (true) {
-    Task task;
+    TaskId taskid;
     // get atom_id from io_queue
     if (io_queue_->isEmpty() || stop_flag_) {
       break;
     }
-    io_queue_->blockingRead(task);
+    io_queue_->blockingRead(taskid);
+    auto& task = tasks_[taskid];
 
     std::string path = session_proto_.file_map().atom_path()
                               + std::to_string(task.atom_id);
     task.buffer = std::move(io::ReadCompressedFile(
                               path, session_proto_.compressor()));
 
-    tf_queue_->blockingWrite(std::move(task));
+    tf_queue_->blockingWrite(taskid);
   }
   // LOG(INFO) << "IoTaskLoop " << std::this_thread::get_id() << " ends...";
 }
@@ -62,13 +63,15 @@ void MTTransformer::TransformTaskLoop() {
   int batch_size = global_config.Get<int>("transform_batch_size");
   // LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id() << " Starts...";
   while (true) {
-    Task task;
+    TaskId taskid;
     // get content buffer from bf_queue
     if (stop_flag_ || total_tf_tasks_ <= 0)
       break;
-    tf_queue_->blockingRead(task);
+    tf_queue_->blockingRead(taskid);
     --total_tf_tasks_;
-    if (task.atom_id == -1) break; // sentinel task for termination
+
+    if (taskid == -1) break; // sentinel task for termination
+    auto& task = tasks_[taskid];
 
     DBAtom atom_proto = StreamDeserialize<DBAtom>(task.buffer);
     task.buffer = "";
@@ -139,9 +142,7 @@ void MTTransformer::Destory() {
 
   // notify all workers to check stop flag and exit
   for (int i = 0; i < num_tf_workers_; i++) {
-    Task task;
-    task.atom_id = -1;
-    tf_queue_->blockingWrite(std::move(task));
+    tf_queue_->blockingWrite(-1);
   }
   
   for (auto &worker : io_workers_) {
@@ -187,14 +188,13 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
                                data_end) - datum_ids_.cbegin();
   if (high == datum_ids_.size())
     high--;
+  tasks_.reserve(high-low+1);
   for (int atom_id = low; atom_id < high; atom_id++) {
-    Task task;
-    task.atom_id = atom_id;
-    task.datum_begin = std::max(data_begin, (size_t)datum_ids_[atom_id])
+    tasks_[atom_id].datum_begin = std::max(data_begin, (size_t)datum_ids_[atom_id])
                       - datum_ids_[atom_id];
-    task.datum_end = std::min(data_end, (size_t)datum_ids_[atom_id + 1])
+    tasks_[atom_id].datum_end = std::min(data_end, (size_t)datum_ids_[atom_id + 1])
                       - datum_ids_[atom_id];
-    io_queue_->blockingWrite(std::move(task));
+    io_queue_->blockingWrite(atom_id);
   }
 
   total_tf_tasks_ = io_queue_->size();

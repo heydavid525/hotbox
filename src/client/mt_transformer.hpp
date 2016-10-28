@@ -90,8 +90,10 @@ class MTTransformer {
   std::vector<std::thread> tf_workers_;
   std::vector<std::function<void(std::vector<TransDatum*>*)>> transforms_;
   // imagine blocking queue
-  std::unique_ptr<folly::MPMCQueue<Task,std::atomic,true> > io_queue_;  // io files queue
-  std::unique_ptr<folly::MPMCQueue<Task> > tf_queue_;  // buffer queue
+  typedef int TaskId;
+  std::unordered_map<TaskId, Task> tasks_;
+  std::unique_ptr<folly::MPMCQueue<TaskId, std::atomic, true> > io_queue_;  // io files queue
+  std::unique_ptr<folly::MPMCQueue<TaskId> > tf_queue_;  // buffer queue
   std::unique_ptr<folly::MPMCQueue<std::vector<FlexiDatum> *> > bt_queue_;  // batch queue
 
   // mutex
