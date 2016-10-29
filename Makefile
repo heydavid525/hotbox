@@ -39,7 +39,8 @@ CXXFLAGS += -O2 \
            -fno-builtin-realloc \
            -fno-builtin-free \
            -fno-omit-frame-pointer \
-					 -DDMLC_USE_GLOG
+					 -DDMLC_USE_GLOG \
+					 -g
 					 #-DUSE_ROCKS
 
 THIRD_PARTY_SRC = $(THIRD_PARTY)/src
@@ -73,7 +74,9 @@ LDFLAGS = -Wl,-rpath,$(THIRD_PARTY_LIB) \
 	        -ldmlc \
 					-lpthread \
 	        -lrocksdb \
-          -lglog
+          -lglog \
+					-lfolly \
+					-lpthread \
 					# don't use tcmalloc in building shared library.
           #-ltcmalloc \
 					-lprofiler \
