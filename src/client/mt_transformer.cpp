@@ -26,9 +26,6 @@ MTTransformer::MTTransformer(const SessionProto &session_proto,
   // Last atom file range ends with num_data.
   datum_ids_.push_back(session_proto_.file_map().num_data());
 
-  io_queue_ = make_unique<folly::MPMCQueue<TaskId,std::atomic,true> >(8);
-  tf_queue_ = make_unique<folly::MPMCQueue<TaskId> >(tf_limit_);  // buffer queue
-  bt_queue_ = make_unique<folly::MPMCQueue<std::vector<FlexiDatum> *> >(bt_limit_);  // batch queue
   Start();
 }
 
@@ -188,7 +185,12 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
                                data_end) - datum_ids_.cbegin();
   if (high == datum_ids_.size())
     high--;
-  tasks_.reserve(high-low+1);
+  tasks_.reserve(high-low);
+
+  io_queue_ = make_unique<folly::MPMCQueue<TaskId> >(high-low);
+  tf_queue_ = make_unique<folly::MPMCQueue<TaskId> >(tf_limit_);  // buffer queue
+  bt_queue_ = make_unique<folly::MPMCQueue<std::vector<FlexiDatum> *> >(bt_limit_);  // batch queue
+
   for (int atom_id = low; atom_id < high; atom_id++) {
     tasks_[atom_id].datum_begin = std::max(data_begin, (size_t)datum_ids_[atom_id])
                       - datum_ids_[atom_id];

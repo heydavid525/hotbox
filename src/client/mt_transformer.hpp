@@ -92,7 +92,7 @@ class MTTransformer {
   // imagine blocking queue
   typedef int TaskId;
   std::unordered_map<TaskId, Task> tasks_;
-  std::unique_ptr<folly::MPMCQueue<TaskId, std::atomic, true> > io_queue_;  // io files queue
+  std::unique_ptr<folly::MPMCQueue<TaskId> > io_queue_;  // io files queue
   std::unique_ptr<folly::MPMCQueue<TaskId> > tf_queue_;  // buffer queue
   std::unique_ptr<folly::MPMCQueue<std::vector<FlexiDatum> *> > bt_queue_;  // batch queue
 
