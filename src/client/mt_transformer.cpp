@@ -39,10 +39,9 @@ void MTTransformer::IoTaskLoop() {
   while (true) {
     TaskId taskid;
     // get atom_id from io_queue
-    if (io_queue_->isEmpty() || stop_flag_) {
+    if (stop_flag_ || io_queue_->blockingRead(taskid)) {
       break;
     }
-    io_queue_->blockingRead(taskid);
     auto& task = tasks_[taskid];
 
     std::string path = session_proto_.file_map().atom_path()
@@ -187,9 +186,9 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
     high--;
   tasks_.reserve(high-low);
 
-  io_queue_ = make_unique<folly::MPMCQueue<TaskId> >(high-low);
-  tf_queue_ = make_unique<folly::MPMCQueue<TaskId> >(tf_limit_);  // buffer queue
-  bt_queue_ = make_unique<folly::MPMCQueue<std::vector<FlexiDatum> *> >(bt_limit_);  // batch queue
+  io_queue_ = make_unique<IOQueue<TaskId> >(high-low);
+  tf_queue_ = make_unique<TFQueue<TaskId> >(tf_limit_);  // buffer queue
+  bt_queue_ = make_unique<BTQueue<std::vector<FlexiDatum> *> >(bt_limit_);  // batch queue
 
   for (int atom_id = low; atom_id < high; atom_id++) {
     tasks_[atom_id].datum_begin = std::max(data_begin, (size_t)datum_ids_[atom_id])

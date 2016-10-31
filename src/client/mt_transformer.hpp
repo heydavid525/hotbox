@@ -3,12 +3,9 @@
 #include <vector>
 #include <thread>
 #include <string>
-#include <mutex>
-#include <queue>
-#include <atomic>
-#include <condition_variable>
 #include "db/proto/db.pb.h"
 #include "schema/all.hpp"
+#include "MPMCQueue.hpp"
 #include "folly/MPMCQueue.h"
 
 namespace hotbox {
@@ -92,9 +89,22 @@ class MTTransformer {
   // imagine blocking queue
   typedef int TaskId;
   std::unordered_map<TaskId, Task> tasks_;
-  std::unique_ptr<folly::MPMCQueue<TaskId> > io_queue_;  // io files queue
-  std::unique_ptr<folly::MPMCQueue<TaskId> > tf_queue_;  // buffer queue
-  std::unique_ptr<folly::MPMCQueue<std::vector<FlexiDatum> *> > bt_queue_;  // batch queue
+
+  //folly::MPMCQueue<T>;
+  //MPMCQueue<QueueType::BASELINE, T>;
+  template <typename T>
+  //using IOQueue = folly::MPMCQueue<T>;
+  using IOQueue = MPMCQueue<QueueType::IO, T>;
+  template <typename T>
+  //using TFQueue = folly::MPMCQueue<T>;
+  using TFQueue = MPMCQueue<QueueType::TF, T>;
+  template <typename T>
+  //using BTQueue = folly::MPMCQueue<T>;
+  using BTQueue = MPMCQueue<QueueType::NORMAL, T>;
+
+  std::unique_ptr<IOQueue<TaskId> > io_queue_;  // io files queue
+  std::unique_ptr<TFQueue<TaskId> > tf_queue_;  // buffer queue
+  std::unique_ptr<BTQueue<std::vector<FlexiDatum> *> > bt_queue_;  // batch queue
 
   // mutex
   // IoTaskLoop and TransformTaskLoop will check stop_flag_
