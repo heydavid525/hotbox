@@ -119,9 +119,11 @@ void MTTransformer::TransformTaskLoop(int tid) {
     std::unordered_map<int, DBAtom> caches;
     for (auto &t : trans_cached) {
       caches[t] = StreamDeserialize<DBAtom>(task.cache[t]);
+			task.cache.erase(t);
     }
-    // caching: prepare datum_bases
+    // caching: prepare space for datum_bases
     task.datum_bases.resize(atom_proto.datum_protos_size());
+		task.cache.clear();
 
     // Collect transform ranges to std::vector
     std::vector<TransformOutputRange> ranges(transforms_.size());
@@ -357,6 +359,8 @@ void MTTransformer::CacheWriteLoop() {
             }
         }
         atom->mutable_datum_protos()->AddAllocated(datum);
+				//TODO: manage datum_base
+				it_datum.reset();
       }
 
       size_t uncompressed_size = 0;
@@ -367,8 +371,6 @@ void MTTransformer::CacheWriteLoop() {
         " for caching transform " << it_tid << " size: " <<
         SizeToReadableString(compressed_atom.size());
       delete atom;
-      // TODO: manage datum_base
-      //delete it_datum->GetDatumProto();
     }
     DLOG(INFO) << "Caching out for atom " << taskid << " end.";
   }
@@ -483,6 +485,9 @@ void MTTransformer::Start() {
     }));
   }
 
+	// TODO only launch workers when needed
+	// can cache in in the same place as IO
+	// can launch separate thread to cache out to avoid queue overhead
   for (int i = 0; i < num_cache_workers_; i++) {
     cache_read_workers_.push_back(std::thread([this]() {
       this->CacheReadLoop();
