@@ -36,7 +36,8 @@ if __name__ == "__main__":
   # Disable stats collection with --no-stats
   parser.add_argument('--no-stats', dest='stats', action='store_false')
   parser.set_defaults(stats=True)
-  parser.add_argument("--reps")  # repeating ingest
+  parser.add_argument("--reps", type=int, default=1)  # repeating ingest
+  parser.add_argument("--num_features_default", type=int, default=0)  # repeating ingest
   args = parser.parse_args()
 
   if not args.path:
@@ -45,7 +46,7 @@ if __name__ == "__main__":
   if not args.db:
     print('--db must be specified.')
     sys.exit(1)
-  num_reps = int(args.reps) if args.reps else 1
+  num_reps = args.reps
   if num_reps > 1:
     print('Repeat data', num_reps, 'times')
 
@@ -57,11 +58,7 @@ if __name__ == "__main__":
       files = [join(root, name) for name in file_list]
   else:
     files = [args.path]
-  #files = list(files)
   files = files * num_reps
-  for i, f in enumerate(files):
-    commit = True if i == len(files) - 1 else False
-    print('-' * 10, 'Ingesting', f)
-    format = 'libsvm' if not args.format else args.format
-    db.ReadFile(f, file_format=format, commit=commit,
-        collect_stats=args.stats)
+  format = 'libsvm' if not args.format else args.format
+  db.ReadFile(files, file_format=format, commit=True,
+      collect_stats=args.stats, num_features_default=args.num_features_default)

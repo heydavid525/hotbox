@@ -19,6 +19,25 @@ ParserIf::ParserIf(const ParserConfig& config) : config_(config) {
 
 ParserIf::~ParserIf() { }
 
+DatumBase ParserIf::ParseLine(const std::string& line,
+Schema* schema, StatCollector* stat_collector, bool* invalid) noexcept {
+  DatumProto* proto = CreateDatumProtoFromOffset(
+    schema->GetAppendOffset());
+  StatCollector* collector = config_.collect_stats() ?
+    stat_collector : nullptr;
+  if (stat_collector != nullptr) {
+    stat_collector->DatumCreateBegin();
+  }
+  DatumBase datum(proto, stat_collector);
+  std::vector<TypedFeatureFinder> not_found_features = Parse(line, schema,
+      &datum, invalid);
+  CHECK_EQ(0, not_found_features.size()) << "Feature not found.";
+  if (stat_collector != nullptr) {
+    stat_collector->DatumCreateEnd();
+  }
+  return datum;
+}
+
 // Parse and add features to schema if not found.
 DatumBase ParserIf::ParseAndUpdateSchema(const std::string& line,
     Schema* schema, StatCollector* stat_collector, bool* invalid) noexcept {

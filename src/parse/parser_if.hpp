@@ -16,6 +16,11 @@ public:
   DatumBase ParseAndUpdateSchema(const std::string& line, Schema* schema,
       StatCollector* stat_collector, bool* invalid) noexcept;
 
+  // Parse and fails if a feature is not found in schema.
+  DatumBase ParseLine(const std::string& line,
+      Schema* schema, StatCollector* stat_collector, bool* invalid)
+      noexcept;
+
   virtual ~ParserIf();
 
 protected:

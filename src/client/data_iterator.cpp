@@ -16,7 +16,7 @@ DataIterator::DataIterator(const SessionProto& session_proto,
   data_begin_(data_begin), data_end_(data_end), next_(data_begin),
   datum_ids_(session_proto_.file_map().datum_ids().cbegin(),
       session_proto_.file_map().datum_ids().cend()),
-      use_multi_threads_(use_multi_threads), mtt_engine_(nullptr),
+      use_multi_threads_(use_multi_threads),
       num_io_threads_(num_io_threads),
       num_transform_threads_(num_transform_threads),
       buffer_limit_(buffer_limit),
@@ -94,13 +94,11 @@ DataIterator::DataIterator(DataIterator &&other)
   data_buffer_(std::move(other.data_buffer_)),
   datum_ids_(std::move(other.datum_ids_)),
   use_multi_threads_(other.use_multi_threads_),
-  mtt_engine_(other.mtt_engine_),
+  mtt_engine_(other.mtt_engine_.release()),
   num_io_threads_(other.num_io_threads_),
   num_transform_threads_(other.num_transform_threads_),
   buffer_limit_(other.buffer_limit_),
-  batch_limit_(other.batch_limit_) {
-    other.mtt_engine_ = nullptr;
-  }
+  batch_limit_(other.batch_limit_) { }
 
 
 }  // namespace hotbox

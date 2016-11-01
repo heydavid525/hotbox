@@ -20,23 +20,14 @@ public:
     chunk_begin_ = data_begin_;
     chunk_end_ = data_begin_;
     if (use_multi_threads_) {
-      if (mtt_engine_) {
-        delete mtt_engine_;
-      }
-      mtt_engine_ = new MTTransformer(session_proto_, transforms_,
+      mtt_engine_.reset(new MTTransformer(session_proto_, transforms_,
       data_begin_, data_end_, num_io_threads_, num_transform_threads_,
-      buffer_limit_, batch_limit_);
+      buffer_limit_, batch_limit_));
     }
   }
 
   // This advances the iterator as it returns a r-reference.
   FlexiDatum GetDatum() override;
-
-  ~DataIterator() {
-    if (use_multi_threads_ && mtt_engine_) {
-      delete mtt_engine_;
-    }
-  }
 
   DataIterator(DataIterator&& other);
 
@@ -82,7 +73,7 @@ private:
 
   bool use_multi_threads_;
 
-  MTTransformer *mtt_engine_;
+  std::unique_ptr<MTTransformer> mtt_engine_;
 
   int32_t num_io_threads_;
   int32_t num_transform_threads_;

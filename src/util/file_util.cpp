@@ -83,8 +83,6 @@ size_t WriteCompressedFile(const std::string& file_path,
     throw FailedFileOperationException("Failed to open " + file_path
         + " for write.");
   }
-  LOG(INFO) << "Writing to " << file_path << " using compressor "
-    << compressor;
   if (compressor != Compressor::NO_COMPRESS) {
     // Compress always succeed.
     auto& registry = ClassRegistry<CompressorIf>::GetRegistry();

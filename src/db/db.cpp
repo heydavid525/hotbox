@@ -3,6 +3,8 @@
 #include "db/db.hpp"
 #include "db/proto/db.pb.h"
 #include "parse/parser_if.hpp"
+#include "schema/schema_util.hpp"
+#include "util/global_config.hpp"
 #include <snappy.h>
 #include <cstdint>
 #include <sstream>
@@ -80,51 +82,286 @@ std::pair<size_t, size_t> DB::WriteAtom(const DBAtom& atom, int atom_id,
   std::string compressed_atom =
     StreamSerialize(atom, &uncompressed_size);
   std::string output_file = output_file_dir + std::to_string(atom_id);
-  io::WriteCompressedFile(output_file, compressed_atom);
+  io::WriteCompressedFile(output_file, compressed_atom,
+    Compressor::NO_COMPRESS);
   LOG(INFO) << "Wrote to atom " << atom_id
-    << " size: " << SizeToReadableString(compressed_atom.size())
-    << " This ingestion has written: "
-    << SizeToReadableString(cumulative_size + compressed_atom.size());
+    << " size: " << SizeToReadableString(compressed_atom.size());
+    //<< " This ingestion has written: "
+    //<< SizeToReadableString(cumulative_size + compressed_atom.size());
   return std::make_pair(compressed_atom.size(), uncompressed_size);
 }
 
+
 // With Atom sized to 64MB (or other size) limited chunks.
+std::string DB::ReadFileMT(const ReadFileReq& req) {
+  Timer timer;
+  // Extend the default feature family if necessary.
+  LOG(INFO) << "req.num_features_default(): " << req.num_features_default();
+  if (req.num_features_default() != 0) {
+    LOG(INFO) << "Add features up to " << req.num_features_default();
+    bool is_simple = true;
+    const FeatureFamilyIf& family_if =
+      schema_->GetOrCreateFamily(kDefaultFamily,
+      is_simple, FeatureStoreType::SPARSE_NUM);
+    Feature feature = CreateFeature(FeatureStoreType::SPARSE_NUM);
+    schema_->AddFeature("default", &feature,
+      req.num_features_default() - 1);
+  }
+  auto& global_config = GlobalConfig::GetInstance();
+  int num_io = global_config.Get<int>("num_io_ingest");
+
+  size_t read_size = 0, write_size = 0, uncompressed_size = 0;
+  int64_t num_records = 0;
+
+  auto& registry =
+    ClassRegistry<ParserIf, const ParserConfig&>::GetRegistry();
+  // Comment(wdai): parser_config is optional, and a default is config is
+  // created automatically if necessary.
+  std::unique_ptr<ParserIf> parser = registry.CreateObject(
+      req.file_format(), req.parser_config());
+
+  float atom_space_used_threshold =
+    EstimateAtomSize(parser.get(), req.file_paths(0));
+  int num_batches = req.file_paths_size() / num_io;
+  if (req.file_paths_size() % num_io != 0) num_batches++;
+  for (int b = 0; b < num_batches; ++b) {
+    // read file [f_begin, f_end).
+    int f_begin = b * num_io;
+    int f_end = (b == num_batches - 1) ? req.file_paths_size() :
+      f_begin + num_io;
+    std::vector<std::future<ProcessReturn>> futs;
+    for (int i = f_begin; i < f_end; ++i) {
+      futs.emplace_back(std::async(std::launch::async, &DB::ReadOneFileMT, this,
+      parser.get(), req.file_paths(i), atom_space_used_threshold));
+    }
+    for (auto& fut : futs) {
+      ProcessReturn ret = fut.get();
+      read_size += ret.read_size;
+      write_size += ret.write_size;
+      uncompressed_size += ret.uncompressed_size;
+      num_records += ret.num_records;
+    }
+    LOG(INFO) << "Finished batch " << b << " num_records so far: " <<
+      num_records << " write size: " << write_size;
+  }
+  if (req.commit()) {
+    CommitDB();
+  }
+  float time = timer.elapsed();
+
+  // Print Log.
+  std::string output_file_dir = meta_data_.file_map().atom_path();
+  BigInt num_features_after = schema_->GetNumFeatures();
+  float compress_ratio = static_cast<float>(write_size)
+    / uncompressed_size;
+  std::stringstream ss;
+  ss << "Read " << num_records << " datum.\n"
+    << "Time: " << time << "s\n"
+    << "Read size: " << SizeToReadableString(read_size) << "\n"
+    << "Read throughput: "
+    << SizeToReadableString(static_cast<float>(read_size) / time) << "/sec\n"
+    << "Wrote to " << output_file_dir
+    << "\nWritten Size " << SizeToReadableString(write_size)
+    << " (" << std::to_string(compress_ratio) << " compression).\n"
+    << "Write throughput per sec: "
+    << SizeToReadableString(static_cast<float>(write_size) / time) << "\n"
+    << "# of features in schema: " << schema_->GetNumFeatures();
+  auto meta_data_str = PrintMetaData();
+  LOG(INFO) << ss.str() << meta_data_str;
+
+  return ss.str() + meta_data_str;
+}
+
+namespace {
+
+size_t ComputeAtomSpaceThreshold(size_t compressed_size,
+  size_t uncompressed_size, size_t atom_space_used) {
+  // compression_rate =  compressed_size / serialized_size.
+  float compression_rate = static_cast<float>(compressed_size) /
+    uncompressed_size;
+  // over_est_rate = SpaceUsed() / serialized_size
+  float over_est_rate = static_cast<float>(atom_space_used) /
+    uncompressed_size;
+  return static_cast<float>(kAtomSizeInBytes) /
+    compression_rate * over_est_rate;
+}
+
+}  // anonymous namespace
+
+size_t DB::EstimateAtomSize(ParserIf* parser,
+  const std::string& path) {
+  auto fp = io::OpenFileStream(path);
+  dmlc::istream in(fp.get());
+  DBAtom atom;
+  int num_records = 0;
+  for (std::string line; std::getline(in, line)
+    && num_records < 40000; ) {
+    bool invalid = false;
+    DatumBase datum = parser->ParseLine(line,
+        schema_.get(), nullptr, &invalid);
+    if (invalid) {
+      continue;   // possibly a comment line.
+    }
+    num_records++;
+    atom.mutable_datum_protos()->AddAllocated(
+        datum.ReleaseProto());
+  }
+  size_t uncompressed_size = 0;
+  std::string compressed_atom =
+    StreamSerialize(atom, &uncompressed_size);
+  size_t compressed_size = compressed_atom.size();
+  float atom_space_used_threshold = ComputeAtomSpaceThreshold(compressed_size,
+    uncompressed_size, atom.SpaceUsed());
+  //LOG(INFO) << "Estimated compression rate: " << compression_rate;
+  //LOG(INFO) << "Estimated space_used / serialize rate: " << over_est_rate;
+  //LOG(INFO) << "Estimated atom space used threshold: " <<
+  //  atom_space_used_threshold;
+  return atom_space_used_threshold;
+}
+
+ProcessReturn DB::ReadOneFileMT(ParserIf* parser,
+  const std::string& path,
+  size_t atom_space_used_threshold) {
+  ProcessReturn ret;
+  ret.read_size = io::GetFileSize(path);
+  // fp is a smart pointer.
+  auto fp = io::OpenFileStream(path);
+  dmlc::istream in(fp.get());
+  //std::vector<Stat> stats_;
+  //StatCollector stat_collector(&stats_);
+
+  DBAtom atom;
+  int64_t curr_batch_size = 0;
+  int batch_size = 0;
+  for (std::string line; std::getline(in, line); ) {
+    bool invalid = false;
+    DatumBase datum = parser->ParseLine(line,
+        schema_.get(), nullptr, &invalid);
+    if (invalid) {
+      continue;   // possibly a comment line.
+    }
+    atom.mutable_datum_protos()->AddAllocated(
+        datum.ReleaseProto());
+    // SpaceUsed() is expensive, so check infrequently.
+    if (curr_batch_size > batch_size && curr_batch_size % 40000 == 0) {
+      size_t space_used = atom.SpaceUsed();
+      if (space_used >= atom_space_used_threshold) {
+        int atom_id = -1;
+        {
+          std::lock_guard<std::mutex> lock(mut_);
+          atom_id = atom_id_++;
+          int64_t num_data_before_read = meta_data_.file_map().num_data();
+          meta_data_.mutable_file_map()->add_datum_ids(num_data_before_read);
+          meta_data_.mutable_file_map()->set_num_data(
+              num_data_before_read + atom.datum_protos_size());
+        }
+        auto p = WriteAtom(atom, atom_id, 0);
+        LOG(INFO) << "Atom #" << atom_id
+          << "\nWrite compressed size     : "
+          << SizeToReadableString(p.first)
+          << "\nBatch size: " << curr_batch_size;
+        ret.write_size += p.first;
+        ret.uncompressed_size += p.second;
+        {
+          std::lock_guard<std::mutex> lock(mut_);
+          num_data_read_ += atom.datum_protos_size();
+          total_atom_space_used_ += space_used;
+          total_write_size_ += p.first;
+          total_uncompressed_size_ += p.second;
+
+          // Recompute atom_space_used_threshold
+          atom_space_used_threshold = ComputeAtomSpaceThreshold(
+            total_write_size_, total_uncompressed_size_,
+            total_atom_space_used_);
+          batch_size = static_cast<float>(kAtomSizeInBytes) /
+            (total_write_size_ / num_data_read_);
+          LOG(INFO) << "Estimated atom space threshold: " <<
+            atom_space_used_threshold << " batch size: " << batch_size;
+        }
+        atom = DBAtom();
+        curr_batch_size = 0;
+      }
+    }
+    ret.num_records++;
+    curr_batch_size++;
+  }
+  // Write the last datum if necessary.
+  if (atom.datum_protos_size() > 0) {
+    int atom_id = -1;
+    {
+      std::lock_guard<std::mutex> lock(mut_);
+      atom_id = atom_id_++;
+      int64_t num_data_before_read = meta_data_.file_map().num_data();
+      meta_data_.mutable_file_map()->add_datum_ids(num_data_before_read);
+      meta_data_.mutable_file_map()->set_num_data(
+          num_data_before_read + atom.datum_protos_size());
+    }
+    auto p = WriteAtom(atom, atom_id, 0);
+    LOG(INFO) << "Atom #" << atom_id
+      << "\nWrite compressed size     : "
+      << SizeToReadableString(p.first);
+    ret.write_size += p.first;
+    ret.uncompressed_size += p.second;
+    {
+      std::lock_guard<std::mutex> lock(mut_);
+      total_atom_space_used_ += atom.SpaceUsed();
+      total_write_size_ += p.first;
+      total_uncompressed_size_ += p.second;
+    }
+  }
+  LOG(INFO) << "num records from file " << path << ": " << ret.num_records
+    << " write size: " << ret.write_size << " read size: " << ret.read_size;
+  return ret;
+}
+
 std::string DB::ReadFile(const ReadFileReq& req) {
+  auto& registry = ClassRegistry<ParserIf, const ParserConfig&>::GetRegistry();
+  // Comment(wdai): parser_config is optional, and a default is config is
+  // created automatically if necessary.
+  std::unique_ptr<ParserIf> parser = registry.CreateObject(
+      req.file_format(), req.parser_config());
+  std::string reply_msg;
+  for (int f = 0; f < req.file_paths_size(); ++f) {
+    reply_msg += ReadOneFile(req.file_paths(f), parser.get());
+    if (req.commit()) {
+      CommitDB();
+    }
+  }
+  return reply_msg;
+}
+
+// With Atom sized to 64MB (or other size) limited chunks.
+std::string DB::ReadOneFile(const std::string& file_path,
+  ParserIf* parser) {
   Timer timer;
   size_t total_write_size = 0, total_uncompressed_size = 0;
   int32_t rec_counter = 0;
   int32_t prev_atom_id = meta_data_.file_map().datum_ids_size();
   BigInt num_features_before = schema_->GetNumFeatures();
-  size_t read_size = io::GetFileSize(req.file_path());
+  size_t read_size = io::GetFileSize(file_path);
   int time = 0;
   {
     // fp is a smart pointer.
-    auto fp = io::OpenFileStream(req.file_path());
+    auto fp = io::OpenFileStream(file_path);
     dmlc::istream in(fp.get());
     std::string line;
-    auto& registry = ClassRegistry<ParserIf, const ParserConfig&>::GetRegistry();
-    // Comment(wdai): parser_config is optional, and a default is config is
-    // created automatically if necessary.
-    std::unique_ptr<ParserIf> parser = registry.CreateObject(
-        req.file_format(), req.parser_config());
     StatCollector stat_collector(&stats_);
     int32_t batch_size = kInitIngestBatchSize;
     DBAtom* curr_atom_ptr = nullptr;
     float compression_rate = 0.5;
     float over_estimate_rate = 1.0; // space used / memory size
-    int total_atom_space_used = 0;  // size in bytes
-    int atom_space_used_threshold = 0; // size in bytes
+    size_t total_atom_space_used = 0;  // size in bytes
+    size_t atom_space_used_threshold = 0; // size in bytes
     bool use_global_estimate = false;
     bool has_estimate_init = false;
     LOG(INFO) << "Initial batch size: " << batch_size;
     while (!in.eof()) {
       curr_atom_ptr = new DBAtom();
-      if(atom_space_used_threshold) {
+      if (atom_space_used_threshold) {
         batch_size = std::numeric_limits<int>::max(); // infinite batch size
       }
       for (int i = 0; i < batch_size && std::getline(in, line); i++) {
         ++rec_counter;
-        CHECK_NOTNULL(parser.get());
         bool invalid = false;
         DatumBase datum = parser->ParseAndUpdateSchema(line,
             schema_.get(), &stat_collector, &invalid);
@@ -205,9 +442,6 @@ std::string DB::ReadFile(const ReadFileReq& req) {
     time = timer.elapsed();
 
     LOG(INFO) << "committing DB";
-    if (req.commit()) {
-      CommitDB();
-    }
   }
 
   // Print Log.

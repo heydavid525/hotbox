@@ -66,8 +66,11 @@ message CreateDBReq {
 
 message ReadFileReq {
   string db_name = 1;
-  string file_path = 2;
+  repeated string file_paths = 2;
   FileFormat file_format = 3;
+
+  // Optional. If set, expand 'default' feature family to this many features.
+  int64 num_features_default = 7;
 
   // True to commit stats and schema to disk (use false for all files but the
   // last one when ingesting multiple files to reduce disk io).

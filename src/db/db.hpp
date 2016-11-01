@@ -5,10 +5,13 @@
 #include <memory>
 #include <boost/noncopyable.hpp>
 #include "db/proto/db.pb.h"
+#include "parse/parser_if.hpp"
 #include "util/proto/warp_msg.pb.h"
 #include "schema/all.hpp"
 #include "util/rocks_db.hpp"
 #include <future>
+#include <atomic>
+#include <mutex>
 
 namespace hotbox {
 
@@ -29,6 +32,13 @@ private:
 };
 */
 
+struct ProcessReturn {
+  size_t read_size = 0;
+  size_t write_size = 0;
+  size_t uncompressed_size = 0;
+  int64_t num_records = 0;
+};
+
 class DB : private boost::noncopyable {
 public:
   // Initialize DB from db_path/DBFile which contains serialized DBProto.
@@ -38,6 +48,7 @@ public:
 
   // Initialize/augment schema accordingly. Return a message.
   std::string ReadFile(const ReadFileReq& req);
+  std::string ReadFileMT(const ReadFileReq& req);
 
   // Return a server session containing transformed schema etc for next
   // client to use directly.
@@ -51,6 +62,25 @@ private:
   // Write all the states of DB to /DB file.
   void CommitDB();
 
+  // Estimate atom.SpaceUsed() threshold to get kAtomSizeInBytes
+  // (function of compression and serialization).
+  size_t EstimateAtomSize(ParserIf* parser,
+    const std::string& path);
+
+  // Read one file for the MT version (ReadFileMT).
+  ProcessReturn ReadOneFileMT(ParserIf* parser,
+    const std::string& path,
+    size_t atom_space_used_threshold);
+
+  // Read one file for ReadFile().
+  std::string ReadOneFile(const std::string& file_path,
+    ParserIf* parser);
+
+  // Write ‘atom’ data to Atom files. Return pair p. p.first is bytes
+  // written (compressed size), p.second is uncompressed size.
+  std::pair<size_t, size_t> WriteAtom(const DBAtom& atom,
+      int atom_id, size_t cumulative_size = 0);
+
 private:
   DBMetaData meta_data_;
 
@@ -62,17 +92,22 @@ private:
   // Currently we only support a single Stat
   std::vector<Stat> stats_;
 
-  // Write ‘atom’ data to Atom files. Return pair p. p.first is bytes
-  // written (compressed size), p.second is uncompressed size.
-  std::pair<size_t, size_t> WriteAtom(const DBAtom& atom,
-      int atom_id, size_t cumulative_size);
-
   std::future<std::pair<size_t, size_t>> write_fut_;
 
   //std::vector<Epoch> epochs_;
 
   // stats_ does not have 1:1 relation with epochs_.
   //std::vector<Stats> stats_;
+
+  // Parameters for multi-threaded ingest synchronization.
+  int64_t num_data_read_{0};
+  size_t total_atom_space_used_{0};
+  size_t total_write_size_{0};
+  size_t total_uncompressed_size_{0};
+
+  // Reconcile multi-threaded write (creation of atom files).
+  std::atomic<int> atom_id_;
+  std::mutex mut_;
 };
 
 }  // namespace hotbox

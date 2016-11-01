@@ -59,11 +59,11 @@ std::unique_ptr<DataIteratorIf> Session::NewDataIterator(
           data_begin, data_end, num_transform_threads,
           num_io_threads, buffer_limit, batch_limit));
   }
-  bool use_multi_threads = num_transform_threads > 1
-    || num_io_threads > 1;
+  //bool use_multi_threads = num_transform_threads > 1
+  //  || num_io_threads > 1;
 
   return std::unique_ptr<DataIterator>(new DataIterator(session_proto_,
-        transforms_, data_begin, data_end, use_multi_threads,
+        transforms_, data_begin, data_end, true,
         num_io_threads, num_transform_threads, buffer_limit,
         batch_limit));
 }

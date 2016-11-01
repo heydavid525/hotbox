@@ -33,9 +33,11 @@ std::vector<TypedFeatureFinder> LibSVMParser::Parse(const std::string& line,
 
   // Use only single store type.
   bool simple_family = true;
-  const FeatureFamilyIf& family_if = schema->GetOrCreateFamily(kDefaultFamily,
-      simple_family, FeatureStoreType::SPARSE_NUM);
-  const auto& family = dynamic_cast<const SimpleFeatureFamily&>(family_if);
+  const FeatureFamilyIf& family_if =
+    schema->GetOrCreateFamily(kDefaultFamily,
+    simple_family, FeatureStoreType::SPARSE_NUM);
+  const auto& family =
+    dynamic_cast<const SimpleFeatureFamily&>(family_if);
   BigInt num_features = family.GetNumFeatures();
   auto store_type_offset = family.GetStoreTypeAndOffset();
   BigInt store_offset = store_type_offset.offset_begin();

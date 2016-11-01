@@ -10,6 +10,7 @@ from os.path import dirname
 from os.path import join
 import yaml
 import snappy
+import json
 
 project_dir = dirname(dirname(dirname(os.path.realpath(__file__))))
 sys.path.append(join(project_dir, 'build'))
@@ -112,11 +113,11 @@ class DB:
   # header is the line # to be treated as header (0 for no header). Data will
   # be read after header line.
   # TODO(wdai): currently header isn't supported.
-  def ReadFile(self, file_path, file_format='csv', commit=True, header=0,
-      collect_stats=True):
+  def ReadFile(self, file_paths, file_format='csv', commit=True, header=0,
+      collect_stats=True, num_features_default=0):
     msg = warp_msg_pb.ClientMsg()
     msg.read_file_req.db_name = self.db_name
-    msg.read_file_req.file_path = file_path
+    msg.read_file_req.file_paths.extend(file_paths)
     # A python switch statement on file_format.
     # TODO(wdai): This is easy to break when adding new file format. Find way
     # to automatically generate this based on proto definition.
@@ -125,9 +126,25 @@ class DB:
         'libsvm': util_pb.LIBSVM,
         'family': util_pb.FAMILY,
         }.get(file_format, 0)
+    # Figure out the dimension from meta files.
+    if file_format == 'libsvm' and num_features_default == 0:
+      for fname in file_paths:
+        meta_file = fname + '.meta.json'
+        print('Reading', meta_file)
+        with open(meta_file, 'r') as f:
+          data = json.load(f)
+          num_features_default = max(num_features_default, \
+            data['feature_dim'])
+      print('num_features_default:', num_features_default)
+    print('num_features_default:', num_features_default)
+    msg.read_file_req.num_features_default = num_features_default
+
+    if file_format == 'libsvm':
+      msg.read_file_req.parser_config.libsvm_config.feature_one_based = True
+          
     msg.read_file_req.header = header
     msg.read_file_req.commit = commit
     msg.read_file_req.parser_config.collect_stats = collect_stats
     reply = self.warp_client.SendRecv(msg)
-    print('Reading file %s ...' % file_path)
+    print('Reading file %s ...' % file_paths)
     print(reply.generic_reply.msg)
