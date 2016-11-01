@@ -42,11 +42,11 @@ CXXFLAGS += \
 					 -DDMLC_USE_GLOG \
 					 #-DUSE_ROCKS
 
-DEBUG ?= 1
+DEBUG ?= 0
 ifeq ($(DEBUG), 1)
   CXXFLAGS += -g -DDEBUG
 else
-  CXXFLAGS += -O2
+  CXXFLAGS += -O2 -DNDEBUG
 endif
 
 THIRD_PARTY_SRC = $(THIRD_PARTY)/src
