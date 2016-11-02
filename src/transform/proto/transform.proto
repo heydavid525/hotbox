@@ -59,6 +59,7 @@ message TransformConfig {
     SelectTransformConfig select_transform = 7;
     TfTransformConfig tf_transform = 8;
     KmeansTransformConfig kmeans_transform = 9;
+    NormalizeTransformConfig normalize_transform = 10;
   }
 }
 
@@ -144,6 +145,11 @@ message KmeansTransformConfig {
   string model_path = 1;
   uint32 num_cluster_centers = 2;
   uint64 feature_dim = 3;
+}
+
+message NormalizeTransformConfig {
+  // "L2" or "L1". By default use "L2". Currently only L2 is supported.
+  string norm = 1;
 }
 
 // Take cartesian products between input_feature_list[0],

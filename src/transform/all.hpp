@@ -11,3 +11,4 @@
 #include "transform/ngram_transform.hpp"
 #include "transform/tf_transform.hpp"
 #include "transform/kmeans_transform.hpp"
+#include "transform/normalize_transform.hpp"

@@ -64,6 +64,12 @@ class TransformConfig:
     # Because SelectTransform is an empty field, use SetInParent() to set it.
     new_config.ngram_transform.SetInParent()
 
+  def add_normalize(self, family):
+    new_config = self.config_list.transform_configs.add()
+    new_config.base_config.input_features.append('%s:*' % family))
+    # Because SelectTransform is an empty field, use SetInParent() to set it.
+    new_config.normalize_transform.SetInParent()
+
   def add_tf(self, selector, graph_path, weight_path, output_vars,
     output_family=None):
     new_config = self.config_list.transform_configs.add()
