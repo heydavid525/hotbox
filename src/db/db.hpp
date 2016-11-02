@@ -70,7 +70,7 @@ private:
   // Read one file for the MT version (ReadFileMT).
   ProcessReturn ReadOneFileMT(ParserIf* parser,
     const std::string& path,
-    size_t atom_space_used_threshold);
+    size_t atom_space_used_threshold, const Timer& timer);
 
   // Read one file for ReadFile().
   std::string ReadOneFile(const std::string& file_path,
@@ -101,6 +101,7 @@ private:
 
   // Parameters for multi-threaded ingest synchronization.
   int64_t num_data_read_{0};
+  std::atomic<size_t> total_read_size_{0};
   size_t total_atom_space_used_{0};
   size_t total_write_size_{0};
   size_t total_uncompressed_size_{0};

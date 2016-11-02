@@ -132,7 +132,8 @@ std::string DB::ReadFileMT(const ReadFileReq& req) {
     std::vector<std::future<ProcessReturn>> futs;
     for (int i = f_begin; i < f_end; ++i) {
       futs.emplace_back(std::async(std::launch::async, &DB::ReadOneFileMT, this,
-      parser.get(), req.file_paths(i), atom_space_used_threshold));
+      parser.get(), req.file_paths(i), atom_space_used_threshold,
+      std::ref(timer)));
     }
     for (auto& fut : futs) {
       ProcessReturn ret = fut.get();
@@ -159,7 +160,7 @@ std::string DB::ReadFileMT(const ReadFileReq& req) {
     << "Time: " << time << "s\n"
     << "Read size: " << SizeToReadableString(read_size) << "\n"
     << "Read throughput: "
-    << SizeToReadableString(static_cast<float>(read_size) / time) << "/sec\n"
+    << SizeToReadableString(static_cast<float>(total_read_size_) / time) << "/sec\n"
     << "Wrote to " << output_file_dir
     << "\nWritten Size " << SizeToReadableString(write_size)
     << " (" << std::to_string(compress_ratio) << " compression).\n"
@@ -221,7 +222,7 @@ size_t DB::EstimateAtomSize(ParserIf* parser,
 
 ProcessReturn DB::ReadOneFileMT(ParserIf* parser,
   const std::string& path,
-  size_t atom_space_used_threshold) {
+  size_t atom_space_used_threshold, const Timer& timer) {
   ProcessReturn ret;
   ret.read_size = io::GetFileSize(path);
   // fp is a smart pointer.
@@ -256,10 +257,14 @@ ProcessReturn DB::ReadOneFileMT(ParserIf* parser,
               num_data_before_read + atom.datum_protos_size());
         }
         auto p = WriteAtom(atom, atom_id, 0);
+        float time = timer.elapsed();
         LOG(INFO) << "Atom #" << atom_id
           << "\nWrite compressed size     : "
           << SizeToReadableString(p.first)
-          << "\nBatch size: " << curr_batch_size;
+          << "\nBatch size: " << curr_batch_size
+          << "\nApprox read throughput: "
+          << SizeToReadableString(static_cast<float>(total_read_size_) / time)
+          << "/s\nTime: " << time << "s";
         ret.write_size += p.first;
         ret.uncompressed_size += p.second;
         {
@@ -309,6 +314,7 @@ ProcessReturn DB::ReadOneFileMT(ParserIf* parser,
       total_uncompressed_size_ += p.second;
     }
   }
+  total_read_size_ += ret.read_size;
   LOG(INFO) << "num records from file " << path << ": " << ret.num_records
     << " write size: " << ret.write_size << " read size: " << ret.read_size;
   return ret;
