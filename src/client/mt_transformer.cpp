@@ -60,7 +60,6 @@ void MTTransformer::IoTaskLoop() {
 void MTTransformer::TransformTaskLoop() {
   auto& global_config = GlobalConfig::GetInstance();
   int batch_size = global_config.Get<int>("transform_batch_size");
-  // LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id() << " Starts...";
   while (true) {
     TaskId taskid;
     // get content buffer from bf_queue
@@ -86,13 +85,9 @@ void MTTransformer::TransformTaskLoop() {
       ranges[i] = session_proto_.transform_output_ranges(i);
     }
     // Trim data for atom files at the boundaries.
-    for (int i = atom_proto.datum_protos_size() - 1; i >= task.datum_begin;
-         --i) {
-      if (i >= task.datum_end) {
-        delete atom_proto.mutable_datum_protos()->ReleaseLast();
-      } else {
-        break;
-      }
+    int num_release = atom_proto.datum_protos_size() - task.datum_end;
+    for (int j = 0; j < num_release; ++j) {
+      delete atom_proto.mutable_datum_protos()->ReleaseLast();
     }
     // do transform by mini-batch
     int atom_size = atom_proto.datum_protos_size() - task.datum_begin;
@@ -116,14 +111,13 @@ void MTTransformer::TransformTaskLoop() {
       }
       for (int t = 0; t < transforms_.size(); ++t) {
         for (int j = 0; j < num_items; ++j) {
-          //CHECK_NOTNULL(data_batch[j]);
           data_batch[j]->ReadyTransform(
             session_proto_.transform_output_ranges(t));
         }
         transforms_[t](&data_batch);
       }
       for (int j = 0; j < num_items; ++j) {
-        int i = j + offset;
+        int i = task.datum_end - (j + offset) - 1;
         (*vec)[i - task.datum_begin] = std::move(data_batch[j]->GetFlexiDatum());
         delete data_batch[j];
       }
