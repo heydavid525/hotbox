@@ -127,7 +127,9 @@ class DB:
         'family': util_pb.FAMILY,
         }.get(file_format, 0)
     # Figure out the dimension from meta files.
-    if file_format == 'libsvm' and num_features_default == 0:
+    has_meta = all([os.path.isfile(fname + '.meta.json') for fname in
+      file_paths])
+    if has_meta and file_format == 'libsvm' and num_features_default == 0:
       for fname in file_paths:
         meta_file = fname + '.meta.json'
         print('Reading', meta_file)
