@@ -54,8 +54,9 @@ if __name__ == "__main__":
   db = hb_client.CreateDB(args.db, use_dense_weight=False)
 
   if os.path.isdir(args.path):
+    files = []
     for root, dirs, file_list in os.walk(args.path):
-      files = [join(root, name) for name in file_list]
+      files += [join(root, name) for name in file_list]
   else:
     files = [args.path]
   files = files * num_reps
