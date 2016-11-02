@@ -2,6 +2,7 @@
 #include "db/db_server.hpp"
 #include "util/all.hpp"
 #include "util/file_util.hpp"
+#include "util/global_config.hpp"
 #include <string>
 #include <algorithm>
 
@@ -140,8 +141,14 @@ void DBServer::ReadFileReqHandler(int client_id, const ReadFileReq& req) {
   if (it == dbs_.cend()) {
     SendGenericReply(client_id, "DB " + req.db_name() + " not found.");
   }
-  //std::string reply_msg = it->second->ReadFile(req);
-  std::string reply_msg = it->second->ReadFileMT(req);
+  auto& global_config = GlobalConfig::GetInstance();
+  int num_io = global_config.Get<int>("num_io_ingest");
+  std::string reply_msg;
+  if (num_io == 1) {
+    reply_msg = it->second->ReadFile(req);
+  } else {
+    reply_msg = it->second->ReadFileMT(req);
+  }
   SendGenericReply(client_id, reply_msg);
 }
 
