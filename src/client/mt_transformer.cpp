@@ -47,8 +47,10 @@ void MTTransformer::IoTaskLoop() {
 
     std::string path = session_proto_.file_map().atom_path()
                               + std::to_string(task.atom_id);
+    //task.buffer = std::move(io::ReadCompressedFile(
+    //                          path, session_proto_.compressor()));
     task.buffer = std::move(io::ReadCompressedFile(
-                              path, session_proto_.compressor()));
+                              path, Compressor::NO_COMPRESS));
 
     tf_queue_->blockingWrite(taskid);
   }
