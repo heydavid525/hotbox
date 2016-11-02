@@ -8,3 +8,6 @@ db_meta_dir: "/home/wdai/hotbox/db_meta"
 
 # mini-batch size during transform.
 transform_batch_size: 1000
+
+# # of parallel threads processing ingest.
+num_io_ingest: 1
