@@ -44,7 +44,8 @@ Stat::Stat(int id, RocksDB* db) {
     proto_->mutable_stats()->Reserve(segment_proto.stats_size());
     for (int j = 0; j < segment_proto.stats_size(); ++j) {
       *(proto_->add_stats()) = segment_proto.stats(j);
-      proto_->set_initialized(j + id_begin, segment_proto.initialized(j));
+      proto_->set_initialized(j + id_begin,
+        segment_proto.initialized(j));
     }
   }
   LOG(INFO) << "Stat reads " << proto_->num_segments() << " segments";
