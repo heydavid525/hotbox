@@ -4,6 +4,7 @@
 #include <glog/logging.h>
 #include <gflags/gflags.h>
 #include <cstdint>
+#include <fstream>
 
 DEFINE_string(db_name, "", "Database name");
 DEFINE_string(session_id, "test_session", "session identifier");
@@ -17,6 +18,26 @@ DEFINE_int32(num_threads, 1, "num transform threads");
 DEFINE_int32(num_io_threads, 1, "num IO threads");
 DEFINE_int32(buffer_limit, 1, "");
 DEFINE_int32(batch_limit, 1, "");
+
+namespace {
+
+void WriteLibSVM(const std::string& file_path,
+  const std::vector<std::vector<int64_t>>& idx,
+  const std::vector<std::vector<float>>& vals,
+  const std::vector<int>& labels) {
+  std::ofstream out(file_path);
+  CHECK(out);
+  for (int i = 0; i < idx.size(); ++i) {
+    out << labels[i];
+    for (int j = 0; j < idx[i].size(); ++j) {
+      out << " " << idx[i][j] + 1 << ":" << vals[i][j];
+    }
+    out << "\n";
+  }
+  LOG(INFO) << "LibSVM output to " << file_path;
+}
+
+}  // anonymous namespace
 
 int main(int argc, char *argv[]) {
   google::ParseCommandLineFlags(&argc, &argv, true);
@@ -40,7 +61,7 @@ int main(int argc, char *argv[]) {
   auto p = o_schema.GetName(4);
   LOG(INFO) << "o_schema(4): family: " << p.first << " feature_name: "
                            << p.second;
-  int i = 0;
+  int64_t i = 0;
   hotbox::Timer timer;
   int64_t num_data = session.GetNumData();
   int64_t num_data_per_worker = num_data / FLAGS_num_workers;
@@ -50,11 +71,20 @@ int main(int argc, char *argv[]) {
   std::unique_ptr<hotbox::DataIteratorIf> it =
     session.NewDataIterator(data_begin, data_end, FLAGS_num_threads,
     FLAGS_num_io_threads, FLAGS_buffer_limit, FLAGS_batch_limit);
+  std::vector<std::vector<int64_t>> idx;
+  std::vector<std::vector<float>> vals;
+  std::vector<int> labels;
   for (; it->HasNext();) {
     hotbox::FlexiDatum datum = it->GetDatum();
-    // LOG_IF(INFO, i < 2) << datum.ToString();
+    LOG_IF(INFO, i < 2) << datum.ToString() << "\n\n";
+    /*
+    idx.push_back(datum.GetSparseIdx());
+    vals.push_back(datum.GetSparseVals());
+    labels.push_back(datum.GetLabel());
+    */
     i++;
   }
+  //WriteLibSVM("/tmp/a1a.feature", idx, vals, labels);
   LOG(INFO) << "Read " << i << " data. Time: " << timer.elapsed();
   return 0;
 };
