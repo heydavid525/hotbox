@@ -179,20 +179,20 @@ void MTTransformer::TransformTaskLoop(int tid) {
                 {
                   auto len = end - begin;
                   auto src =
-                    cache.mutable_datum_protos(i)->dense_num_store().data();
+                    cache.mutable_datum_protos(i)->dense_cat_store().data();
                   auto dst =
-                    datum_base->GetMutableDatumProto().mutable_dense_num_store()->mutable_data();
-                  memcpy(dst+begin, src, sizeof(float) * len);
+                    datum_base->GetMutableDatumProto().mutable_dense_cat_store()->mutable_data();
+                  memcpy(dst+begin, src, sizeof(long long) * len);
                   break;
                 }
               case FeatureStoreType::DENSE_NUM:
                 {
                   auto len = end - begin;
                   auto src =
-                    cache.mutable_datum_protos(i)->dense_cat_store().data();
+                    cache.mutable_datum_protos(i)->dense_num_store().data();
                   auto dst =
-                    datum_base->GetMutableDatumProto().mutable_dense_cat_store()->mutable_data();
-                  memcpy(dst+begin, src, sizeof(long long) * len);
+                    datum_base->GetMutableDatumProto().mutable_dense_num_store()->mutable_data();
+                  memcpy(dst+begin, src, sizeof(float) * len);
                   break;
                 }
               case FeatureStoreType::SPARSE_CAT:
