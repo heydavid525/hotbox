@@ -28,7 +28,8 @@ MTTransformer::MTTransformer(const SessionProto &session_proto,
   // Last atom file range ends with num_data.
   datum_ids_.push_back(session_proto_.file_map().num_data());
 
-  num_cache_workers_ = num_io_workers_/2+1;
+  num_cache_in_workers_ = num_io_workers_/2+1;
+  num_cache_out_workers_ = num_io_workers_/2+1;
   Start();
 }
 
@@ -121,10 +122,7 @@ void MTTransformer::TransformTaskLoop(int tid) {
       caches[t] = StreamDeserialize<DBAtom>(task.cache[t]);
 			task.cache.erase(t);
     }
-    // caching: prepare space for datum_bases
-    task.datum_bases.resize(atom_proto.datum_protos_size());
 		task.cache.clear();
-
     // Collect transform ranges to std::vector
     std::vector<TransformOutputRange> ranges(transforms_.size());
     for (int i = 0; i < transforms_.size(); ++i) {
@@ -135,12 +133,16 @@ void MTTransformer::TransformTaskLoop(int tid) {
     for (int j = 0; j < num_release; ++j) {
       delete atom_proto.mutable_datum_protos()->ReleaseLast();
     }
+
     // do transform by mini-batch
     int atom_size = atom_proto.datum_protos_size() - task.datum_begin;
     int num_batches = atom_size / batch_size;
     if (atom_size % batch_size != 0) {
       num_batches++;
     }
+    // caching: prepare space for datum_bases
+    task.datum_bases.resize(atom_size);
+
     for (int b = 0; b < num_batches; ++b) {
       int offset = b * batch_size;
       int num_items = (b == num_batches - 1) ? (atom_size - offset)
@@ -159,7 +161,7 @@ void MTTransformer::TransformTaskLoop(int tid) {
 
       BigInt output_counter_old = 0;
       for (int t = 0; t < transforms_.size(); ++t) {
-        // TODO(dixiao): collect stats reusing cache
+        // TODO(dixiao): collect stats when reusing cache
         // skip transformation if constructed from cache
         if (trans_cached.find(t) != trans_cached.end()) {
           for (int i = offset; i < offset + num_items; ++i) {
@@ -228,6 +230,8 @@ void MTTransformer::TransformTaskLoop(int tid) {
         // collect time (cput time) + size for the transformation
         std::clock_t c_start = std::clock();
         transforms_[t](&data_batch);
+        // overhead per batch, 0.1ms per item
+        //std::this_thread::sleep_for (std::chrono::milliseconds(6));
         std::clock_t c_end = std::clock();
 
         BigInt output_counter_new = 0;
@@ -252,8 +256,11 @@ void MTTransformer::TransformTaskLoop(int tid) {
       }
     }
 
-    if (trans_tocache.size())
+    if (trans_tocache.size()) {
       cache_write_queue_->blockingWrite(taskid);
+    } else {
+      task.datum_bases.clear();
+    }
     bt_queue_->blockingWrite(vec);
   }
   // LOG(INFO) << "TFTaskLoop " << std::this_thread::get_id() << " ends...";
@@ -358,16 +365,16 @@ void MTTransformer::CacheWriteLoop() {
               break;
             }
         }
+				it_datum.reset(); // free datum_base
         atom->mutable_datum_protos()->AddAllocated(datum);
-				//TODO: manage datum_base
-				it_datum.reset();
       }
+      task.datum_bases.clear();
 
       size_t uncompressed_size = 0;
       std::string compressed_atom = StreamSerialize(*atom, &uncompressed_size);
       io::WriteCompressedFile(getCachePath(task.atom_id, it_tid),
           compressed_atom);
-      LOG(INFO) << "Wrote to atom " << task.atom_id << 
+      DLOG(INFO) << "Wrote to atom " << task.atom_id << 
         " for caching transform " << it_tid << " size: " <<
         SizeToReadableString(compressed_atom.size());
       delete atom;
@@ -382,13 +389,13 @@ void MTTransformer::Destory() {
   stop_flag_ = true;
 
   // notify all workers to check stop flag and exit
-  for (int i = 0; i < num_cache_workers_; i++) {
+  for (int i = 0; i < num_cache_in_workers_; i++) {
     cache_read_queue_->blockingWrite(-1);
   }
   for (int i = 0; i < num_tf_workers_; i++) {
     tf_queue_->blockingWrite(-1);
   }
-  for (int i = 0; i < num_cache_workers_; i++) {
+  for (int i = 0; i < num_cache_out_workers_; i++) {
     cache_write_queue_->blockingWrite(-1);
   }
 
@@ -454,6 +461,7 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
   cache_write_queue_ = make_unique<folly::MPMCQueue<TaskId> >(tf_limit_);
 
   for (int atom_id = low; atom_id < high; atom_id++) {
+    tasks_[atom_id].atom_id = atom_id;
     tasks_[atom_id].datum_begin = std::max(data_begin, (size_t)datum_ids_[atom_id])
                       - datum_ids_[atom_id];
     tasks_[atom_id].datum_end = std::min(data_end, (size_t)datum_ids_[atom_id + 1])
@@ -488,10 +496,18 @@ void MTTransformer::Start() {
 	// TODO only launch workers when needed
 	// can cache in in the same place as IO
 	// can launch separate thread to cache out to avoid queue overhead
-  for (int i = 0; i < num_cache_workers_; i++) {
+  if (trans_tocache.empty()) {
+    num_cache_out_workers_ = 0;
+  }
+  if (trans_cached.empty()) {
+    num_cache_in_workers_ = 0;
+  }
+  for (int i = 0; i < num_cache_in_workers_; i++) {
     cache_read_workers_.push_back(std::thread([this]() {
       this->CacheReadLoop();
     }));
+  }
+  for (int i = 0; i < num_cache_out_workers_; i++) {
     cache_write_workers_.push_back(std::thread([this]() {
       this->CacheWriteLoop();
     }));
