@@ -135,11 +135,33 @@ void DatumBase::SetDenseNumFeatureVal(BigInt store_offset, float val) {
   proto_->set_dense_num_store(store_offset, val);
 }
 
+void DatumBase::SetDenseNumFeatureVal(BigInt offset, const std::vector<float>& vals) {
+  CHECK_LT(offset + vals.size(), proto_->dense_num_store_size());
+  auto len = vals.size(); 
+  auto src = vals.data(); 
+  auto dst = proto_->mutable_dense_num_store()->mutable_data();
+  memcpy(dst+offset, src, sizeof(float) * len);
+}
+
 // Directly set in sparse_num_store()
 void DatumBase::SetSparseNumFeatureVal(BigInt store_offset, float val) {
   proto_->add_sparse_num_store_idxs(store_offset);
   proto_->add_sparse_num_store_vals(val);
   //(*(proto_->mutable_sparse_num_store()))[store_offset] = val;
+}
+
+void DatumBase::SetSparseNumFeatureVal(BigInt offset, const std::vector<float>& vals) {
+  int sparse_idx = proto_->sparse_num_store_idxs_size();
+  if (sparse_idx > 0) {
+    auto last_offset = proto_->sparse_num_store_idxs(sparse_idx-1);
+    CHECK_LT(last_offset, offset)
+      << "relative_offset needs to be added in ascending order. Last "
+      "offset: " << last_offset << ", curr_offset: " << offset;
+  }
+  for (int i = 0; i < vals.size(); ++i) {
+    proto_->add_sparse_num_store_idxs(offset + i);
+    proto_->add_sparse_num_store_vals(vals[i]);
+  }
 }
 
 std::string DatumBase::ToString() const {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include "schema/proto/schema.pb.h"
 #include "schema/schema.hpp"
 #include "db/stat_collector.hpp"
@@ -48,9 +49,11 @@ public:
 
   // Directly set in dense_num_store()
   void SetDenseNumFeatureVal(BigInt offset, float val);
+  void SetDenseNumFeatureVal(BigInt offset, const std::vector<float>& vals);
 
   // Directly set in sparse_num_store()
   void SetSparseNumFeatureVal(BigInt offset, float val);
+  void SetSparseNumFeatureVal(BigInt offset, const std::vector<float>& vals);
 
   std::string ToString() const;
 

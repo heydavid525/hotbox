@@ -65,8 +65,19 @@ void TransDatum::SetFeatureValRelativeOffset(BigInt relative_offset,
     }
     return;
   }
-  LOG(FATAL) << "Storing vector to TransDatum internal storage is "
-    "not implemented yet. Set single value instead.";
+  // Internal stores.
+  switch (store_type_) {
+    case FeatureStoreType::DENSE_NUM:
+      base_->SetDenseNumFeatureVal(offset, vals);
+      return;
+    case FeatureStoreType::SPARSE_NUM:
+      base_->SetSparseNumFeatureVal(offset, vals);
+      return;
+    default:
+      // only support numberical types when storing vector to TransDatum
+      // internal storage
+      LOG(FATAL) << "Unrecognized store_type: " << store_type_;
+  }
 }
 
 void TransDatum::SetFeatureValRelativeOffset(BigInt relative_offset,
