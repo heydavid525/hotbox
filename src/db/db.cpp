@@ -84,8 +84,8 @@ std::pair<size_t, size_t> DB::WriteAtom(const DBAtom& atom, int atom_id,
   std::string output_file = output_file_dir + std::to_string(atom_id);
   io::WriteCompressedFile(output_file, compressed_atom,
     Compressor::NO_COMPRESS);
-  LOG(INFO) << "Wrote to atom " << atom_id
-    << " size: " << SizeToReadableString(compressed_atom.size());
+  //LOG(INFO) << "Wrote to atom " << atom_id
+  //  << " size: " << SizeToReadableString(compressed_atom.size());
     //<< " This ingestion has written: "
     //<< SizeToReadableString(cumulative_size + compressed_atom.size());
   return std::make_pair(compressed_atom.size(), uncompressed_size);
