@@ -157,7 +157,8 @@ class MTTransformer {
   // TODO(dixiao): improve worker: count ..
   const int num_io_workers_;
   const int num_tf_workers_;
-  int num_cache_workers_;
+  int num_cache_in_workers_;
+  int num_cache_out_workers_;
 
   // transform task queue size limit, used for io speed control
   const int tf_limit_;
