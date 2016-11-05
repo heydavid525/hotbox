@@ -35,6 +35,7 @@ env_params = (
   "GLOG_logtostderr=true "
   "GLOG_v=-1 "
   "GLOG_minloglevel=0 "
+  "/usr/bin/time -v"
   )
 
 cmd = env_params + prog
