@@ -4,61 +4,81 @@ import sys, os, time
 from os.path import dirname
 from os.path import join
 import argparse
+from multiprocessing import Pool
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--machines', dest='machine_file', default='', 
-  help='List of machine IPs. If not supplied, run locally.')
+def execute(cmd):
+  print(cmd)
+  ret = os.system(cmd)
+  print('Done')
+  return ret
 
-args = parser.parse_args()
-ips = []
-num_workers = 1
-if args.machine_file != '':
-  with open(args.machine_file) as f:
-    ips = [l.strip() for l in f.readlines()]
-  num_workers = len(ips)
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--machines', dest='machine_file', default='', 
+    help='List of machine IPs. If not supplied, run locally.')
 
-project_dir = dirname(dirname(os.path.realpath(__file__)))
-db_testbed = join(project_dir, 'db_testbed')
-os.system('mkdir -p %s' % db_testbed)
-prog = join(project_dir, "build", "test", "client", "hotbox_client_main")
+  args = parser.parse_args()
+  ips = []
+  num_workers = 1
+  if args.machine_file != '':
+    with open(args.machine_file) as f:
+      ips = [l.strip() for l in f.readlines()]
+    num_workers = len(ips)
 
-env_params = (
-  "GLOG_logtostderr=true "
-  "GLOG_v=-1 "
-  "GLOG_minloglevel=0 "
-  )
+  project_dir = dirname(dirname(os.path.realpath(__file__)))
+  db_testbed = join(project_dir, 'db_testbed')
+  os.system('mkdir -p %s' % db_testbed)
+  prog = join(project_dir, "build", "test", "client", "hotbox_client_main")
 
-params = {
-    "db_name": 'a1a'
-    , 'use_proxy': 'false'
-    , 'num_proxy_servers': 1
-    , "session_id": "session0"
-    , "transform_config": "select_all.conf"
-    , 'num_workers': num_workers
-    , 'num_threads': 1
-    , 'num_io_threads': 1
-    , 'buffer_limit': 16
-    , 'batch_limit': 16
-    }
-
-ssh_cmd = (
-    "ssh "
-    "-o StrictHostKeyChecking=no "
-    "-o UserKnownHostsFile=/dev/null "
+  env_params = (
+    "GLOG_logtostderr=true "
+    "GLOG_v=-1 "
+    "GLOG_minloglevel=0 "
+    "time -v "
     )
 
-if len(ips) == 0:
-  cmd = env_params + prog
-  cmd += "".join([" --%s=%s" % (k,v) for k,v in params.items()])
-  print(cmd)
-  os.system(cmd)
-  sys.exit(0)
+  params = {
+      "db_name": 'higgs'
+      #"db_name": 'a1a'
+      , 'use_proxy': 'false'
+      , 'num_proxy_servers': 1
+      , "session_id": "session26"
+      #, "transform_config": "wdai_tf_higgs.conf"
+      , "transform_config": "select_all.conf"
+      #, "transform_config": "normalize_default.conf"
+      #, "transform_config": "ngram_poly2.conf"
+      #, "transform_config": "select_all.conf"
+      , 'num_workers': num_workers
+      , 'num_threads': 16
+      , 'num_io_threads': 1
+      , 'buffer_limit': 16
+      , 'batch_limit': 16
+      }
 
-for client_id, ip in enumerate(ips):
-  params['worker_id'] = client_id
-  cmd = ssh_cmd + ip + ' '
-  cmd += env_params + prog
-  cmd += "".join([" --%s=%s" % (k,v) for k,v in params.items()])
-  cmd += ' &'
-  print(cmd)
-  os.system(cmd)
+  ssh_cmd = (
+      "ssh "
+      "-o StrictHostKeyChecking=no "
+      "-o UserKnownHostsFile=/dev/null "
+      )
+
+  if len(ips) == 0:
+    cmd = env_params + prog
+    cmd += "".join([" --%s=%s" % (k,v) for k,v in params.items()])
+    execute(cmd)
+    sys.exit(0)
+
+  rets = []
+  pool = Pool(processes=16)
+  for client_id, ip in enumerate(ips):
+    params['worker_id'] = client_id
+    cmd = ssh_cmd + ip + ' '
+    cmd += env_params + prog
+    cmd += "".join([" --%s=%s" % (k,v) for k,v in params.items()])
+    #cmd += ' &'
+    #print(cmd)
+    #os.system(cmd)
+    rets.append(pool.apply_async(execute, (cmd,)))
+
+  for r in rets:
+    r.get()
+  print('All clients finished!')
