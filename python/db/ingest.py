@@ -60,7 +60,6 @@ if __name__ == "__main__":
         files.append(filename)
   else:
     files = [args.path]
-  print (files)
   
   files = files * num_reps
   format = 'libsvm' if not args.format else args.format
