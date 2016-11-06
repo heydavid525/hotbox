@@ -121,8 +121,10 @@ void TransDatum::SetFeatureValRelativeOffset(BigInt relative_offset,
 }
 
 FlexiDatum TransDatum::GetFlexiDatum() {
-  float label = base_->GetFeatureVal(label_);
-  float weight = base_->GetFeatureVal(weight_);
+  // WARN(dixiao): for testing we don't get input data, so ignore both
+  //float label = base_->GetFeatureVal(label_);
+  //float weight = base_->GetFeatureVal(weight_);
+  float label = 0.f, weight = 0.f;
   if (weight == 0.) {
     weight = 1.;
   }

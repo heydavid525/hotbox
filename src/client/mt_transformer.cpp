@@ -123,14 +123,6 @@ void MTTransformer::TransformTaskLoop(int tid) {
     if (taskid == -1) break; // sentinel task for termination
     auto& task = tasks_[taskid];
 
-    DBAtom atom_proto = StreamDeserialize<DBAtom>(task.buffer);
-    task.buffer = "";
-    task.buffer.shrink_to_fit(); // free unused memory
-    auto output_store_type = session_proto_.output_store_type();
-    auto output_dim = session_proto_.output_dim();
-    std::vector<FlexiDatum> *vec = new std::vector<FlexiDatum>(
-      task.datum_end - task.datum_begin);
-
     // caching in and deserialize
     // the following transformation is done on per datum basis
     std::unordered_map<int, DBAtom> caches;
@@ -139,6 +131,24 @@ void MTTransformer::TransformTaskLoop(int tid) {
 			task.cache.erase(t);
     }
 		task.cache.clear();
+    
+    // deserialze input dataset
+    // construct placeholder if input dataset is not needed
+    // assume the number of datums should be the same from cache
+    DBAtom atom_proto;
+    if (skipIO) {
+      for (int i = 0; i < caches[0].datum_protos().size(); ++i)
+        atom_proto.mutable_datum_protos()->Add();
+    } else {
+      atom_proto = StreamDeserialize<DBAtom>(task.buffer);
+    }
+    task.buffer = "";
+    task.buffer.shrink_to_fit(); // free unused memory
+    auto output_store_type = session_proto_.output_store_type();
+    auto output_dim = session_proto_.output_dim();
+    std::vector<FlexiDatum> *vec = new std::vector<FlexiDatum>(
+      task.datum_end - task.datum_begin);
+
     // Collect transform ranges to std::vector
     std::vector<TransformOutputRange> ranges(transforms_.size());
     for (int i = 0; i < transforms_.size(); ++i) {
@@ -170,8 +180,6 @@ void MTTransformer::TransformTaskLoop(int tid) {
       for (int j = 0; j < num_items; ++j) {
         auto datum_base = std::make_shared<DatumBase>(
           atom_proto.mutable_datum_protos()->ReleaseLast());
-        auto& last_range = session_proto_.transform_output_ranges(
-            transforms_.size() - 1);
         data_batch[j] = new TransDatum(datum_base, session_proto_.label(),
                         session_proto_.weight(), output_store_type, output_dim,
                         ranges);
@@ -180,7 +188,6 @@ void MTTransformer::TransformTaskLoop(int tid) {
 
       BigInt output_counter_old = 0;
       for (int t = 0; t < transforms_.size(); ++t) {
-        // TODO(dixiao): collect stats when reusing cache
         // skip transformation if constructed from cache
         if (trans_cached.find(t) != trans_cached.end()) {
           Timer timer;
@@ -241,8 +248,7 @@ void MTTransformer::TransformTaskLoop(int tid) {
                 }
             }
           }
-          if (sampling)
-            metrics_.add_transform(t, timer.elapsed(), 0);
+          if (sampling) metrics_.add_transform(t, timer.elapsed(), 0);
           continue;
         }
         for (int j = 0; j < num_items; ++j) {
@@ -259,8 +265,8 @@ void MTTransformer::TransformTaskLoop(int tid) {
         }
         output_counter_old = output_counter_new;
 
-        if (sampling)
-          metrics_.add_transform(t, timer.elapsed(), output_counter_new - output_counter_old);
+        if (sampling) metrics_.add_transform(t, timer.elapsed(),
+            output_counter_new - output_counter_old);
       }
       for (int j = 0; j < num_items; ++j) {
         int i = task.datum_end - (j + offset) - 1;
@@ -383,6 +389,9 @@ void MTTransformer::CacheWriteLoop(int tid) {
               }
               break;
             }
+          default:
+            LOG(FATAL) << "Caching out for store type " <<
+              type << " is not supported yet.";
         }
 				it_datum.reset(); // free datum_base
         atom->mutable_datum_protos()->AddAllocated(datum);
@@ -476,10 +485,14 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
     high--;
   tasks_.reserve(high-low);
 
-  io_queue_ = make_unique<folly::MPMCQueue<TaskId> >(high-low);
+  if (skipIO) {
+    cache_read_queue_ = make_unique<folly::MPMCQueue<TaskId> >(high-low);
+  } else {
+    io_queue_ = make_unique<folly::MPMCQueue<TaskId> >(high-low);
+    cache_read_queue_ = make_unique<folly::MPMCQueue<TaskId> >(num_io_workers_);
+  }
   tf_queue_ = make_unique<folly::MPMCQueue<TaskId> >(tf_limit_);  // buffer queue
   bt_queue_ = make_unique<folly::MPMCQueue<std::vector<FlexiDatum> *> >(bt_limit_);  // batch queue
-  cache_read_queue_ = make_unique<folly::MPMCQueue<TaskId> >(num_io_workers_);
   cache_write_queue_ = make_unique<folly::MPMCQueue<TaskId> >(tf_limit_);
 
   for (int atom_id = low; atom_id < high; atom_id++) {
@@ -488,11 +501,16 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
                       - datum_ids_[atom_id];
     tasks_[atom_id].datum_end = std::min(data_end, (size_t)datum_ids_[atom_id + 1])
                       - datum_ids_[atom_id];
-    io_queue_->blockingWrite(atom_id);
+
+    // skip reading input dataset when all transforms are cached
+    if (skipIO)
+      cache_read_queue_->blockingWrite(atom_id);
+    else
+      io_queue_->blockingWrite(atom_id);
   }
 
-  total_tf_tasks_ = io_queue_->size();
-  total_batches_ = io_queue_->size();
+  total_tf_tasks_ = high - low;
+  total_batches_ = high -low;
 }
 
 
@@ -506,10 +524,15 @@ void MTTransformer::Start() {
   for (auto& t : session_proto_.transforms_cached())
       trans_cached.insert(t);
 
+  if (trans_cached.size() == transforms_.size()) {
+    CHECK_EQ(trans_tocache.size(), 0) << "don't try to cache when all transformations are already cached";
+    skipIO = true;
+  }
+
   // translate data range into io tasks
   Translate(data_begin_, data_end_);
 
-  for (int i = 0; i < num_io_workers_; i++) {
+  for (int i = 0; !skipIO && i < num_io_workers_; i++) {
     io_workers_.push_back(std::thread([this, i]() {
       this->IoTaskLoop(i);
     }));

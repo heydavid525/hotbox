@@ -172,6 +172,7 @@ class MTTransformer {
   // TODO: remove when we have atom level control of cache
   std::set<int> trans_cached; // transformations that are cached
   std::set<int> trans_tocache; // transformations that need to be cached
+  bool skipIO = false;
 
   // samples only the first thread to avoid contention
   TransStats metrics_ = {};
