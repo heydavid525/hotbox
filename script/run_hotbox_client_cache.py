@@ -28,7 +28,7 @@ env_params = (
   "GLOG_minloglevel=0 "
   )
 
-conf = "cache_ngram_higgs.conf"
+# conf = "cache_ngram_higgs.conf"
 # conf = "cache_select_all.conf"
 # conf = "cache_tf.conf"
 
@@ -39,7 +39,7 @@ params = {
     , "session_id": conf
     , "transform_config": conf
     , 'num_workers': num_workers
-    , 'num_threads': 8
+    , 'num_threads': 1
     , 'num_io_threads': 16
     , 'buffer_limit': 16
     , 'batch_limit': 16

@@ -121,6 +121,22 @@ int main(int argc, char *argv[]) {
   metrics.print();
   // note the generated value if stored in dense, doesn't affect the actual
   // storage
+  for (int t = 0; t < metrics.t_transform.size(); ++t) {
+    // all in seconds
+    // time to write out, time to read in, time to stage in, compression,
+    // decompression
+    float io_const_cost = 0.05;
+    float cache_in_cost = io_const_cost + metrics.n_generated_value[t]*4.0/1024/1024/100; // estimate size in mb then 100mb/s
+    float cost = cache_in_cost + io_const_cost + metrics.n_generated_value[t]*4.0/1024/1024/1024/10; // mem cpy
+    float gain = metrics.t_transform[t];
+    LOG(INFO) << "Transform " << t << " generated: " << metrics.n_generated_value[t] << " time: " << metrics.t_transform[t];
+    if (gain > cost) {
+      LOG(INFO) << "Cost: " << cost << " Gain: " << gain << " (Cache)";
+      tocache.push_back(i);
+    } else {
+      LOG(INFO) << "Cost: " << cost << " Gain: " << gain << " (Not to cache)";
+    }
+  }
 
   // cache all
   tocache.clear();
@@ -128,10 +144,8 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < metrics.ntransforms; ++i) {
     tocache.push_back(i);
   }
- 
   LOG(INFO) << "(Cache all: tocache) Read " << i << " data. Time: " <<
     execute(session, tocache, cached, true);
-
   tocache.swap(cached);
   LOG(INFO) << "(Cache all: cached) Read " << i << " data. Time: " <<
     execute(session, tocache, cached, true);

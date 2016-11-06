@@ -263,10 +263,10 @@ void MTTransformer::TransformTaskLoop(int tid) {
         for (int j = 0; j < num_items; ++j) {
           output_counter_new += data_batch[j]->GetOutputCounter();
         }
-        output_counter_old = output_counter_new;
 
         if (sampling) metrics_.add_transform(t, timer.elapsed(),
             output_counter_new - output_counter_old);
+        output_counter_old = output_counter_new;
       }
       for (int j = 0; j < num_items; ++j) {
         int i = task.datum_end - (j + offset) - 1;
