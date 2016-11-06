@@ -72,4 +72,18 @@ Status Session::GetStatus() const {
   return status_;
 }
 
+void Session::SetTransformsToCache(const std::vector<int>& s) {
+  session_proto_.mutable_transforms_tocache()->Clear();
+  for (auto& i : s) {
+    session_proto_.add_transforms_tocache(i);
+  }
+}
+
+void Session::SetTransformsCached(const std::vector<int>& s) {
+  session_proto_.mutable_transforms_cached()->Clear();
+  for (auto& i : s) {
+    session_proto_.add_transforms_cached(i);
+  }
+}
+
 }  // namespace hotbox

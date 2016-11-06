@@ -40,6 +40,9 @@ public:
 
   Status GetStatus() const;
 
+  void SetTransformsToCache(const std::vector<int> &);
+  void SetTransformsCached(const std::vector<int> &);
+
 private:
   bool use_proxy_;
   int proxy_iter_id_{0};

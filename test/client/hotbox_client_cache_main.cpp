@@ -8,6 +8,7 @@
 #include <gflags/gflags.h>
 #include <cstdint>
 #include <fstream>
+#include <iostream>
 #include "metrics/metrics.hpp"
 
 DEFINE_string(db_name, "", "Database name");
@@ -41,6 +42,36 @@ void WriteLibSVM(const std::string& file_path,
   LOG(INFO) << "LibSVM output to " << file_path;
 }
 
+void printVector(const std::vector<int>& s) {
+  for (auto &i : s) {
+    std::cout<<i<<" ";
+  }
+  std::cout<<"\n";
+}
+
+int64_t data_begin;
+int64_t data_end;
+// helper function to create a new data iterator and run
+// return execution time
+float execute(hotbox::Session& session, std::vector<int>& tocache,
+    std::vector<int>& cached, bool printMetrics) {
+  std::cout<<"transforms to cache: "; printVector(tocache);
+  std::cout<<"transforms cached: "; printVector(cached);
+  session.SetTransformsToCache(tocache);
+  session.SetTransformsCached(cached);
+  int64_t i = 0;
+  hotbox::Timer timer;
+  auto it = session.NewDataIterator(data_begin, data_end, FLAGS_num_threads,
+      FLAGS_num_io_threads, FLAGS_buffer_limit, FLAGS_batch_limit);
+  for (; it->HasNext();) {
+    hotbox::FlexiDatum datum = it->GetDatum();
+    i++;
+  }
+  auto metrics = it->GetMetrics();
+  metrics.print();
+  return timer.elapsed();
+}
+
 }  // anonymous namespace
 
 int main(int argc, char *argv[]) {
@@ -60,31 +91,44 @@ int main(int argc, char *argv[]) {
   hotbox::Session session = hb_client.CreateSession(session_options);
   CHECK(session.GetStatus().IsOk());
   int64_t i = 0;
-  hotbox::Timer timer;
   int64_t num_data = session.GetNumData();
   int64_t num_data_per_worker = num_data / FLAGS_num_workers;
-  int64_t data_begin = num_data_per_worker * FLAGS_worker_id;
-  int64_t data_end = FLAGS_worker_id == FLAGS_num_workers - 1 ?
+  data_begin = num_data_per_worker * FLAGS_worker_id;
+  data_end = FLAGS_worker_id == FLAGS_num_workers - 1 ?
       num_data : data_begin + num_data_per_worker;
+
+  // normal execution
+  hotbox::Timer timer;
+  i = 0;
   std::unique_ptr<hotbox::DataIteratorIf> it =
     session.NewDataIterator(data_begin, data_end, FLAGS_num_threads,
     FLAGS_num_io_threads, FLAGS_buffer_limit, FLAGS_batch_limit);
-  std::vector<std::vector<int64_t>> idx;
-  std::vector<std::vector<float>> vals;
-  std::vector<int> labels;
   for (; it->HasNext();) {
     hotbox::FlexiDatum datum = it->GetDatum();
     i++;
   }
-  LOG(INFO) << "Read " << i << " data. Time: " << timer.elapsed();
+  LOG(INFO) << "(Normal execution) Read " << i << " data. Time: " << timer.elapsed();
+
+  std::vector<int> tocache, cached; 
+
+  // decision from cost model
   auto metrics = it->GetMetrics();
   metrics.print();
+  // note the generated value if stored in dense, doesn't affect the actual
+  // storage
 
-  // NOTE: should only check the completion time per task taking out the io
-  // time and only consider the cache/transform related time
-  // normal execution
   // cache all
-  // cost model
-  // human
+  tocache.clear();
+  cached.clear();
+  for (int i = 0; i < metrics.ntransforms; ++i) {
+    tocache.push_back(i);
+  }
+ 
+  LOG(INFO) << "(Cache all: tocache) Read " << i << " data. Time: " <<
+    execute(session, tocache, cached, true);
+
+  tocache.swap(cached);
+  LOG(INFO) << "(Cache all: cached) Read " << i << " data. Time: " <<
+    execute(session, tocache, cached, true);
   return 0;
 };

@@ -9,6 +9,7 @@ namespace hotbox {
   // collects by first thread in each stage
   // and by some of the tasks
   struct TransStats {
+    int ntransforms;
     // micro
     // NOTE: we are using hotbox::Timer (steady_clock) for measuring time
     // we can also use std::clock() to measure cycles
@@ -39,6 +40,7 @@ namespace hotbox {
       n_rcache = 0;
       n_transform = 0;
       n_wcache = 0;
+      ntransforms = n;
       t_transform.resize(n);
       n_generated_value.resize(n);
       t_rcache.resize(n);
