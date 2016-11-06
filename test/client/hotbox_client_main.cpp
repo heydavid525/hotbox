@@ -62,6 +62,7 @@ int main(int argc, char *argv[]) {
   LOG(INFO) << "o_schema(4): family: " << p.first << " feature_name: "
                            << p.second;
   int64_t i = 0;
+  int64_t nnz = 0;    // # of non-zeros in all load data.
   hotbox::Timer timer;
   int64_t num_data = session.GetNumData();
   int64_t num_data_per_worker = num_data / FLAGS_num_workers;
@@ -74,9 +75,13 @@ int main(int argc, char *argv[]) {
   std::vector<std::vector<int64_t>> idx;
   std::vector<std::vector<float>> vals;
   std::vector<int> labels;
+  int64_t interval = num_data / 20;
   for (; it->HasNext();) {
     hotbox::FlexiDatum datum = it->GetDatum();
-    LOG_IF(INFO, i < 2) << datum.ToString() << "\n\n";
+    LOG_IF(INFO, i < 2 && FLAGS_worker_id == 0) << datum.ToString() << "\n\n";
+    LOG_IF(INFO, i % interval == 0) << static_cast<float>(i) / num_data
+      << " finished. Time: " << timer.elapsed();
+    nnz += datum.GetSparseIdx().size();
     /*
     idx.push_back(datum.GetSparseIdx());
     vals.push_back(datum.GetSparseVals());
@@ -85,6 +90,7 @@ int main(int argc, char *argv[]) {
     i++;
   }
   //WriteLibSVM("/tmp/a1a.feature", idx, vals, labels);
-  LOG(INFO) << "Read " << i << " data. Time: " << timer.elapsed();
+  LOG(INFO) << "Read " << i << " data. Nnz: " << nnz
+    << " Time: " << timer.elapsed();
   return 0;
 };
