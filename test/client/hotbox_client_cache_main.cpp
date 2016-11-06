@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <tuple>
 #include "metrics/metrics.hpp"
 
 DEFINE_string(db_name, "", "Database name");
@@ -90,16 +91,20 @@ int main(int argc, char *argv[]) {
   session_options.output_store_type = hotbox::OutputStoreType::SPARSE;
   hotbox::Session session = hb_client.CreateSession(session_options);
   CHECK(session.GetStatus().IsOk());
-  int64_t i = 0;
   int64_t num_data = session.GetNumData();
   int64_t num_data_per_worker = num_data / FLAGS_num_workers;
   data_begin = num_data_per_worker * FLAGS_worker_id;
   data_end = FLAGS_worker_id == FLAGS_num_workers - 1 ?
-      num_data : data_begin + num_data_per_worker;
+        num_data : data_begin + num_data_per_worker;
+  LOG(INFO) << "Old Range: " << data_begin << " -> " << data_end;
+  // align by atom boundary so no slicing will happen
+  // because caching is supported at atom level
+  //std::tie(data_begin, data_end) = session.GetRange(FLAGS_worker_id, FLAGS_num_workers);
+  //LOG(INFO) << "New Range: " << data_begin << " -> " << data_end;
 
   // normal execution
   hotbox::Timer timer;
-  i = 0;
+  int64_t i = 0;
   std::unique_ptr<hotbox::DataIteratorIf> it =
     session.NewDataIterator(data_begin, data_end, FLAGS_num_threads,
     FLAGS_num_io_threads, FLAGS_buffer_limit, FLAGS_batch_limit);

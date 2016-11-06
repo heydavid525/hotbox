@@ -28,8 +28,9 @@ env_params = (
   "GLOG_minloglevel=0 "
   )
 
-# conf = "cache_ngram_higgs.conf"
-conf = "cache_select_all.conf"
+conf = "cache_ngram_higgs.conf"
+# conf = "cache_select_all.conf"
+# conf = "cache_tf.conf"
 
 params = {
     "db_name": 'higgs'

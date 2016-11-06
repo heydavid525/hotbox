@@ -86,4 +86,17 @@ void Session::SetTransformsCached(const std::vector<int>& s) {
   }
 }
 
+std::tuple<int, int> Session::GetRange(int worker_id, int num_workers) {
+  std::vector<BigInt>
+    datum_ids(session_proto_.file_map().datum_ids().cbegin(),
+        session_proto_.file_map().datum_ids().cend());
+  int atoms_per_worker = datum_ids.size()/num_workers;
+  if (worker_id == (num_workers - 1))
+    return std::make_tuple(datum_ids[atoms_per_worker*worker_id], datum_ids.back());
+  else
+    return std::make_tuple(datum_ids[atoms_per_worker*worker_id], datum_ids[atoms_per_worker*(worker_id+1)]);
+}
+ 
+
+
 }  // namespace hotbox

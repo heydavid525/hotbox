@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include <vector>
+#include <tuple>
 #include "client/status.hpp"
 #include "client/data_iterator.hpp"
 #include "client/mt_transformer.hpp"
@@ -42,6 +43,8 @@ public:
 
   void SetTransformsToCache(const std::vector<int> &);
   void SetTransformsCached(const std::vector<int> &);
+
+  std::tuple<int, int> GetRange(int worker_id, int num_workers);
 
 private:
   bool use_proxy_;
