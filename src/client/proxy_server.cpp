@@ -97,11 +97,6 @@ void ProxyServer::ProxyDestroyIterHandler(int client_id,
   if (iters_.find(iter_name) == iters_.cend()) {
     LOG(ERROR) << "the iter name doesn't exist: " << iter_name;
   }
-  auto metrics = iters_[iter_name]->GetMetrics();
-  for (int i = 0; i < metrics->size(); i++) {
-    LOG(INFO) << "Transform #" << i << " takes " << (*metrics)[i].time() << "\
-      ms," << (*metrics)[i].space() << " space.";
-  }
   iters_.erase(iter_name);
   SendGenericReply(client_id, "Proxy server deleted iterator.");
 }

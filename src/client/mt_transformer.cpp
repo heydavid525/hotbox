@@ -5,8 +5,7 @@
 #include <string>
 #include <vector>
 #include "util/all.hpp"
-#include <chrono>
-#include <ctime>
+#include "util/timer.hpp"
 
 namespace hotbox {
 
@@ -38,8 +37,11 @@ MTTransformer::~MTTransformer() {
   Destory();
 }
 
-void MTTransformer::IoTaskLoop() {
+void MTTransformer::IoTaskLoop(int tid) {
   // LOG(INFO) << "IoTaskLoop " << std::this_thread::get_id() << " Starts...";
+  bool sampling = false;
+  if (tid == 0) sampling = true;
+
   while (true) {
     TaskId taskid;
     // get atom_id from io_queue
@@ -54,8 +56,11 @@ void MTTransformer::IoTaskLoop() {
                               + std::to_string(task.atom_id);
     //task.buffer = std::move(io::ReadCompressedFile(
     //                          path, session_proto_.compressor()));
+    Timer timer;
     task.buffer = std::move(io::ReadCompressedFile(
                               path, Compressor::NO_COMPRESS));
+    if (sampling)
+      metrics_.add_input(timer.elapsed());
 
     if (trans_cached.size())
       cache_read_queue_->blockingWrite(taskid);
@@ -66,7 +71,10 @@ void MTTransformer::IoTaskLoop() {
 }
 
 // read cache and pass to tf
-void MTTransformer::CacheReadLoop() {
+void MTTransformer::CacheReadLoop(int tid) {
+  bool sampling = false;
+  if (tid == 0) sampling = true;
+
   while (true) {
     TaskId taskid;
     if (stop_flag_ || total_tf_tasks_ <= 0)
@@ -78,11 +86,16 @@ void MTTransformer::CacheReadLoop() {
 
     DLOG(INFO) << "Caching in for atom " << taskid << " start.";
 
+    if (sampling)
+      metrics_.add_rcache();
     for (auto& it_tid : trans_cached) {
       DLOG(INFO) << "Caching in for atom " << taskid << " transform " << it_tid;
+      Timer timer;
       task.cache[it_tid] = std::move(io::ReadCompressedFile(
             getCachePath(task.atom_id, it_tid),
             session_proto_.compressor()));
+      if (sampling)
+        metrics_.add_rcache(it_tid, timer.elapsed());
     }
 
     DLOG(INFO) << "Caching in for atom " << taskid << " end.";
@@ -95,6 +108,9 @@ void MTTransformer::CacheReadLoop() {
 void MTTransformer::TransformTaskLoop(int tid) {
   auto& global_config = GlobalConfig::GetInstance();
   int batch_size = global_config.Get<int>("transform_batch_size");
+
+  bool sampling = false;
+  if (tid == 0) sampling = true;
 
   while (true) {
     TaskId taskid;
@@ -143,6 +159,9 @@ void MTTransformer::TransformTaskLoop(int tid) {
     // caching: prepare space for datum_bases
     task.datum_bases.resize(atom_size);
 
+    if (sampling)
+      metrics_.add_transform();
+
     for (int b = 0; b < num_batches; ++b) {
       int offset = b * batch_size;
       int num_items = (b == num_batches - 1) ? (atom_size - offset)
@@ -164,6 +183,7 @@ void MTTransformer::TransformTaskLoop(int tid) {
         // TODO(dixiao): collect stats when reusing cache
         // skip transformation if constructed from cache
         if (trans_cached.find(t) != trans_cached.end()) {
+          Timer timer;
           for (int i = offset; i < offset + num_items; ++i) {
             DLOG(INFO) << "Rebuilding from cache for atom " << taskid << " datum " << i << " transform " << t;
             auto& cache = caches[t]; // cached atom for the transformation
@@ -221,6 +241,8 @@ void MTTransformer::TransformTaskLoop(int tid) {
                 }
             }
           }
+          if (sampling)
+            metrics_.add_transform(t, timer.elapsed(), 0);
           continue;
         }
         for (int j = 0; j < num_items; ++j) {
@@ -228,26 +250,17 @@ void MTTransformer::TransformTaskLoop(int tid) {
             session_proto_.transform_output_ranges(t));
         }
         // collect time (cput time) + size for the transformation
-        std::clock_t c_start = std::clock();
+        Timer timer;
         transforms_[t](&data_batch);
-        // overhead per batch, 0.1ms per item
-        //std::this_thread::sleep_for (std::chrono::milliseconds(6));
-        std::clock_t c_end = std::clock();
 
         BigInt output_counter_new = 0;
         for (int j = 0; j < num_items; ++j) {
           output_counter_new += data_batch[j]->GetOutputCounter();
         }
-
-        DLOG(INFO) << "TFTaskLoop " << tid << " finish transform #" << t << " \
-          in " << c_end - c_start << " ticks, generating " <<
-          output_counter_new - output_counter_old << " values.";
-
-        metrics_[tid][t].set_time(metrics_[tid][t].time() + (c_end-c_start) /
-            CLOCKS_PER_SEC);
-        metrics_[tid][t].set_space(metrics_[tid][t].space() +
-            output_counter_new - output_counter_old);
         output_counter_old = output_counter_new;
+
+        if (sampling)
+          metrics_.add_transform(t, timer.elapsed(), output_counter_new - output_counter_old);
       }
       for (int j = 0; j < num_items; ++j) {
         int i = task.datum_end - (j + offset) - 1;
@@ -267,7 +280,11 @@ void MTTransformer::TransformTaskLoop(int tid) {
 }
 
 // write cache out and pass output to bt_queue_
-void MTTransformer::CacheWriteLoop() {
+void MTTransformer::CacheWriteLoop(int tid) {
+
+  bool sampling = false;
+  if (tid == 0) sampling = true;
+
   while (true) {
     TaskId taskid;
     cache_write_queue_->blockingRead(taskid);
@@ -276,6 +293,8 @@ void MTTransformer::CacheWriteLoop() {
     auto& task = tasks_[taskid];
     DLOG(INFO) << "Caching out for atom " << taskid << " start.";
 
+    if (sampling)
+      metrics_.add_wcache();
     for (auto& it_tid : trans_tocache) {
       DLOG(INFO) << "Caching out transform " << it_tid;
       auto& range = session_proto_.transform_output_ranges(it_tid);
@@ -370,6 +389,7 @@ void MTTransformer::CacheWriteLoop() {
       }
       task.datum_bases.clear();
 
+      Timer timer;
       size_t uncompressed_size = 0;
       std::string compressed_atom = StreamSerialize(*atom, &uncompressed_size);
       io::WriteCompressedFile(getCachePath(task.atom_id, it_tid),
@@ -378,6 +398,8 @@ void MTTransformer::CacheWriteLoop() {
         " for caching transform " << it_tid << " size: " <<
         SizeToReadableString(compressed_atom.size());
       delete atom;
+      if (sampling)
+        metrics_.add_wcache(it_tid, timer.elapsed());
     }
     DLOG(INFO) << "Caching out for atom " << taskid << " end.";
   }
@@ -476,8 +498,8 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
 
 void MTTransformer::Start() {
   // metrics
-  metrics_.resize(num_tf_workers_, TransStats(transforms_.size()));
-  
+  metrics_.init(transforms_.size());
+
   // cache instruction
   for (auto& t : session_proto_.transforms_tocache())
       trans_tocache.insert(t);
@@ -488,8 +510,8 @@ void MTTransformer::Start() {
   Translate(data_begin_, data_end_);
 
   for (int i = 0; i < num_io_workers_; i++) {
-    io_workers_.push_back(std::thread([this]() {
-      this->IoTaskLoop();
+    io_workers_.push_back(std::thread([this, i]() {
+      this->IoTaskLoop(i);
     }));
   }
 
@@ -503,13 +525,13 @@ void MTTransformer::Start() {
     num_cache_in_workers_ = 0;
   }
   for (int i = 0; i < num_cache_in_workers_; i++) {
-    cache_read_workers_.push_back(std::thread([this]() {
-      this->CacheReadLoop();
+    cache_read_workers_.push_back(std::thread([this, i]() {
+      this->CacheReadLoop(i);
     }));
   }
   for (int i = 0; i < num_cache_out_workers_; i++) {
-    cache_write_workers_.push_back(std::thread([this]() {
-      this->CacheWriteLoop();
+    cache_write_workers_.push_back(std::thread([this, i]() {
+      this->CacheWriteLoop(i);
     }));
   }
 
@@ -524,16 +546,8 @@ bool MTTransformer::HasNextBatch() const {
   return total_batches_;
 }
 
-std::unique_ptr<TransStats> MTTransformer::GetMetrics() {
-  auto ret = std::unique_ptr<TransStats>(new TransStats(transforms_.size()));
-  for (auto it = metrics_.begin(); it != metrics_.end(); ++it) {
-    for (int i = 0; i < transforms_.size(); i++) {
-      auto transform_stat = (*ret)[i];
-      transform_stat.set_time(transform_stat.time() + (*it)[i].time());
-      transform_stat.set_space(transform_stat.space() + (*it)[i].space());
-    }
-  }
-  return ret;
+TransStats MTTransformer::GetMetrics() {
+  return metrics_;
 }
 
 std::string MTTransformer::getCachePath(int atomid, int transformid) {

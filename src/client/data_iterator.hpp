@@ -30,7 +30,7 @@ public:
   FlexiDatum GetDatum() override;
 
   // Get metrics from mtt_engine after execution is done
-  std::unique_ptr<TransStats> GetMetrics() override;
+  TransStats GetMetrics() override;
 
   DataIterator(DataIterator&& other);
 

@@ -74,7 +74,7 @@ class MTTransformer {
   void Start();
 
   // Collect and gather the metrics ThreadTransStats and produce TransStats
-  std::unique_ptr<TransStats> GetMetrics();
+  TransStats GetMetrics();
   
  private:
   // It will translate data range into io tasks and push them to io_queue_.
@@ -87,7 +87,7 @@ class MTTransformer {
   // 2. then push the Task into tf_queue_
   // 3. Loop 1 and 2 until io_queue_ is empty.
   // each io_worker will run this function.
-  void IoTaskLoop();
+  void IoTaskLoop(int);
 
   // TransformTaskLoop will take Task from tf_queue_, then decompress,
   // deserialize it into a batch. Then it will do transforms on the batch and
@@ -95,8 +95,8 @@ class MTTransformer {
   // each transform worker will run this function.
   void TransformTaskLoop(int);
 
-  void CacheReadLoop();
-  void CacheWriteLoop();
+  void CacheReadLoop(int);
+  void CacheWriteLoop(int);
 
   std::string getCachePath(int atomid, int transformid);
 
@@ -169,11 +169,12 @@ class MTTransformer {
   const BigInt data_end_;
   std::vector<BigInt> datum_ids_;
 
-  ThreadTransStats metrics_;
-
   // TODO: remove when we have atom level control of cache
   std::set<int> trans_cached; // transformations that are cached
   std::set<int> trans_tocache; // transformations that need to be cached
+
+  // samples only the first thread to avoid contention
+  TransStats metrics_ = {};
 };
 
 }  // namespace hotbox

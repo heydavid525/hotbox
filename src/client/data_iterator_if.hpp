@@ -15,7 +15,7 @@ public:
 
   virtual FlexiDatum GetDatum() = 0;
 
-  virtual std::unique_ptr<TransStats> GetMetrics() = 0;
+  virtual TransStats GetMetrics() = 0;
 
   virtual ~DataIteratorIf() {}
 

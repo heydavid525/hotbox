@@ -2,18 +2,7 @@ syntax = "proto3";
 
 package hotbox;
 
-// Metrics for a single transformation
-// used by the end transformation metadata
-// and also by the mt_transformer collecting at batch level
-message TransformMetricsProto {
-  // Time to perform a single tranformation in ms
-  uint64 time = 1;
+// use native representation for client sided decision
+// TODO(dixiao): use protobuf when providing centralized decision from db
+// server
 
-  // Space the transformed view take in KB
-  uint64 space = 2;
-}
-
-// Transformation stats per transformation
-message SessionMetricsProto {
-  repeated TransformMetricsProto metrics = 1;
-}

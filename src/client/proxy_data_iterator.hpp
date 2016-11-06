@@ -16,9 +16,9 @@ public:
 
   FlexiDatum GetDatum() override;
 
-  std::unique_ptr<TransStats> GetMetrics() override {
+  TransStats GetMetrics() override {
     LOG(ERROR) << "GetMetrics is not implemented in proxy iterator.";
-    return NULL;
+    return {};
   };
 
   ~ProxyDataIterator();
