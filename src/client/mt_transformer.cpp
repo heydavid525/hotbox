@@ -483,6 +483,8 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
                                data_end) - datum_ids_.cbegin();
   if (high == datum_ids_.size())
     high--;
+
+  DLOG(INFO) << "Translate [Datum:" << data_begin << " -> " << data_end << "] [Atom: " << low << " -> " << high << "]";
   tasks_.reserve(high-low);
 
   if (skipIO) {

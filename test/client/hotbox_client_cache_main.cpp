@@ -11,6 +11,8 @@
 #include <iostream>
 #include <tuple>
 #include "metrics/metrics.hpp"
+#include <unistd.h>
+#include <sstream>
 
 DEFINE_string(db_name, "", "Database name");
 DEFINE_string(session_id, "test_session", "session identifier");
@@ -24,6 +26,11 @@ DEFINE_int32(num_threads, 1, "num transform threads");
 DEFINE_int32(num_io_threads, 1, "num IO threads");
 DEFINE_int32(buffer_limit, 1, "");
 DEFINE_int32(batch_limit, 1, "");
+// because tf is delegated to tf and internally parallelized
+// so usually run with few worker thread
+// when with cache, we want many threads to work on transformation
+DEFINE_string(transform_cached, "", "comma separated list of transformations cached");
+DEFINE_string(transform_tocache, "", "comma separated list of transformations to cache");
 
 namespace {
 
@@ -45,7 +52,7 @@ void WriteLibSVM(const std::string& file_path,
 
 void printVector(const std::vector<int>& s) {
   for (auto &i : s) {
-    std::cout<<i<<" ";
+    std::cout<<i<<",";
   }
   std::cout<<"\n";
 }
@@ -54,7 +61,7 @@ int64_t data_begin;
 int64_t data_end;
 // helper function to create a new data iterator and run
 // return execution time
-float execute(hotbox::Session& session, std::vector<int>& tocache,
+hotbox::TransStats execute(hotbox::Session& session, std::vector<int>& tocache,
     std::vector<int>& cached, bool printMetrics) {
   std::cout<<"transforms to cache: "; printVector(tocache);
   std::cout<<"transforms cached: "; printVector(cached);
@@ -68,9 +75,21 @@ float execute(hotbox::Session& session, std::vector<int>& tocache,
     hotbox::FlexiDatum datum = it->GetDatum();
     i++;
   }
+  auto elapsed = timer.elapsed();
   auto metrics = it->GetMetrics();
   metrics.print();
-  return timer.elapsed();
+  LOG(INFO) << "Read " << i << " data. Time: " << elapsed;
+  return metrics;
+}
+
+void parseTransList(const std::string& s, std::vector<int>& v) {
+  std::stringstream ss(s);
+  int t;
+  char c;
+  while(ss>>t) {
+    ss>>c;
+    v.push_back(t);
+  }
 }
 
 }  // anonymous namespace
@@ -102,26 +121,16 @@ int main(int argc, char *argv[]) {
   //std::tie(data_begin, data_end) = session.GetRange(FLAGS_worker_id, FLAGS_num_workers);
   //LOG(INFO) << "New Range: " << data_begin << " -> " << data_end;
 
-  // normal execution
-  hotbox::Timer timer;
-  int64_t i = 0;
-  std::unique_ptr<hotbox::DataIteratorIf> it =
-    session.NewDataIterator(data_begin, data_end, FLAGS_num_threads,
-    FLAGS_num_io_threads, FLAGS_buffer_limit, FLAGS_batch_limit);
-  for (; it->HasNext();) {
-    hotbox::FlexiDatum datum = it->GetDatum();
-    i++;
-  }
-  LOG(INFO) << "(Normal execution) Read " << i << " data. Time: " << timer.elapsed();
-
   std::vector<int> tocache, cached; 
+  parseTransList(FLAGS_transform_cached, cached);
+  parseTransList(FLAGS_transform_tocache, tocache);
 
+  hotbox::TransStats metrics;
+  metrics = execute(session, tocache, cached, true);
   // decision from cost model
-  auto metrics = it->GetMetrics();
-  metrics.print();
   // note the generated value if stored in dense, doesn't affect the actual
   // storage
-  for (int t = 0; t < metrics.t_transform.size(); ++t) {
+  for (int t = 0; t < session.GetNumTrans(); ++t) {
     // all in seconds
     // time to write out, time to read in, time to stage in, compression,
     // decompression
@@ -132,22 +141,12 @@ int main(int argc, char *argv[]) {
     LOG(INFO) << "Transform " << t << " generated: " << metrics.n_generated_value[t] << " time: " << metrics.t_transform[t];
     if (gain > cost) {
       LOG(INFO) << "Cost: " << cost << " Gain: " << gain << " (Cache)";
-      tocache.push_back(i);
+      tocache.push_back(t);
     } else {
       LOG(INFO) << "Cost: " << cost << " Gain: " << gain << " (Not to cache)";
     }
+    std::cout<<"Summary: ";
+    printVector(tocache);
   }
-
-  // cache all
-  tocache.clear();
-  cached.clear();
-  for (int i = 0; i < metrics.ntransforms; ++i) {
-    tocache.push_back(i);
-  }
-  LOG(INFO) << "(Cache all: tocache) Read " << i << " data. Time: " <<
-    execute(session, tocache, cached, true);
-  tocache.swap(cached);
-  LOG(INFO) << "(Cache all: cached) Read " << i << " data. Time: " <<
-    execute(session, tocache, cached, true);
   return 0;
 };

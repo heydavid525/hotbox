@@ -45,6 +45,9 @@ public:
   void SetTransformsCached(const std::vector<int> &);
 
   std::tuple<int, int> GetRange(int worker_id, int num_workers);
+  int GetNumTrans() {
+    return transforms_.size();
+  };
 
 private:
   bool use_proxy_;

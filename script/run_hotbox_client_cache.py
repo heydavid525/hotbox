@@ -29,11 +29,11 @@ env_params = (
   )
 
 # conf = "cache_ngram_higgs.conf"
-# conf = "cache_select_all.conf"
+conf = "cache_select_all.conf"
 # conf = "cache_tf.conf"
 
 params = {
-    "db_name": 'higgs'
+    "db_name": 'a1a'
     , 'use_proxy': 'false'
     , 'num_proxy_servers': 1
     , "session_id": conf
