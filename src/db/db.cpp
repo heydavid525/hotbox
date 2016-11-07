@@ -40,6 +40,7 @@ DB::DB(const std::string& db_path_meta) :
     << meta_db_.GetName() << ")";
   DBProto proto = StreamDeserialize<DBProto>(db_proto_str);
   meta_data_ = proto.meta_data();
+  atom_id_ = meta_data_.file_map().datum_ids_size();
   schema_.reset(new Schema(&meta_db_));
 
   // Assume only 1 stat.
