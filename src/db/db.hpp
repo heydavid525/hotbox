@@ -107,7 +107,7 @@ private:
   size_t total_uncompressed_size_{0};
 
   // Reconcile multi-threaded write (creation of atom files).
-  std::atomic<int> atom_id_;
+  std::atomic<int> atom_id_{0};
   std::mutex mut_;
 };
 
