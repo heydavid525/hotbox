@@ -89,11 +89,12 @@ void MTTransformer::CacheReadLoop(int tid) {
     if (sampling)
       metrics_.add_rcache();
     for (auto& it_tid : trans_cached) {
-      DLOG(INFO) << "Caching in for atom " << taskid << " transform " << it_tid;
+      DLOG(INFO) << "Caching in for atom " << taskid << " transform " << it_tid << " begin";
       Timer timer;
       task.cache[it_tid] = std::move(io::ReadCompressedFile(
             getCachePath(task.atom_id, it_tid),
             session_proto_.compressor()));
+      DLOG(INFO) << "Caching in for atom " << taskid << " transform " << it_tid << " end";
       if (sampling)
         metrics_.add_rcache(it_tid, timer.elapsed());
     }
@@ -121,6 +122,7 @@ void MTTransformer::TransformTaskLoop(int tid) {
     --total_tf_tasks_;
 
     if (taskid == -1) break; // sentinel task for termination
+    DLOG(INFO) << "TransformTaskLoop atom " << taskid << " start.";
     auto& task = tasks_[taskid];
 
     // caching in and deserialize
@@ -529,6 +531,7 @@ void MTTransformer::Start() {
   if (trans_cached.size() == transforms_.size()) {
     CHECK_EQ(trans_tocache.size(), 0) << "don't try to cache when all transformations are already cached";
     skipIO = true;
+    DLOG(INFO) << "Start SkipIO = true";
   }
 
   // translate data range into io tasks

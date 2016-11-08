@@ -41,10 +41,10 @@ namespace hotbox {
       n_transform = 0;
       n_wcache = 0;
       ntransforms = n;
-      t_transform.resize(n);
-      n_generated_value.resize(n);
-      t_rcache.resize(n);
-      t_wcache.resize(n);
+      t_transform.resize(n, 0.f);
+      n_generated_value.resize(n, 0);
+      t_rcache.resize(n, 0.f);
+      t_wcache.resize(n, 0.f);
     }
     inline void add_input(float t) {
       t_input += t;

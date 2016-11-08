@@ -50,11 +50,13 @@ void WriteLibSVM(const std::string& file_path,
   LOG(INFO) << "LibSVM output to " << file_path;
 }
 
-void printVector(const std::vector<int>& s) {
+std::string printVector(const std::vector<int>& s) {
+  std::stringstream ss;
   for (auto &i : s) {
-    std::cout<<i<<",";
+    ss<<i<<",";
   }
-  std::cout<<"\n";
+  ss<<"\n";
+  return ss.str();
 }
 
 int64_t data_begin;
@@ -63,8 +65,8 @@ int64_t data_end;
 // return execution time
 hotbox::TransStats execute(hotbox::Session& session, std::vector<int>& tocache,
     std::vector<int>& cached, bool printMetrics) {
-  std::cout<<"transforms to cache: "; printVector(tocache);
-  std::cout<<"transforms cached: "; printVector(cached);
+  LOG(INFO)<<"transforms to cache: "<< printVector(tocache);
+  LOG(INFO)<<"transforms cached: "<< printVector(cached);
   session.SetTransformsToCache(tocache);
   session.SetTransformsCached(cached);
   int64_t i = 0;
@@ -130,6 +132,8 @@ int main(int argc, char *argv[]) {
   // decision from cost model
   // note the generated value if stored in dense, doesn't affect the actual
   // storage
+  tocache.clear();
+  cached.clear();
   for (int t = 0; t < session.GetNumTrans(); ++t) {
     // all in seconds
     // time to write out, time to read in, time to stage in, compression,
@@ -145,8 +149,7 @@ int main(int argc, char *argv[]) {
     } else {
       LOG(INFO) << "Cost: " << cost << " Gain: " << gain << " (Not to cache)";
     }
-    std::cout<<"Summary: ";
-    printVector(tocache);
+    std::cout<<"Summary: " << printVector(tocache);
   }
   return 0;
 };
