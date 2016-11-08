@@ -44,7 +44,9 @@ public:
   void SetTransformsToCache(const std::vector<int> &);
   void SetTransformsCached(const std::vector<int> &);
 
+  // helper for caching client
   std::tuple<int, int> GetRange(int worker_id, int num_workers);
+  std::tuple<int, int> GetAtomRange(int worker_id, int num_workers);
   int GetNumTrans() {
     return transforms_.size();
   };

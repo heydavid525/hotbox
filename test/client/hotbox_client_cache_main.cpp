@@ -114,14 +114,28 @@ int main(int argc, char *argv[]) {
   CHECK(session.GetStatus().IsOk());
   int64_t num_data = session.GetNumData();
   int64_t num_data_per_worker = num_data / FLAGS_num_workers;
-  data_begin = num_data_per_worker * FLAGS_worker_id;
-  data_end = FLAGS_worker_id == FLAGS_num_workers - 1 ?
-        num_data : data_begin + num_data_per_worker;
-  LOG(INFO) << "Old Range: " << data_begin << " -> " << data_end;
+  //data_begin = num_data_per_worker * FLAGS_worker_id;
+  //data_end = FLAGS_worker_id == FLAGS_num_workers - 1 ?
+        //num_data : data_begin + num_data_per_worker;
+  //LOG(INFO) << "Old Range: " << data_begin << " -> " << data_end;
   // align by atom boundary so no slicing will happen
   // because caching is supported at atom level
-  //std::tie(data_begin, data_end) = session.GetRange(FLAGS_worker_id, FLAGS_num_workers);
-  //LOG(INFO) << "New Range: " << data_begin << " -> " << data_end;
+  std::tie(data_begin, data_end) = session.GetRange(FLAGS_worker_id, FLAGS_num_workers);
+  LOG(INFO) << "New Range: " << data_begin << " -> " << data_end;
+
+  /* test
+  for (int i = 0; i < FLAGS_num_workers; ++i) {
+    int a,b,c,d,e,f,g,h;
+    std::tie(a, b) = session.GetRange(i, FLAGS_num_workers);
+    std::tie(c, d) = session.GetAtomRange(a, b);
+    e = num_data_per_worker * i;
+    f = i == FLAGS_num_workers - 1 ? num_data : e + num_data_per_worker;
+    std::tie(g, h) = session.GetAtomRange(e, f);
+    LOG(INFO) << "Worker " << i << " Old Range: " << e << " -> " << f << " Atom: " << g << " -> " << h << " total " << h - g << " atoms, " << f-e << " datums.";
+    LOG(INFO) << "Worker " << i << " New Range: " << a << " -> " << b << " Atom: " << c << " -> " << d << " total " << d - c << " atoms, " << b-a << " datums.";
+  }
+  return 0;
+  */
 
   std::vector<int> tocache, cached; 
   parseTransList(FLAGS_transform_cached, cached);

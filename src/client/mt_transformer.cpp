@@ -479,9 +479,9 @@ std::vector<FlexiDatum> *MTTransformer::NextBatch() {
 void
 MTTransformer::Translate(size_t data_begin, size_t data_end) {
   CHECK_LT(data_begin, data_end);
-  auto low = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(),
-                              data_begin) - datum_ids_.cbegin() - 1;
-  auto high = std::upper_bound(datum_ids_.cbegin(), datum_ids_.cend(),
+  auto low = std::lower_bound(datum_ids_.cbegin(), datum_ids_.cend(),
+                              data_begin) - datum_ids_.cbegin();
+  auto high = std::lower_bound(datum_ids_.cbegin(), datum_ids_.cend(),
                                data_end) - datum_ids_.cbegin();
   if (high == datum_ids_.size())
     high--;

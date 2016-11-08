@@ -90,13 +90,37 @@ std::tuple<int, int> Session::GetRange(int worker_id, int num_workers) {
   std::vector<BigInt>
     datum_ids(session_proto_.file_map().datum_ids().cbegin(),
         session_proto_.file_map().datum_ids().cend());
-  int atoms_per_worker = datum_ids.size()/num_workers;
-  if (worker_id == (num_workers - 1))
-    return std::make_tuple(datum_ids[atoms_per_worker*worker_id], datum_ids.back());
-  else
-    return std::make_tuple(datum_ids[atoms_per_worker*worker_id], datum_ids[atoms_per_worker*(worker_id+1)]);
+  int atoms_per_worker=datum_ids.size()/num_workers;
+  int remainder = datum_ids.size()%num_workers;
+  datum_ids.push_back(session_proto_.file_map().num_data());
+  //DLOG(INFO) << "atoms_per_worker: " << atoms_per_worker << " remainder: " << remainder << " total: " << session_proto_.file_map().num_data();
+  int data_begin, data_end;
+  // make atoms spread out evenly
+  std::vector<int> atom_ids;
+  atom_ids.resize(num_workers+1, 0);
+  for (int i = 0; i < num_workers; ++i) {
+    atom_ids[i+1] += atom_ids[i] + atoms_per_worker + (i < remainder ? 1 : 0);
+    //DLOG(INFO) << "worker " << i << " : " << atom_ids[i] << " -> " << atom_ids[i+1];
+  }
+  data_begin = datum_ids[atom_ids[worker_id]];
+  data_end = datum_ids[atom_ids[worker_id+1]];
+  return std::make_tuple(data_begin, data_end);
 }
  
+std::tuple<int, int> Session::GetAtomRange(int data_begin, int data_end) {
+  std::vector<BigInt>
+    datum_ids(session_proto_.file_map().datum_ids().cbegin(),
+        session_proto_.file_map().datum_ids().cend());
+  datum_ids.push_back(session_proto_.file_map().num_data());
 
+  auto low = std::lower_bound(datum_ids.cbegin(), datum_ids.cend(),
+                              data_begin) - datum_ids.cbegin();
+  auto high = std::lower_bound(datum_ids.cbegin(), datum_ids.cend(),
+                               data_end) - datum_ids.cbegin();
+  if (high == datum_ids.size())
+    high--;
+
+  return std::make_tuple(low, high);
+}
 
 }  // namespace hotbox

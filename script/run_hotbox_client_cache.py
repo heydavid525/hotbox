@@ -28,21 +28,24 @@ env_params = (
   "GLOG_minloglevel=0 "
   )
 
+db = 'higgsx10'
 # conf = "cache_ngram_higgs.conf"
-conf = "cache_select_all.conf"
-# conf = "cache_tf.conf"
+# conf = "cache_select_all.conf"
+conf = "cache_tf.conf"
 
 params = {
-    "db_name": 'a1a'
+    "db_name": db
     , 'use_proxy': 'false'
     , 'num_proxy_servers': 1
-    , "session_id": conf
+    , "session_id": db+'.'+conf
     , "transform_config": conf
     , 'num_workers': num_workers
-    , 'num_threads': 1
+    , 'num_threads': 2 
     , 'num_io_threads': 16
     , 'buffer_limit': 16
     , 'batch_limit': 16
+    , 'transform_tocache' : '0'
+    , 'transform_cached' : ''
     }
 
 ssh_cmd = (
