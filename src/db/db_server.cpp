@@ -144,11 +144,14 @@ void DBServer::ReadFileReqHandler(int client_id, const ReadFileReq& req) {
   auto& global_config = GlobalConfig::GetInstance();
   int num_io = global_config.Get<int>("num_io_ingest");
   std::string reply_msg;
+  /*
   if (num_io == 1) {
     reply_msg = it->second->ReadFile(req);
   } else {
     reply_msg = it->second->ReadFileMT(req);
   }
+  */
+  reply_msg = it->second->ReadFileMT(req);
   SendGenericReply(client_id, reply_msg);
 }
 

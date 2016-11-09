@@ -17,7 +17,7 @@ public:
   }
 
   void UpdateMax(float new_val) {
-    proto_->set_max(std::max(proto_->max(), static_cast<double>(new_val)));
+    proto_->set_max(std::max(proto_->max(), new_val));
   }
 
   float GetMin() const {
@@ -25,7 +25,7 @@ public:
   }
 
   void UpdateMin(float new_val) {
-    proto_->set_min(std::min(proto_->min(), static_cast<double>(new_val)));
+    proto_->set_min(std::min(proto_->min(), new_val));
   }
 
 

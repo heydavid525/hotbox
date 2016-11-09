@@ -99,14 +99,17 @@ std::string DB::ReadFileMT(const ReadFileReq& req) {
   // Extend the default feature family if necessary.
   LOG(INFO) << "req.num_features_default(): " << req.num_features_default();
   if (req.num_features_default() != 0) {
+    StatCollector stat_collector(&stats_);
     LOG(INFO) << "Add features up to " << req.num_features_default();
     bool is_simple = true;
     const FeatureFamilyIf& family_if =
       schema_->GetOrCreateFamily(kDefaultFamily,
       is_simple, FeatureStoreType::SPARSE_NUM);
     Feature feature = CreateFeature(FeatureStoreType::SPARSE_NUM);
-    schema_->AddFeature("default", &feature,
-      req.num_features_default() - 1);
+    for (int64_t i = 0; i < req.num_features_default(); ++i) {
+      schema_->AddFeature("default", &feature, i);
+      stat_collector.AddFeatureStat(feature);
+    }
   }
   auto& global_config = GlobalConfig::GetInstance();
   int num_io = global_config.Get<int>("num_io_ingest");
@@ -230,7 +233,7 @@ ProcessReturn DB::ReadOneFileMT(ParserIf* parser,
   auto fp = io::OpenFileStream(path);
   dmlc::istream in(fp.get());
   //std::vector<Stat> stats_;
-  //StatCollector stat_collector(&stats_);
+  StatCollector stat_collector(&stats_);
 
   DBAtom atom;
   int64_t curr_batch_size = 0;
@@ -238,7 +241,7 @@ ProcessReturn DB::ReadOneFileMT(ParserIf* parser,
   for (std::string line; std::getline(in, line); ) {
     bool invalid = false;
     DatumBase datum = parser->ParseLine(line,
-        schema_.get(), nullptr, &invalid);
+        schema_.get(), &stat_collector, &invalid);
     if (invalid) {
       continue;   // possibly a comment line.
     }

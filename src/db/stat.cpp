@@ -77,6 +77,7 @@ void Stat::AddFeatureStat(const Feature& feature) {
   // TODO(wdai): This is only valid for sparse data format. Make this more
   // flexible.
   if (IsNumerical(feature)) {
+    LOG(INFO) << "Add " << feature.global_offset();
     proto_->mutable_stats(offset)->add_unique_num_values(0.);
   } else {
     proto_->mutable_stats(offset)->add_unique_cat_values(0);
@@ -203,8 +204,8 @@ size_t Stat::Commit(int id, RocksDB* db) const {
 }
 
 void Stat::UpdateStatCommon(FeatureStatProto* stat, float val) {
-  double min = std::min(stat->min(), static_cast<double>(val));
-  double max = std::max(stat->max(), static_cast<double>(val));
+  double min = std::min(stat->min(), val);
+  double max = std::max(stat->max(), val);
   double sum = stat->sum() + val;
   stat->set_min(min);
   stat->set_max(max);

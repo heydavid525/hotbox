@@ -26,9 +26,11 @@ message FeatureStatProto {
   repeated int32 unique_cat_values = 6;
   repeated float unique_num_values = 8;
   repeated string unique_bytes_values = 7;
-  double min = 2;
-  double max = 3;
-  double sum = 4;   // sum / num_data = mean.
+  float min = 2;
+  float max = 3;
+  float sum = 4;   // sum / num_data = mean.
+  float mean = 9;
+  float var = 10;
   //double quantile_5 = 3;
   //double quantile_95 = 4;
 }
