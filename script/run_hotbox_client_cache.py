@@ -28,10 +28,22 @@ env_params = (
   "GLOG_minloglevel=0 "
   )
 
+# db = 'higgs' # <- big imbalance
 db = 'higgsx10'
 # conf = "cache_ngram_higgs.conf"
 # conf = "cache_select_all.conf"
-conf = "cache_tf.conf"
+# conf = "cache_tf.conf"
+# conf = 'cache_bucketize.conf'
+# conf = 'cache_normalize.conf'
+conf = 'cache_mixed_1.conf'
+tset = ''
+tset = '0,1,2,3,4,5,6,7'
+if 0:
+    tocache = tset 
+    cached = '' 
+else:
+    tocache = ''
+    cached = tset
 
 params = {
     "db_name": db
@@ -40,12 +52,12 @@ params = {
     , "session_id": db+'.'+conf
     , "transform_config": conf
     , 'num_workers': num_workers
-    , 'num_threads': 2 
-    , 'num_io_threads': 16
+    , 'num_threads': 6
+    , 'num_io_threads': 6
     , 'buffer_limit': 16
     , 'batch_limit': 16
-    , 'transform_tocache' : '0'
-    , 'transform_cached' : ''
+    , 'transform_tocache' : tocache
+    , 'transform_cached' : cached
     }
 
 ssh_cmd = (
@@ -61,11 +73,21 @@ if len(ips) == 0:
   os.system(cmd)
   sys.exit(0)
 
+import subprocess
+pids = []
 for client_id, ip in enumerate(ips):
   params['worker_id'] = client_id
   cmd = ssh_cmd + ip + ' '
   cmd += env_params + prog
   cmd += "".join([" --%s=%s" % (k,v) for k,v in params.items()])
-  cmd += ' &'
+  # cmd += ' &'
   print(cmd)
-  os.system(cmd)
+  # os.system(cmd)
+  p = subprocess.Popen(cmd,stdin=None,stdout=None, shell=True)
+  pids.append(p)
+
+for p in pids:
+    p.wait()
+
+print("DONE")
+
