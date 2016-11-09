@@ -395,10 +395,8 @@ void MTTransformer::CacheWriteLoop(int tid) {
             LOG(FATAL) << "Caching out for store type " <<
               type << " is not supported yet.";
         }
-				it_datum.reset(); // free datum_base
         atom->mutable_datum_protos()->AddAllocated(datum);
       }
-      task.datum_bases.clear();
 
       Timer timer;
       size_t uncompressed_size = 0;
@@ -412,6 +410,9 @@ void MTTransformer::CacheWriteLoop(int tid) {
       if (sampling)
         metrics_.add_wcache(it_tid, timer.elapsed());
     }
+
+    task.datum_bases.clear();
+
     DLOG(INFO) << "Caching out for atom " << taskid << " end.";
   }
 }
