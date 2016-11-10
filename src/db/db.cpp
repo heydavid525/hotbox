@@ -106,9 +106,13 @@ std::string DB::ReadFileMT(const ReadFileReq& req) {
       schema_->GetOrCreateFamily(kDefaultFamily,
       is_simple, FeatureStoreType::SPARSE_NUM);
     Feature feature = CreateFeature(FeatureStoreType::SPARSE_NUM);
-    for (int64_t i = 0; i < req.num_features_default(); ++i) {
-      schema_->AddFeature("default", &feature, i);
-      stat_collector.AddFeatureStat(feature);
+    if (req.parser_config().collect_stats()) {
+      for (int64_t i = 0; i < req.num_features_default(); ++i) {
+        schema_->AddFeature("default", &feature, i);
+        stat_collector.AddFeatureStat(feature);
+      }
+    } else {
+      schema_->AddFeature("default", &feature, req.num_features_default() - 1);
     }
   }
   auto& global_config = GlobalConfig::GetInstance();

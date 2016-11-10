@@ -25,10 +25,10 @@ Schema* schema, StatCollector* stat_collector, bool* invalid) noexcept {
     schema->GetAppendOffset());
   StatCollector* collector = config_.collect_stats() ?
     stat_collector : nullptr;
-  if (stat_collector != nullptr) {
+  if (collector != nullptr) {
     stat_collector->DatumCreateBegin();
   }
-  DatumBase datum(proto, stat_collector);
+  DatumBase datum(proto, collector);
   std::vector<TypedFeatureFinder> not_found_features = Parse(line, schema,
       &datum, invalid);
   CHECK_EQ(0, not_found_features.size()) << "Feature not found.";
