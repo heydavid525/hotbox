@@ -46,6 +46,7 @@ void TransDatum::SetFeatureValRelativeOffset(BigInt relative_offset,
     const std::vector<float>& vals) {
   CHECK_LE(relative_offset + vals.size(), range_) << "relative_offset "
     << relative_offset << " is bigger than range " << range_;
+  output_counter_ += vals.size();
   BigInt offset = relative_offset + offset_begin_;
   if (store_type_ == FeatureStoreType::OUTPUT) {
     if (output_store_type_ == OutputStoreType::DENSE) {
