@@ -74,6 +74,26 @@ namespace hotbox {
       //t_pure_task += pure;
       //n_task ++;
     //}
+    // calculate cost and gain for transformation
+    // all in seconds
+    // time to write out, time to read in, time to stage in, compression,
+    // decompression
+    float cost(int t) {
+      float io_const_cost = 0.05;
+      // estimate size in mb then 100mb/s
+      float cache_in_cost = io_const_cost + (float) n_generated_value[t]/n_transform*4.0/1024/1024/100;
+      // mem cpy
+      float cost = cache_in_cost + io_const_cost + (float) n_generated_value[t]/n_transform*4.0/1024/1024/1024/10;
+      return cost;
+    }
+    float gain(int t) {
+      float gain = t_transform[t]/n_transform;
+      return gain;
+    }
+    // decide whether to cache for given transformation
+    bool decision(int t) {
+      return (gain(t) > cost(t));
+    }
     inline void print() {
       if (n_input == 0) {
         std::cout<<"time to read the input dataset: not sampled\n";
@@ -103,6 +123,11 @@ namespace hotbox {
         for (int i = 0; i < t_wcache.size(); ++i) {
           std::cout<<"["<<i<<":"<<t_wcache[i]/n_wcache<<"] ";
         }
+      }
+      std::cout<<"\ndecision [tid:cost:gain:decition]: ";
+      std::cout.precision(3);
+      for (int i = 0; i < t_transform.size(); ++i) {
+          std::cout<<"["<<i<<":"<<cost(i)<<":"<<gain(i)<<":"<<decision(i)<<"] ";
       }
       std::cout<<"\n";
     }

@@ -149,21 +149,10 @@ int main(int argc, char *argv[]) {
   tocache.clear();
   cached.clear();
   for (int t = 0; t < session.GetNumTrans(); ++t) {
-    // all in seconds
-    // time to write out, time to read in, time to stage in, compression,
-    // decompression
-    float io_const_cost = 0.05;
-    float cache_in_cost = io_const_cost + metrics.n_generated_value[t]*4.0/1024/1024/100; // estimate size in mb then 100mb/s
-    float cost = cache_in_cost + io_const_cost + metrics.n_generated_value[t]*4.0/1024/1024/1024/10; // mem cpy
-    float gain = metrics.t_transform[t];
-    LOG(INFO) << "Transform " << t << " generated: " << metrics.n_generated_value[t] << " time: " << metrics.t_transform[t];
-    if (gain > cost) {
-      LOG(INFO) << "Cost: " << cost << " Gain: " << gain << " (Cache)";
+    if (metrics.decision(t)) {
       tocache.push_back(t);
-    } else {
-      LOG(INFO) << "Cost: " << cost << " Gain: " << gain << " (Not to cache)";
     }
-    std::cout<<"Summary: " << printVector(tocache);
   }
+  std::cout<<"Decision: " << printVector(tocache);
   return 0;
 };
