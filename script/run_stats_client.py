@@ -47,7 +47,7 @@ if __name__ == '__main__':
       , "transform_config": "select_all.conf"
       , "read_stats" : "true"
       , 'num_workers': num_workers
-      , 'num_threads': 1
+      , 'num_threads': 16
       , 'num_io_threads': 1
       , 'buffer_limit': 16
       , 'batch_limit': 16
