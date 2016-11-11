@@ -136,7 +136,7 @@ void DatumBase::SetDenseNumFeatureVal(BigInt store_offset, float val) {
 }
 
 void DatumBase::SetDenseNumFeatureVal(BigInt offset, const std::vector<float>& vals) {
-  CHECK_LT(offset + vals.size(), proto_->dense_num_store_size());
+  CHECK_LE(offset + vals.size(), proto_->dense_num_store_size());
   auto len = vals.size(); 
   auto src = vals.data(); 
   auto dst = proto_->mutable_dense_num_store()->mutable_data();
