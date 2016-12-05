@@ -176,6 +176,10 @@ class MTTransformer {
 
   // samples only the first thread to avoid contention
   TransStats metrics_ = {};
+
+  // map of cached datums for each transformations
+  // it takes 2kb per transformation for 64MB batch with 1TB data
+  std::vector<std::vector<bool> > cached_datums;
 };
 
 }  // namespace hotbox

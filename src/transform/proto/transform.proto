@@ -65,6 +65,10 @@ message TransformConfig {
   // optional flag for caching
   bool tocache = 20;
   bool cached = 21;
+  string hash = 22;
+  // hash value of transform parameters that acts as identifier for the
+  // transformation
+  repeated uint32 cached_datums = 23;
 }
 
 message TransformConfigList {

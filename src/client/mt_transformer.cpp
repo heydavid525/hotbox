@@ -89,6 +89,11 @@ void MTTransformer::CacheReadLoop(int tid) {
     if (sampling)
       metrics_.add_rcache();
     for (auto& it_tid : trans_cached) {
+      // skip if transform for this datum is not cached
+      if (!cached_datums[it_tid][taskid]) {
+        continue;
+      }
+      
       DLOG(INFO) << "Caching in for atom " << taskid << " transform " << it_tid << " begin";
       Timer timer;
       task.cache[it_tid] = std::move(io::ReadCompressedFile(
@@ -191,7 +196,7 @@ void MTTransformer::TransformTaskLoop(int tid) {
       BigInt output_counter_old = 0;
       for (int t = 0; t < transforms_.size(); ++t) {
         // skip transformation if constructed from cache
-        if (trans_cached.find(t) != trans_cached.end()) {
+        if (trans_cached.find(t) != trans_cached.end() && cached_datums[t][taskid]) {
           Timer timer;
           for (int i = offset; i < offset + num_items; ++i) {
             DLOG(INFO) << "Rebuilding from cache for atom " << taskid << " datum " << i << " transform " << t;
@@ -304,6 +309,10 @@ void MTTransformer::CacheWriteLoop(int tid) {
     if (sampling)
       metrics_.add_wcache();
     for (auto& it_tid : trans_tocache) {
+      // skip if transform for this datum is cached
+      if (cached_datums[it_tid][taskid]) {
+        continue;
+      }
       DLOG(INFO) << "Caching out transform " << it_tid;
       auto& range = session_proto_.transform_output_ranges(it_tid);
       auto type = range.store_type();
@@ -500,6 +509,17 @@ MTTransformer::Translate(size_t data_begin, size_t data_end) {
   bt_queue_ = make_unique<folly::MPMCQueue<std::vector<FlexiDatum> *> >(bt_limit_);  // batch queue
   cache_write_queue_ = make_unique<folly::MPMCQueue<TaskId> >(tf_limit_);
 
+  // add the cached datums info per transformations from session_proto
+  for (int tid = 0; tid < transforms_.size(); ++tid) {
+    cached_datums[tid].resize(high-low);
+    auto transform_config = session_proto_.trans_params(i).GetConfig();
+    for (auto& it = transform_config.cached_datums.cbegin(); it !=
+        transform_config.cached_datums.cend(); ++ it) {
+      cached_datums[tid][it] = 1;
+    }
+  }
+
+  // add tasks to queue and start working
   for (int atom_id = low; atom_id < high; atom_id++) {
     tasks_[atom_id].atom_id = atom_id;
     tasks_[atom_id].datum_begin = std::max(data_begin, (size_t)datum_ids_[atom_id])
@@ -580,8 +600,8 @@ TransStats MTTransformer::GetMetrics() {
 }
 
 std::string MTTransformer::getCachePath(int atomid, int transformid) {
-  return session_proto_.file_map().atom_path() + std::to_string(atomid) + "."
-    + std::to_string(transformid); 
+  return session_proto_.file_map().atom_path() + "/cache/" +
+    std::to_string(atomid) + "." + session_proto_.trans_params(i).GetConfig().GetHash(); 
 }
 
 }  // namespace hotbox
