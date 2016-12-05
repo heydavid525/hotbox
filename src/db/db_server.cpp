@@ -48,6 +48,9 @@ void DBServer::Start() {
     } else if (client_msg.has_close_session_req()) {
       LOG(INFO) << "Received close_session_req from client " << client_id;
       CloseSessionHandler(client_id, client_msg.close_session_req());
+    } else if (client_msg.has_heartbeat_msg()) {
+      LOG(INFO) << "Received heartbeat_msg from client " << client_id;
+      HeartbeatHandler(client_id, client_msg.heartbeat_msg());
     } else {
       LOG(ERROR) << "Unrecognized client msg case: "
         << client_msg.msg_case();
@@ -217,5 +220,9 @@ void DBServer::CloseSessionHandler(int client_id, const CloseSessionReq& req) {
       << " weren't in session.";
   }
 }
+
+void HeartbeatHandler(int client_id, const HeartbeatMsg& msg) {
+  
+};
 
 }  // namespace hotbox

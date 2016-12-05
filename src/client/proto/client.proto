@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package hotbox;
+
+message CacheProgress {
+  repeated TransCacheProgress = 1;
+}
+
+message TransCacheProgress {
+  string hash = 1;
+  repeated uint32 datumids;
+}

@@ -80,6 +80,12 @@ hotbox::TransStats execute(hotbox::Session& session, std::vector<int>& tocache,
   auto elapsed = timer.elapsed();
   auto metrics = it->GetMetrics();
   metrics.print();
+  // TODO:
+  // send heartbeat information with session periodically
+  // including the cache progress
+  {
+    // session.SendHeartBeatMessage();
+  }
   LOG(INFO) << "Read " << i << " data. Time: " << elapsed;
   return metrics;
 }

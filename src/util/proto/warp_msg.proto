@@ -4,6 +4,8 @@ import "util/proto/util.proto";
 import "schema/proto/schema.proto";
 import "db/proto/db.proto";
 import "parse/proto/parser_config.proto";
+import "metrics/proto/metrics.proto";
+import "client/proto/client.proto";
 
 package hotbox;
 
@@ -17,6 +19,8 @@ message ClientMsg {
     DBServerShutdownReq db_server_shutdown_req = 5;
     CreateSessionReq create_session_req = 6;
     CloseSessionReq close_session_req = 7;
+
+    HeartbeatMsg heartbeat_msg = 12;
 
     // Request by proxy client only.
     ProxyCreateIterReq proxy_create_iter_req = 8;
@@ -109,6 +113,19 @@ message CreateSessionReply {
 
 message CloseSessionReq {
   string session_id = 1;
+}
+
+message HeartbeatMsg {
+  string session_id = 1;
+  // currently clients make decision locally so won't send ExecutionStats
+  // ExecutionStats execution_stats = 2;
+  CacheProgress cache_progress = 3;
+}
+
+message HeartbeatReply {
+  string msg = 1;
+  repeated uint32 transforms_to_cache = 2;
+  // cached transformations, and datum ids
 }
 
 message ProxyCreateIterReq {

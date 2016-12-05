@@ -51,6 +51,8 @@ private:
 
   void CloseSessionHandler(int client_id, const CloseSessionReq& req);
 
+  void HeartbeatHandler(int client_id, const HeartbeatMsg& msg);
+  
 private:
   // Atom files are stored under db_dir_.
   const std::string db_dir_;

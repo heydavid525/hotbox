@@ -2,7 +2,14 @@ syntax = "proto3";
 
 package hotbox;
 
-// use native representation for client sided decision
-// TODO(dixiao): use protobuf when providing centralized decision from db
-// server
+message ExecutionStats {
+  repeated TransformStats = 1;
+}
 
+message TransStats {
+  string hash = 1;
+  float t_read_cache = 2;
+  float t_transform = 3;
+  uint64 n_generated_value = 4;
+  float t_write_cache = 5;
+}
